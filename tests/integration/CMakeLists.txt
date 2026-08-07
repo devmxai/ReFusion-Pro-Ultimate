@@ -3,6 +3,18 @@ if(TARGET ReFusion::PlatformGpu)
   target_link_libraries(refusion-platform-gpu-tests PRIVATE ReFusion::PlatformGpu)
   refusion_enable_warnings(refusion-platform-gpu-tests)
   add_test(NAME refusion.platform_gpu COMMAND refusion-platform-gpu-tests)
+
+  if(APPLE)
+    add_executable(refusion-macos-gpu-lifecycle-notification-tests
+      macos_gpu_lifecycle_notification_test.mm)
+    target_link_libraries(refusion-macos-gpu-lifecycle-notification-tests
+      PRIVATE ReFusion::PlatformGpu "-framework AppKit")
+    target_compile_options(refusion-macos-gpu-lifecycle-notification-tests
+      PRIVATE -fobjc-arc)
+    refusion_enable_warnings(refusion-macos-gpu-lifecycle-notification-tests)
+    add_test(NAME refusion.macos_gpu_lifecycle_notifications
+      COMMAND refusion-macos-gpu-lifecycle-notification-tests)
+  endif()
 endif()
 
 if(TARGET ReFusion::SkiaAdapter)

@@ -173,6 +173,9 @@ FrameResult ViewportRenderSession::render_once() {
     result = presenter_.present(next_frame_locked(std::chrono::steady_clock::now()));
     last_frame_status_ = result.status;
     diagnostic_ = result.diagnostic;
+    if (result.status == FrameStatus::rejected) {
+      running_ = false;
+    }
   }
   notify_frame_observer();
   return result;
@@ -224,6 +227,9 @@ void ViewportRenderSession::render_loop(const std::stop_token stop_token) {
       result = presenter_.present(next_frame_locked(now));
       last_frame_status_ = result.status;
       diagnostic_ = result.diagnostic;
+      if (result.status == FrameStatus::rejected) {
+        running_ = false;
+      }
       next_deadline = now + frame_interval;
     }
     notify_frame_observer();

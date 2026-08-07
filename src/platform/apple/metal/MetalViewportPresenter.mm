@@ -5,7 +5,9 @@
 #import <QuartzCore/CAMetalLayer.h>
 
 #include <cstdint>
+#include <atomic>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -54,6 +56,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
           "Metal presenter and frame renderer must share one GPU generation");
     }
     telemetry_.device_generation = device.generation;
+    telemetry_.device_status = runtime::gpu::DeviceStatus::ready;
   }
 
   ~MetalViewportPresenter() override { detach(); }
@@ -101,6 +104,21 @@ class MetalViewportPresenter final : public ViewportPresenter {
 
     host_view_ = view;
     metal_layer_ = metal_layer;
+    NSWindow* window = view.window;
+    if (window != nil) {
+      occluded_.store(
+          (window.occlusionState & NSWindowOcclusionStateVisible) == 0);
+      occlusion_observer_ = [NSNotificationCenter.defaultCenter
+          addObserverForName:NSWindowDidChangeOcclusionStateNotification
+                      object:window
+                       queue:nil
+                  usingBlock:^(NSNotification* notification) {
+                    NSWindow* observed_window = notification.object;
+                    occluded_.store(
+                        (observed_window.occlusionState &
+                         NSWindowOcclusionStateVisible) == 0);
+                  }];
+    }
     if (extent_.valid()) {
       return resize(extent_);
     }
@@ -108,10 +126,16 @@ class MetalViewportPresenter final : public ViewportPresenter {
   }
 
   void detach() noexcept override {
+    if (occlusion_observer_ != nil) {
+      [NSNotificationCenter.defaultCenter removeObserver:occlusion_observer_];
+      occlusion_observer_ = nil;
+    }
     [metal_layer_ removeFromSuperlayer];
     metal_layer_ = nil;
     host_view_ = nil;
     visible_ = false;
+    occluded_.store(false);
+    last_occluded_ = false;
   }
 
   [[nodiscard]] FrameResult resize(const ViewportExtent extent) override {
@@ -133,11 +157,58 @@ class MetalViewportPresenter final : public ViewportPresenter {
     return FrameResult{.status = FrameStatus::accepted};
   }
 
-  void set_visible(const bool visible) noexcept override { visible_ = visible; }
+  void set_visible(const bool visible) noexcept override {
+    if (visible_ == visible) {
+      return;
+    }
+    visible_ = visible;
+    if (visible) {
+      ++telemetry_.visibility_resumes;
+    } else {
+      ++telemetry_.visibility_suspends;
+    }
+  }
 
   [[nodiscard]] FrameResult present(const FixtureFrame& frame) override {
     ++telemetry_.frame_requests;
     @autoreleasepool {
+      const auto health = device_service_.health();
+      telemetry_.device_status = health.status;
+      telemetry_.device_event_sequence = health.event_sequence;
+      if (health.status == runtime::gpu::DeviceStatus::suspended) {
+        ++telemetry_.skipped_frames;
+        ++telemetry_.device_suspended_frames;
+        return skipped(health.code + ": " + health.diagnostic);
+      }
+      if (health.status == runtime::gpu::DeviceStatus::lost) {
+        ++telemetry_.rejected_frames;
+        ++telemetry_.device_loss_rejections;
+        if (!health.generation_matches(frame_renderer_.device_identity())) {
+          ++telemetry_.stale_generation_rejections;
+        }
+        return rejected(health.code + ": " + health.diagnostic);
+      }
+      if (!health.generation_matches(frame_renderer_.device_identity()) ||
+          health.identity.generation != telemetry_.device_generation) {
+        ++telemetry_.rejected_frames;
+        ++telemetry_.stale_generation_rejections;
+        return rejected(
+            "RFX-GPU-STALE-GENERATION: presenter rejected stale GPU resources");
+      }
+      const bool occluded = occluded_.load();
+      if (occluded != last_occluded_) {
+        if (occluded) {
+          ++telemetry_.occlusion_suspends;
+        } else {
+          ++telemetry_.occlusion_resumes;
+        }
+        last_occluded_ = occluded;
+      }
+      if (occluded) {
+        ++telemetry_.skipped_frames;
+        ++telemetry_.occluded_frames;
+        return skipped("RFX-VIEWPORT-OCCLUDED: native window is fully occluded");
+      }
       if (metal_layer_ == nil || !extent_.valid() || !visible_) {
         ++telemetry_.skipped_frames;
         return skipped("Viewport is detached, hidden, or has no drawable extent");
@@ -157,7 +228,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
           .texture = reinterpret_cast<std::uintptr_t>((__bridge void*)texture),
           .width_pixels = static_cast<std::uint32_t>(texture.width),
           .height_pixels = static_cast<std::uint32_t>(texture.height),
-          .device_generation = device_service_.identity().generation,
+          .device_generation = health.identity.generation,
       };
       auto rendered = frame_renderer_.render(target, frame);
       if (!rendered.succeeded()) {
@@ -170,8 +241,26 @@ class MetalViewportPresenter final : public ViewportPresenter {
       }
       ++telemetry_.renderer_submissions;
 
-      auto device_lease = device_service_.borrow();
-      const auto handles = device_lease.native_handles();
+      std::optional<runtime::gpu::DeviceLease> device_lease;
+      try {
+        device_lease.emplace(device_service_.borrow());
+      } catch (const std::exception& error) {
+        const auto failed_health = device_service_.health();
+        telemetry_.device_status = failed_health.status;
+        telemetry_.device_event_sequence = failed_health.event_sequence;
+        if (failed_health.status == runtime::gpu::DeviceStatus::suspended) {
+          ++telemetry_.skipped_frames;
+          ++telemetry_.device_suspended_frames;
+          return skipped(failed_health.code + ": " + failed_health.diagnostic);
+        }
+        ++telemetry_.rejected_frames;
+        ++telemetry_.device_loss_rejections;
+        if (!failed_health.generation_matches(frame_renderer_.device_identity())) {
+          ++telemetry_.stale_generation_rejections;
+        }
+        return rejected(std::string("RFX-GPU-BORROW: ") + error.what());
+      }
+      const auto handles = device_lease->native_handles();
       id<MTLCommandQueue> command_queue = (__bridge id<MTLCommandQueue>)(
           reinterpret_cast<void*>(handles.command_queue));
       id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
@@ -196,9 +285,12 @@ class MetalViewportPresenter final : public ViewportPresenter {
   ViewportFrameRenderer& frame_renderer_;
   __weak NSView* host_view_{nil};
   __strong CAMetalLayer* metal_layer_{nil};
+  __strong id occlusion_observer_{nil};
   ViewportExtent extent_;
   PresentationTelemetry telemetry_;
   bool visible_{false};
+  std::atomic_bool occluded_{false};
+  bool last_occluded_{false};
 };
 
 }  // namespace

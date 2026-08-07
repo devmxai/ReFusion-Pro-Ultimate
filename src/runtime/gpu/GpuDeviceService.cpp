@@ -5,6 +5,17 @@
 
 namespace refusion::runtime::gpu {
 
+bool DeviceHealth::ready() const noexcept {
+  return status == DeviceStatus::ready;
+}
+
+bool DeviceHealth::generation_matches(
+    const DeviceIdentity& candidate) const noexcept {
+  return identity.backend == candidate.backend &&
+         identity.adapter_id == candidate.adapter_id &&
+         identity.generation == candidate.generation;
+}
+
 DeviceLease::DeviceLease(DeviceIdentity identity,
                          NativeHandles handles,
                          std::shared_ptr<const void> lifetime)

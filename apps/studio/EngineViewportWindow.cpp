@@ -84,6 +84,42 @@ QStringList EngineViewportWindow::layerNames() const {
   return names;
 }
 
+QString EngineViewportWindow::deviceStatus() const {
+  switch (render_session_.telemetry().device_status) {
+    case refusion::runtime::gpu::DeviceStatus::ready:
+      return QStringLiteral("READY");
+    case refusion::runtime::gpu::DeviceStatus::suspended:
+      return QStringLiteral("SUSPENDED");
+    case refusion::runtime::gpu::DeviceStatus::lost:
+      return QStringLiteral("LOST");
+  }
+  return QStringLiteral("UNKNOWN");
+}
+
+qulonglong EngineViewportWindow::deviceEventSequence() const noexcept {
+  return render_session_.telemetry().device_event_sequence;
+}
+
+qulonglong EngineViewportWindow::visibilitySuspends() const noexcept {
+  return render_session_.telemetry().visibility_suspends;
+}
+
+qulonglong EngineViewportWindow::visibilityResumes() const noexcept {
+  return render_session_.telemetry().visibility_resumes;
+}
+
+qulonglong EngineViewportWindow::occlusionSuspends() const noexcept {
+  return render_session_.telemetry().occlusion_suspends;
+}
+
+qulonglong EngineViewportWindow::occlusionResumes() const noexcept {
+  return render_session_.telemetry().occlusion_resumes;
+}
+
+qulonglong EngineViewportWindow::deviceLossRejections() const noexcept {
+  return render_session_.telemetry().device_loss_rejections;
+}
+
 bool EngineViewportWindow::event(QEvent* event) {
   if (event->type() == QEvent::PlatformSurface) {
     const auto* surface_event = static_cast<QPlatformSurfaceEvent*>(event);
@@ -100,6 +136,7 @@ void EngineViewportWindow::exposeEvent(QExposeEvent* event) {
   QWindow::exposeEvent(event);
   ensure_attached();
   render_session_.set_visible(isExposed());
+  emit telemetryChanged();
   if (isExposed() && attached_) {
     update_extent();
     if (!playback_started_) {

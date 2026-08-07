@@ -12,6 +12,17 @@ enum class Backend : std::uint8_t {
   vulkan,
 };
 
+enum class DeviceStatus : std::uint8_t {
+  ready,
+  suspended,
+  lost,
+};
+
+enum class DeviceLifecycleEvent : std::uint8_t {
+  will_sleep,
+  did_wake,
+};
+
 struct DeviceIdentity final {
   Backend backend{Backend::metal};
   std::string adapter_name;
@@ -22,6 +33,18 @@ struct DeviceIdentity final {
 struct NativeHandles final {
   std::uintptr_t device{0};
   std::uintptr_t command_queue{0};
+};
+
+struct DeviceHealth final {
+  DeviceIdentity identity;
+  DeviceStatus status{DeviceStatus::lost};
+  std::uint64_t event_sequence{0};
+  std::string code;
+  std::string diagnostic;
+
+  [[nodiscard]] bool ready() const noexcept;
+  [[nodiscard]] bool generation_matches(
+      const DeviceIdentity& candidate) const noexcept;
 };
 
 class DeviceLease final {
@@ -50,7 +73,12 @@ class GpuDeviceService {
  public:
   virtual ~GpuDeviceService() = default;
 
-  [[nodiscard]] virtual const DeviceIdentity& identity() const noexcept = 0;
+  [[nodiscard]] virtual DeviceIdentity identity() const noexcept = 0;
+  [[nodiscard]] virtual DeviceHealth health() const = 0;
+  [[nodiscard]] virtual DeviceHealth handle_lifecycle_event(
+      DeviceLifecycleEvent event) = 0;
+  [[nodiscard]] virtual DeviceHealth report_device_loss(
+      std::string diagnostic) = 0;
   [[nodiscard]] virtual DeviceLease borrow() = 0;
 };
 

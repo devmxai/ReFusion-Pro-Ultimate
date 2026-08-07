@@ -93,12 +93,22 @@ struct FrameResult final {
 
 struct PresentationTelemetry final {
   std::uint64_t device_generation{0};
+  gpu::DeviceStatus device_status{gpu::DeviceStatus::lost};
+  std::uint64_t device_event_sequence{0};
   std::uint64_t frame_requests{0};
   std::uint64_t drawable_acquisitions{0};
   std::uint64_t renderer_submissions{0};
   std::uint64_t present_submissions{0};
   std::uint64_t skipped_frames{0};
   std::uint64_t rejected_frames{0};
+  std::uint64_t visibility_suspends{0};
+  std::uint64_t visibility_resumes{0};
+  std::uint64_t occlusion_suspends{0};
+  std::uint64_t occlusion_resumes{0};
+  std::uint64_t occluded_frames{0};
+  std::uint64_t device_suspended_frames{0};
+  std::uint64_t device_loss_rejections{0};
+  std::uint64_t stale_generation_rejections{0};
   std::uint64_t cpu_pixel_maps{0};
   std::uint64_t cpu_pixel_uploads{0};
   std::uint64_t gpu_readbacks{0};

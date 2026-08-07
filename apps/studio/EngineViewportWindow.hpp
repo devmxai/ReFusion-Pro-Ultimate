@@ -25,6 +25,13 @@ class EngineViewportWindow final : public QWindow {
   Q_PROPERTY(QString compositionName READ compositionName CONSTANT)
   Q_PROPERTY(QString projectPath READ projectPath CONSTANT)
   Q_PROPERTY(QStringList layerNames READ layerNames CONSTANT)
+  Q_PROPERTY(QString deviceStatus READ deviceStatus NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong deviceEventSequence READ deviceEventSequence NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong visibilitySuspends READ visibilitySuspends NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong visibilityResumes READ visibilityResumes NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong occlusionSuspends READ occlusionSuspends NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong occlusionResumes READ occlusionResumes NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong deviceLossRejections READ deviceLossRejections NOTIFY telemetryChanged)
 
  public:
   EngineViewportWindow(
@@ -47,6 +54,13 @@ class EngineViewportWindow final : public QWindow {
   [[nodiscard]] QString compositionName() const;
   [[nodiscard]] QString projectPath() const;
   [[nodiscard]] QStringList layerNames() const;
+  [[nodiscard]] QString deviceStatus() const;
+  [[nodiscard]] qulonglong deviceEventSequence() const noexcept;
+  [[nodiscard]] qulonglong visibilitySuspends() const noexcept;
+  [[nodiscard]] qulonglong visibilityResumes() const noexcept;
+  [[nodiscard]] qulonglong occlusionSuspends() const noexcept;
+  [[nodiscard]] qulonglong occlusionResumes() const noexcept;
+  [[nodiscard]] qulonglong deviceLossRejections() const noexcept;
 
  signals:
   void diagnosticChanged();

@@ -27,6 +27,14 @@ class FakePresenter final
       const refusion::runtime::presentation::FixtureFrame& frame) override {
     last_frame = frame;
     ++state.frame_requests;
+    if (reject_next_frame) {
+      reject_next_frame = false;
+      ++state.rejected_frames;
+      return {
+          .status = refusion::runtime::presentation::FrameStatus::rejected,
+          .diagnostic = "injected frame rejection",
+      };
+    }
     ++state.present_submissions;
     return {.status = refusion::runtime::presentation::FrameStatus::presented};
   }
@@ -37,6 +45,7 @@ class FakePresenter final
 
   refusion::runtime::presentation::FixtureFrame last_frame;
   refusion::runtime::presentation::PresentationTelemetry state;
+  bool reject_next_frame{false};
 };
 
 }  // namespace
@@ -96,4 +105,9 @@ int main() {
   require(fake_presenter.last_frame.frame_index == 1);
   require(fake_presenter.last_frame.duration_ns == 30'000'000'000);
   require(session.telemetry().present_submissions == 2);
+  session.start_playback();
+  fake_presenter.reject_next_frame = true;
+  require(session.render_once().status == FrameStatus::rejected);
+  require(!session.playback_state().running);
+  require(session.playback_state().diagnostic == "injected frame rejection");
 }

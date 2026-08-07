@@ -66,6 +66,7 @@ int main() {
   presenter->set_visible(true);
 
   const std::uint64_t frame_count = requested_frame_count();
+  const bool soak_mode = std::getenv("REFUSION_PRESENTER_SOAK_FRAMES") != nullptr;
   for (std::uint64_t frame_index = 0; frame_index < frame_count; ++frame_index) {
     if (frame_index == frame_count / 2) {
       host.frame = NSMakeRect(0.0, 0.0, 800.0, 450.0);
@@ -87,13 +88,42 @@ int main() {
   require(presenter->present(FixtureFrame{}).status == FrameStatus::skipped);
   presenter->set_visible(true);
 
+  if (!soak_mode) {
+    using refusion::runtime::gpu::DeviceLifecycleEvent;
+    using refusion::runtime::gpu::DeviceStatus;
+    const auto suspended = device_service->handle_lifecycle_event(
+        DeviceLifecycleEvent::will_sleep);
+    require(suspended.status == DeviceStatus::suspended);
+    require(presenter->present(FixtureFrame{}).status == FrameStatus::skipped);
+    const auto resumed = device_service->handle_lifecycle_event(
+        DeviceLifecycleEvent::did_wake);
+    require(resumed.ready());
+    require(presenter->present(FixtureFrame{}).succeeded());
+
+    const auto original_generation = renderer->device_identity().generation;
+    const auto lost =
+        device_service->report_device_loss("injected presenter-test loss");
+    require(lost.identity.generation == original_generation + 1);
+    require(presenter->present(FixtureFrame{}).status == FrameStatus::rejected);
+  }
+
   const auto telemetry = presenter->telemetry();
-  require(telemetry.frame_requests == frame_count + 1);
-  require(telemetry.drawable_acquisitions == frame_count);
-  require(telemetry.renderer_submissions == frame_count);
-  require(telemetry.present_submissions == frame_count);
-  require(telemetry.skipped_frames == 1);
-  require(telemetry.rejected_frames == 1);
+  const auto lifecycle_presentations = soak_mode ? 0ULL : 1ULL;
+  const auto lifecycle_requests = soak_mode ? 0ULL : 3ULL;
+  require(telemetry.frame_requests == frame_count + 1 + lifecycle_requests);
+  require(telemetry.drawable_acquisitions == frame_count + lifecycle_presentations);
+  require(telemetry.renderer_submissions == frame_count + lifecycle_presentations);
+  require(telemetry.present_submissions == frame_count + lifecycle_presentations);
+  require(telemetry.skipped_frames == 1 + (soak_mode ? 0 : 1));
+  require(telemetry.rejected_frames == 1 + (soak_mode ? 0 : 1));
+  require(telemetry.visibility_suspends == 1);
+  require(telemetry.visibility_resumes == 2);
+  if (!soak_mode) {
+    require(telemetry.device_status == refusion::runtime::gpu::DeviceStatus::lost);
+    require(telemetry.device_suspended_frames == 1);
+    require(telemetry.device_loss_rejections == 1);
+    require(telemetry.stale_generation_rejections == 1);
+  }
   require(telemetry.zero_cpu_pixel_transfer());
 
   std::cout << "{\"requested_frames\":" << frame_count

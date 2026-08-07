@@ -6,8 +6,10 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace refusion::platform {
 namespace {
@@ -103,11 +105,55 @@ class D3D12GpuDeviceService final : public runtime::gpu::GpuDeviceService {
     });
   }
 
-  [[nodiscard]] const runtime::gpu::DeviceIdentity& identity() const noexcept override {
+  [[nodiscard]] runtime::gpu::DeviceIdentity identity() const noexcept override {
+    std::scoped_lock lock(mutex_);
     return identity_;
   }
 
+  [[nodiscard]] runtime::gpu::DeviceHealth health() const override {
+    std::scoped_lock lock(mutex_);
+    return health_locked();
+  }
+
+  [[nodiscard]] runtime::gpu::DeviceHealth handle_lifecycle_event(
+      const runtime::gpu::DeviceLifecycleEvent event) override {
+    std::scoped_lock lock(mutex_);
+    ++event_sequence_;
+    if (event == runtime::gpu::DeviceLifecycleEvent::will_sleep) {
+      if (status_ != runtime::gpu::DeviceStatus::lost) {
+        status_ = runtime::gpu::DeviceStatus::suspended;
+        code_ = "RFX-GPU-SUSPENDED";
+        diagnostic_ = "D3D12 presentation suspended before system sleep";
+      }
+      return health_locked();
+    }
+    if (status_ == runtime::gpu::DeviceStatus::lost) {
+      return health_locked();
+    }
+    const HRESULT removed_reason = state_->device->GetDeviceRemovedReason();
+    if (FAILED(removed_reason)) {
+      mark_lost_locked("D3D12 device reported removal after system wake");
+      return health_locked();
+    }
+    status_ = runtime::gpu::DeviceStatus::ready;
+    code_.clear();
+    diagnostic_.clear();
+    return health_locked();
+  }
+
+  [[nodiscard]] runtime::gpu::DeviceHealth report_device_loss(
+      std::string diagnostic) override {
+    std::scoped_lock lock(mutex_);
+    ++event_sequence_;
+    mark_lost_locked(std::move(diagnostic));
+    return health_locked();
+  }
+
   [[nodiscard]] runtime::gpu::DeviceLease borrow() override {
+    std::scoped_lock lock(mutex_);
+    if (status_ != runtime::gpu::DeviceStatus::ready) {
+      throw std::runtime_error(code_.empty() ? "GPU device is not ready" : code_);
+    }
     return runtime::gpu::DeviceLease(
         identity_,
         runtime::gpu::NativeHandles{
@@ -118,8 +164,32 @@ class D3D12GpuDeviceService final : public runtime::gpu::GpuDeviceService {
   }
 
  private:
+  [[nodiscard]] runtime::gpu::DeviceHealth health_locked() const {
+    return runtime::gpu::DeviceHealth{
+        .identity = identity_,
+        .status = status_,
+        .event_sequence = event_sequence_,
+        .code = code_,
+        .diagnostic = diagnostic_,
+    };
+  }
+
+  void mark_lost_locked(std::string diagnostic) {
+    if (status_ != runtime::gpu::DeviceStatus::lost) {
+      ++identity_.generation;
+    }
+    status_ = runtime::gpu::DeviceStatus::lost;
+    code_ = "RFX-GPU-LOST";
+    diagnostic_ = diagnostic.empty() ? "D3D12 device was lost" : std::move(diagnostic);
+  }
+
+  mutable std::mutex mutex_;
   runtime::gpu::DeviceIdentity identity_;
   std::shared_ptr<D3D12State> state_;
+  runtime::gpu::DeviceStatus status_{runtime::gpu::DeviceStatus::ready};
+  std::uint64_t event_sequence_{0};
+  std::string code_;
+  std::string diagnostic_;
 };
 
 }  // namespace

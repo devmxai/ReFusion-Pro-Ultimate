@@ -155,6 +155,8 @@ ApplicationWindow {
                                     + "  •  "
                                     + (engineViewportWindow.playbackRunning
                                        ? "PLAYING" : "STOPPED")
+                                    + "  •  GPU "
+                                    + engineViewportWindow.deviceStatus
                                   : "GPU viewport unavailable"
                             color: engineViewportWindow && engineViewportWindow.zeroCopy
                                    ? "#7ee787" : "#ff6f7d"
@@ -310,7 +312,7 @@ ApplicationWindow {
                 Rectangle { Layout.fillHeight: true; color: "transparent" }
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 128
+                    Layout.preferredHeight: 180
                     color: root.panelRaised
                     border.color: root.border
                     Label {
@@ -319,6 +321,20 @@ ApplicationWindow {
                         text: engineViewportWindow
                               ? "PROJECT OPEN\n"
                                 + engineViewportWindow.projectPath
+                                + "\n\nGPU LIFECYCLE: "
+                                + engineViewportWindow.deviceStatus
+                                + "  events="
+                                + engineViewportWindow.deviceEventSequence
+                                + "\nVisibility suspend/resume: "
+                                + engineViewportWindow.visibilitySuspends
+                                + "/"
+                                + engineViewportWindow.visibilityResumes
+                                + "\nOcclusion suspend/resume: "
+                                + engineViewportWindow.occlusionSuspends
+                                + "/"
+                                + engineViewportWindow.occlusionResumes
+                                + "\nDevice-loss rejections: "
+                                + engineViewportWindow.deviceLossRejections
                                 + "\n\nExternal Agent: files / CLI / MCP"
                               : "PROJECT NOT OPEN"
                         color: root.textMuted
