@@ -51,4 +51,6 @@ date: 2026-08-07
 
 Qt Commercial SDK/entitlement, Windows transitive lock/build/link/runtime,
 independent clean release rebuild, SBOM/license notices, signing and clean-machine
-receipts. None is claimed or silently waived by this local evidence.
+receipts. None is claimed or silently waived by this local evidence. The Qt
+commercial receipt is explicitly deferred to G6 and does not block G0/G1
+technical engineering.

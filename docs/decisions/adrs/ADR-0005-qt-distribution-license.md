@@ -25,13 +25,17 @@ but distinct decisions.
 
 The product owner selected **Qt Commercial** on 2026-08-07 for proprietary
 Desktop+iOS+Android distribution. Compare the supported LTS line with the
-current feature line at the G1 release toolchain freeze. Continue local G0
-development on exact Qt 6.11.1 without claiming redistribution rights.
+current feature line at the G6 release-candidate toolchain freeze. Continue
+engineering on exact Qt 6.11.1 without claiming redistribution rights.
 
 Selection of the commercial lane is not proof that a commercial subscription,
 the required developer seats, CI rights, or product/store coverage have been
 purchased. Release packaging remains fail-closed until that entitlement evidence
 is attached to the release gate.
+
+The product owner explicitly deferred SDK/entitlement verification during G0/G1.
+This changes timing only: development may continue, while redistributable release
+admission remains fail closed.
 
 # Rejected alternative: LGPLv3 compliance program
 

@@ -52,7 +52,7 @@ not delay Desktop v1.
 | Gate | Product outcome | Installable evidence | Status |
 |---|---|---|---|
 | G0 | Product, architecture, dependency, legal, and qualification contract | Core/CLI build baseline | active |
-| G1 | Signed walking skeleton and GPU/media kill-risk proof | macOS + Windows clean-machine artifacts | planned |
+| G1 | Development walking skeleton and GPU/media kill-risk proof | macOS + Windows development artifacts | planned |
 | G2 | Command/Revision/Live-Authoring vertical slice | Qt Studio with Text/Shape/Image round-trip | planned |
 | G3 | Unified visual authoring | Complete Image/Text/Shape/Group/Adjustment slice | planned |
 | G4 | Hardware media, audio, and exact transport | Video+Audio import/play/seek/edit/export slice | planned |
@@ -92,11 +92,11 @@ rejection, and preservation of Last-Known-Good state. It is not a renderer claim
 
 Detailed plan: `stages/G0-foundation/PLAN.md`.
 
-## G1 — Signed walking skeleton and kill-risk proofs
+## G1 — Development walking skeleton and kill-risk proofs
 
 ### Outcome
 
-Native Qt Studio installers on macOS and Windows host an engine-owned native GPU
+Native Qt Studio development artifacts on macOS and Windows host an engine-owned native GPU
 viewport and render a GPU-backed Skia Text/Shape fixture. Separate spikes prove
 hardware decoded surface admission without CPU pixel transfer.
 
@@ -108,7 +108,7 @@ hardware decoded surface admission without CPU pixel transfer.
 - Apple Metal/VideoToolbox and Windows D3D/Media Foundation surface routes;
 - fail-closed unsupported behavior and runtime zero-CPU-pixel counters;
 - preview/export semantic path seed;
-- clean-machine install/uninstall and signing/notarization skeleton;
+- clean-machine development install/uninstall proof without redistribution;
 - iOS Metal and Android Vulkan portable contract/build canaries.
 
 ### Kill criteria
@@ -118,6 +118,9 @@ presentation authority, hidden software decoder, or unredistributable license,
 stop feature expansion and replace or narrow that candidate.
 
 Detailed plan: `stages/G1-walking-skeleton/PLAN.md`.
+
+Qt Commercial SDK/entitlement and production signing verification are deferred
+to G6 redistributable RC admission and do not block G1 technical experiments.
 
 ## G2 — Command, revision, and Live Authoring spine
 

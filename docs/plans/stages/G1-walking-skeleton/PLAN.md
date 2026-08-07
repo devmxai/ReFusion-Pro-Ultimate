@@ -7,18 +7,20 @@ owner_role: gpu-release-lead
 last_verified: 2026-08-07
 ---
 
-# G1 — Signed walking skeleton and kill-risk proofs
+# G1 — Development walking skeleton and kill-risk proofs
 
 ## Outcome
 
-Ship internal macOS and Windows application artifacts containing the native Qt
-shell, engine-owned GPU viewport, GPU-backed Skia Text/Shape fixture, structured
-diagnostics, and isolated hardware-media interop proofs.
+Produce non-redistributable development artifacts on macOS and Windows
+containing the native Qt shell, engine-owned GPU viewport, GPU-backed Skia
+Text/Shape fixture, structured diagnostics, and isolated hardware-media interop
+proofs.
 
 ## Entry gate
 
-G0 is passed; Qt license/module lane and pinned foundation dependencies are
-approved; device lab and signing paths have named owners.
+G0 is passed; the Qt module lane and pinned foundation dependencies are
+approved, and the device lab has named owners. Commercial SDK/entitlement
+verification is deferred and does not block this entry gate.
 
 ## Work packages
 
@@ -32,8 +34,8 @@ approved; device lab and signing paths have named owners.
    hardware media-surface proof.
 5. [`G1-WP05`](work-packages/G1-WP05-gpu-observability.md) — leases, fences,
    counters, traces and device loss.
-6. [`G1-WP06`](work-packages/G1-WP06-packaging-signing.md) — packaging,
-   licensing, signing and clean-machine evidence.
+6. [`G1-WP06`](work-packages/G1-WP06-packaging-signing.md) — reproducible local
+   development packaging and clean-machine evidence without redistribution.
 7. [`G1-WP07`](work-packages/G1-WP07-mobile-canaries.md) — iOS/Android compile
    canaries without runtime claims.
 8. [`G1-WP08`](work-packages/G1-WP08-walking-product.md) — accepted-candidate
@@ -56,6 +58,7 @@ sync/lifetime, or commercially incompatible distribution terms.
 
 ## Exit evidence
 
-Mac and Windows artifacts, traces/captures, dependency fingerprints, device
-profiles, diagnostics, clean-machine receipts, and accepted ADRs for the selected
-GPU/Skia/media/presentation/package paths.
+Mac and Windows development artifacts, traces/captures, dependency fingerprints,
+device profiles, diagnostics, clean-machine receipts, and accepted ADRs for the
+selected GPU/Skia/media/presentation/package paths. No redistribution or
+commercial-entitlement claim arises from G1.

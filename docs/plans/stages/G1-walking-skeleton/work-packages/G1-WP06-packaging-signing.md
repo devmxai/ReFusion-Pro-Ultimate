@@ -1,7 +1,7 @@
 ---
 id: G1-WP06
 kind: work-package
-status: blocked-awaiting-commercial-and-signing-authority
+status: planned-development-only
 gate: G1
 owner_role: desktop-release
 evidence: docs/evidence/G1/G1-WP06.md
@@ -9,18 +9,19 @@ evidence: docs/evidence/G1/G1-WP06.md
 
 # Outcome
 
-Produce traceable macOS and Windows internal installers from the same source
-revision with exact Commercial Qt SDKs, dependency notices/SBOM, symbols and
+Produce traceable, non-redistributable macOS and Windows development packages
+from the same source revision with dependency fingerprints, symbols and
 clean-machine install/launch/uninstall receipts.
 
 # External entry evidence
 
-Qt Commercial entitlement covering version/seats/CI/products, Apple signing and
-notarization credentials, Windows signing authority, protected runners, and
-named secret owners.
+Clean macOS and Windows test machines plus protected build runners. Qt Commercial
+SDK/entitlement and production signing authorities are explicitly deferred to
+the G6 redistributable RC gate.
 
 # Required proof
 
-No Homebrew/developer Qt in payload; runtime module census matches policy; one
-payload digest maps to source/toolchain/SBOM/provenance; clean machines install,
-launch, render the fixture and uninstall without developer paths.
+The local development payload records its non-redistributable Qt source,
+runtime module census, source/toolchain/provenance and payload digest; clean test
+machines install, launch, render the fixture and uninstall without hidden paths.
+This proof must not be promoted or distributed as a release artifact.

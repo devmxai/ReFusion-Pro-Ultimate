@@ -40,7 +40,7 @@ Before any distribution, all of the following must have named evidence:
 ## Version lanes
 
 - Development: exact locally installed Qt 6.11.1, no shipping claim.
-- Release candidate: choose at G1 toolchain freeze between a commercial LTS line
+- Release candidate: choose at G6 toolchain freeze between a commercial LTS line
   and the then-supported feature line; rebuild and qualify all target platforms.
 - Never mix open-source and commercial artifacts in one release lineage.
 

@@ -34,12 +34,14 @@ workflow, and explicit rejection tests for missing release authority.
 
 # Failure and handoff
 
-Local provenance hardening may pass; Qt entitlement, clean independent rebuild,
-Windows build, SBOM/notices, and signing remain external G1/release gates and may
-not be fabricated or waived here.
+Local provenance hardening may pass; clean independent rebuild, Windows build,
+SBOM/notices, and signing remain external gates and may not be fabricated or
+waived here. Qt Commercial SDK/entitlement verification is intentionally
+deferred to G6 and is not an entry condition for G0/G1 engineering.
 
 # Current handoff
 
 Local controls are complete at
-`24d5946e442de09ac9ccc798f9e7aeedeee04502`. Closure requires the external
-receipts listed in `EV-G0-WP04B`; this package must remain open until then.
+`24d5946e442de09ac9ccc798f9e7aeedeee04502`. Closure requires the Windows and
+independent provenance receipts listed in `EV-G0-WP04B`; the deferred Qt
+commercial receipt does not block this package.

@@ -16,7 +16,8 @@ fixtures, counters, budgets, commands, kill criteria, owners, and evidence schem
 # Entry gate
 
 G0-WP04A passed; G0-WP04B local controls passed; Windows Core and required
-commercial/device/signing owners have explicit evidence or blocking status.
+device owners have explicit evidence or blocking status. Qt Commercial SDK and
+entitlement evidence is not required until the redistributable RC gate.
 
 # Deliverables
 
@@ -32,5 +33,5 @@ from a skeleton, inactive backend, or compile-only result.
 # Current state
 
 The eight G1 proof packages and the macOS lab device are recorded. Windows
-device/driver identity, Qt entitlement and signing/notarization ownership remain
-the exact external inputs required before the G0 exit review can pass.
+device/driver identity remains the exact external input required before the G0
+exit review can pass. Commercial entitlement is deliberately deferred.
