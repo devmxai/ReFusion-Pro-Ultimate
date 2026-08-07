@@ -1,7 +1,7 @@
 ---
 id: DEP-SKIA-001
 kind: dependency-intake
-status: candidate
+status: macos-foundation-proved-windows-pending
 owner_role: render-architecture
 last_verified: 2026-08-07
 ---
@@ -22,3 +22,17 @@ last_verified: 2026-08-07
 G1 must select and prove an Apple and Windows backend with the engine-owned
 physical device, imported targets, explicit fences/lifetimes, Arabic text
 quality, package licenses and no CPU video-pixel path. No backend is accepted yet.
+
+## Evidence reached
+
+- Fresh Skia and depot_tools checkouts now exist only inside ReFusion `out/`.
+- Skia's pinned `DEPS` graph resolved 46 Git dependencies and recorded their
+  official origins and revisions.
+- The tracked macOS arm64 GN profile built Ganesh, Graphite and Metal from
+  source with bundled image/text dependencies.
+- ReFusion CMake rejected unverified source/build state, then imported the
+  deterministic archive after origin, revision, profile and artifact checks.
+- Metal device/queue ownership and both Skia context factories passed on macOS.
+
+This is not backend selection or a Windows/presenter/video qualification. Those
+remain measured G1 decisions.
