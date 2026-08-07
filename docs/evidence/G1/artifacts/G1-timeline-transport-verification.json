@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP01-bounded-transport-control",
+  "source_commit": "79aafb072ad0f254ef64726231b2e7c7e50b5fe8",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "gpu": "Apple M1 7-core GPU"
+  },
+  "project": {
+    "id": "prj_refusion_demo_reel_30s",
+    "composition": "cmp_reels_main",
+    "duration_ns": 30000000000,
+    "frame_rate": "30/1",
+    "duration_frames": 900,
+    "track_count": 7
+  },
+  "runtime_transport": {
+    "typed_play": "passed",
+    "typed_pause": "passed",
+    "typed_seek_to_frame": "passed",
+    "pause_preserves_frame": "passed",
+    "resume_does_not_reset": "passed",
+    "paused_seek_renders_current_frame": "passed",
+    "30000_1001_frame_boundary": "passed",
+    "out_of_range_seek_fails_closed": "passed"
+  },
+  "ui_boundary": {
+    "separate_transport_bridge": "passed",
+    "project_derived_track_ranges": "passed",
+    "qml_timer_authority": 0,
+    "qml_animation_clock_authority": 0,
+    "click_seek": "passed-physical",
+    "drag_seek": "passed-physical",
+    "two_second_pause_stability": "passed-physical"
+  },
+  "presenter_soak": {
+    "requested_frames": 10000,
+    "present_submissions": 10000,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "workflows": {
+    "macos_core": {"passed": 6, "failed": 0},
+    "macos_core_sanitized": {"passed": 6, "failed": 0},
+    "macos_studio": {"passed": 8, "failed": 0},
+    "macos_visual": {"passed": 13, "failed": 0},
+    "macos_media": {"passed": 9, "failed": 0},
+    "architecture_check_problems": 0,
+    "docs_doctor_problems": 0
+  },
+  "visual_artifact": {
+    "path": "docs/evidence/G1/artifacts/G1-timeline-transport-macos.png",
+    "sha256": "967ff72dc7fe5b732c1aa485d13d8224238237ee8d743719956ad731b9239b07"
+  },
+  "claim_boundary": {
+    "shape_text_walking_transport": "passed-macos",
+    "decoded_video_playback": "not-implemented",
+    "audio_master_clock": "not-implemented",
+    "full_g4_transport": "not-started",
+    "windows": "not-run",
+    "ios": "not-run",
+    "android": "not-run"
+  }
+}

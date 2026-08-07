@@ -34,3 +34,8 @@ NV12 Metal texture planes on the engine device/generation with every forbidden
 counter at zero. The Windows lane fails closed as not-qualified pending
 G1-WP04. This is capability and native-surface interop proof only; actual
 compressed-sample decode, PTS output, seek corpus and surface lease are next.
+
+Source commit `79aafb072ad0f254ef64726231b2e7c7e50b5fe8` also supplies
+the portable frame-addressed Play/Pause/Seek substrate and Timeline control
+needed to exercise later decoded media. It is qualified here only against the
+Shape/Text walking Composition; decoded output has not yet entered transport.

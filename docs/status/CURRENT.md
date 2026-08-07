@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP03
 baseline_commit: 1a70f5a
-last_green_commit: ac8de22c329a64a9f351796ae5ded280e701984c
-last_checkpoint: CP-G1-0004
+last_green_commit: 79aafb072ad0f254ef64726231b2e7c7e50b5fe8
+last_checkpoint: CP-G1-0005
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -84,6 +84,17 @@ bind to Metal textures on the engine-owned adapter/generation. The matching
 Windows media lane exists but deliberately returns not-qualified until G1-WP04
 runs on Windows. This slice does not yet decode a compressed H.264 sample.
 
+By explicit product-owner request, source commit
+`79aafb072ad0f254ef64726231b2e7c7e50b5fe8` added a bounded exact
+transport-control slice to the real file-backed walking project. Portable
+Runtime owns typed Play/Pause/Seek-to-frame commands, frame/rational-time
+mapping and immutable playback state. A separate Qt transport bridge submits
+commands and exposes read-only snapshots/track ranges; QML owns no timer or
+transport clock. The native Timeline now has a centered Play/Pause control,
+time ruler, real track extents and a clickable/draggable playhead. Physical
+macOS observation proved pause stability, resume without reset and paused seek
+updating the Skia Canvas. This is not decoded-video playback or G4 completion.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -127,3 +138,5 @@ runs on Windows. This slice does not yet decode a compressed H.264 sample.
   format; actual Video/Audio import and transport remain G4.
 - Do not call the G1-WP03 capability/native-surface probe an actual decoded
   frame; no compressed sample has entered VideoToolbox yet.
+- Do not call the Timeline transport control decoded-video playback or complete
+  G4 transport; it currently drives the bounded Shape/Text walking Composition.

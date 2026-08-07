@@ -66,3 +66,11 @@ device-loss proof pass. The product owner subsequently reported a successful
 manual sleep/wake test and explicitly deferred the automated retained receipt.
 The bounded macOS runtime is accepted for continued engineering, but the
 deferred receipt is not lab-qualified evidence and Windows remains `not-run`.
+
+Source commit `79aafb072ad0f254ef64726231b2e7c7e50b5fe8` adds a
+bounded transport-control enhancement requested by the product owner: typed
+Runtime Play/Pause/Seek-to-frame, a command/snapshot-only Qt bridge, exact frame
+mapping, project-derived track extents and a real Timeline playhead. Physical
+macOS tests passed pause stability, resume from the frozen frame and paused
+click/drag seek with Canvas reevaluation. This remains a Shape/Text walking
+fixture and makes no Video Layer, audio-clock or G4 completion claim.
