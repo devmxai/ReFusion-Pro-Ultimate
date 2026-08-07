@@ -2,7 +2,7 @@
 id: STATUS-001
 kind: program-status
 master_plan: MP-001
-master_plan_status: proposed
+master_plan_status: active
 current_gate: G0
 gate_status: active
 active_work_packages:
@@ -20,9 +20,10 @@ last_updated: 2026-08-07
 
 ## Exact resume point
 
-`G0-WP01` is technically complete at checkpoint `CP-G0-0001`. Resume with
-`G0-WP02`: owner review of MP-001/Product Contract and decisions for Qt
-licensing/modules, strict media policy, Skia intake, codecs, and fonts.
+`G0-WP02` is active. MP-001 and the Product Contract are activated. Engineering
+ADRs 0001–0004 are accepted; OS/media and font profiles are proposed. The only
+owner-blocking choice is ADR-0005: Qt Commercial versus an explicit LGPLv3
+compliance program.
 
 ## Read next
 
@@ -32,10 +33,10 @@ licensing/modules, strict media policy, Skia intake, codecs, and fonts.
 
 ## Next actions
 
-1. Review/accept or revise MP-001 and Product Contract.
-2. Decide ADR-0001 through ADR-0004 or assign their blocking experiments.
-3. Record Qt license/module, media/codec/font, and dependency intake decisions.
-4. Start G0-WP03 and establish Windows x64 CI before claiming portability.
+1. Product owner selects the Qt distribution lane in ADR-0005.
+2. Freeze the selected lane in `deps/policies/qt-modules.json`.
+3. Review the deliberately narrow ADR-0006 Media/OS target and ADR-0007 fonts.
+4. Close G0-WP02 evidence, then activate G0-WP03 and Windows x64 CI.
 
 
 ## Do not repeat

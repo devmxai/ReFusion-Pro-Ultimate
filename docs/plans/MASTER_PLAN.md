@@ -1,12 +1,13 @@
 ---
 id: MP-001
 kind: master-plan
-status: proposed
+status: active
 version: 1
 owner_role: program-architecture
 canonical_for: delivery-order
 last_verified: 2026-08-07
 research_basis: docs/research/foundation-screening-draft.md
+activated_by: user-instruction-2026-08-07
 ---
 
 # ReFusion Master Plan
@@ -274,4 +275,3 @@ Stop and request a decision when a path violates an invariant, creates a second
 truth, requires an unapproved license or destructive migration, lacks required
 hardware/signing authority, or materially expands scope. Ordinary build/test
 failures inside an authorized work package are not stop conditions.
-

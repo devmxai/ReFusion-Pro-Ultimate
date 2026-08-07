@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "development_qt_version": "6.11.1",
+  "distribution_license_lane": "unselected",
+  "allowed_studio_runtime_targets": [
+    "Qt6::Core",
+    "Qt6::Gui",
+    "Qt6::Qml",
+    "Qt6::Quick",
+    "Qt6::QuickControls2"
+  ],
+  "conditional_targets": {
+    "Qt6::Svg": "Studio icon decoding only; project SVG uses the engine path",
+    "Qt6::Test": "test binaries only"
+  },
+  "forbidden_product_targets": [
+    "Qt6::Multimedia",
+    "Qt6::MultimediaWidgets",
+    "Qt6::PrintSupport",
+    "Qt6::WebEngineCore",
+    "Qt6::WebEngineQuick",
+    "Qt6::Quick3D",
+    "Qt6::Quick3DPhysics",
+    "Qt6::QuickTimeline",
+    "Qt6::QmlCompiler",
+    "Qt6::VirtualKeyboard"
+  ],
+  "notes": [
+    "Build tools invoked by qt_add_qml_module are audited separately from linked runtime modules.",
+    "No Qt target is permitted in core, application, runtime, platform ports, or project contracts.",
+    "Qt Multimedia cannot implement ReFusion media, preview, canvas, transport, or export."
+  ]
+}
+

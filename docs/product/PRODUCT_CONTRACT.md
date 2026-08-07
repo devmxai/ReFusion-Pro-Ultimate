@@ -1,7 +1,7 @@
 ---
 id: PROD-001
 kind: product-contract
-status: proposed
+status: accepted
 owner_role: product-architecture
 canonical_for: product-scope
 last_verified: 2026-08-07
@@ -49,6 +49,6 @@ editor, a broad codec matrix, and full mobile Studio.
 2. Image/Shape animation with mask and complete FX chain.
 3. Short advertisement combining Video/Image/Text/Audio and exporting MP4.
 
-The contract becomes accepted only after G0 approval and licensing/media matrix
-review. Until then it constrains planning but makes no shipping claim.
-
+This contract was accepted as the v1 planning baseline when execution of MP-001
+was explicitly started on 2026-08-07. Media/device rows remain qualification
+targets rather than shipping claims until their gates pass.

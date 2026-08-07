@@ -1,14 +1,14 @@
 ---
 id: ADR-0003
 kind: adr
-status: proposed
+status: accepted
 title: Skia as GPU-backed 2D and text producer
 owner_role: render-architecture
 decision_due: G1
 last_verified: 2026-08-07
 ---
 
-# Proposed decision
+# Decision
 
 Use pinned Skia as a GPU-backed producer for text, vector, shape, image, and
 custom 2D content inside the ReFusion render graph. Skia is not the project
@@ -18,3 +18,8 @@ Select Ganesh, Graphite/Metal, Graphite/Dawn, or another supported binding only
 after same-device texture import, synchronization, lifetime, quality, and
 performance bake-offs on Apple and Windows.
 
+# Explicit non-decision
+
+This ADR does not select Ganesh, Graphite, Dawn, or a Windows interop route.
+Those are G1 measured candidates. Failure of a backend candidate does not
+invalidate Skia's accepted semantic role unless every qualified route fails.

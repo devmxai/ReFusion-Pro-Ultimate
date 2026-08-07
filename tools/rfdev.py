@@ -23,6 +23,9 @@ REQUIRED = [
     "docs/product/PRODUCT_CONTRACT.md",
     "docs/architecture/INVARIANTS.md",
     "deps/manifest.lock.json",
+    "deps/policies/qt-modules.json",
+    "docs/legal/QT_DISTRIBUTION_GATE.md",
+    "docs/product/MEDIA_MATRIX.md",
 ]
 
 
@@ -128,7 +131,48 @@ def command_architecture_check() -> int:
             for token in forbidden_headers:
                 if token in text:
                     problems.append(f"{path.relative_to(ROOT)} contains forbidden boundary token {token}")
-    print(json.dumps({"checked_source_files": checked, "problems": problems}, indent=2))
+
+    studio_forbidden_apis = (
+        "QImage", "QPixmap", "QPainter", "QPrinter", "QVideoFrame",
+        "QVideoSink", "QMediaPlayer", "QQuickPaintedItem",
+    )
+    for base in (ROOT / "apps" / "studio", ROOT / "src" / "studio"):
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if path.suffix not in {".h", ".hpp", ".c", ".cc", ".cpp", ".ixx", ".qml"}:
+                continue
+            checked += 1
+            text = path.read_text(encoding="utf-8")
+            for token in studio_forbidden_apis:
+                if token in text:
+                    problems.append(f"{path.relative_to(ROOT)} contains forbidden Studio API {token}")
+
+    qt_policy_path = ROOT / "deps" / "policies" / "qt-modules.json"
+    qt_policy = json.loads(qt_policy_path.read_text(encoding="utf-8"))
+    allowed_qt = set(qt_policy["allowed_studio_runtime_targets"])
+    allowed_qt.update(qt_policy["conditional_targets"].keys())
+    forbidden_qt = set(qt_policy["forbidden_product_targets"])
+    linked_qt: set[str] = set()
+    for path in ROOT.rglob("CMakeLists.txt"):
+        if "out" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        targets = set(re.findall(r"Qt6::[A-Za-z0-9_]+", text))
+        linked_qt.update(targets)
+        for target in targets & forbidden_qt:
+            problems.append(f"{path.relative_to(ROOT)} links forbidden Qt target {target}")
+        if path.is_relative_to(ROOT / "apps" / "studio"):
+            for target in targets - allowed_qt:
+                problems.append(f"{path.relative_to(ROOT)} links unlisted Qt target {target}")
+        elif targets:
+            problems.append(f"{path.relative_to(ROOT)} links Qt outside the Studio boundary: {sorted(targets)}")
+
+    print(json.dumps({
+        "checked_source_files": checked,
+        "linked_qt_targets": sorted(linked_qt),
+        "problems": problems,
+    }, indent=2))
     return 1 if problems else 0
 
 
@@ -150,4 +194,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
