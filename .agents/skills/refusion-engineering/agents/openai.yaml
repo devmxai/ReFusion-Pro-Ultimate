@@ -1,0 +1,4 @@
+interface:
+  display_name: "ReFusion Engineering"
+  short_description: "Execute ReFusion work packages with evidence"
+  default_prompt: "Use $refusion-engineering to execute the active ReFusion work package and record its evidence."

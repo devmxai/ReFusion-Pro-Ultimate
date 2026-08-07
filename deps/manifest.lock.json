@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "normal_build_network": "forbidden",
+    "floating_revisions": "forbidden",
+    "source_cache": "out/deps-src",
+    "release_requires_sbom": true
+  },
+  "components": {
+    "cmake": {
+      "kind": "tool",
+      "minimum_version": "3.30.0",
+      "reason": "CMake presets and current Skia/Dawn build requirements",
+      "official_origin": "https://cmake.org/download/",
+      "status": "foundation-required"
+    },
+    "ninja": {
+      "kind": "tool",
+      "minimum_version": "1.11.0",
+      "official_origin": "https://github.com/ninja-build/ninja",
+      "status": "foundation-required"
+    },
+    "qt": {
+      "kind": "sdk",
+      "version": "6.11.1",
+      "official_origin": "https://download.qt.io/official_releases/qt/6.11/6.11.1/",
+      "license": "Commercial OR LGPL-3.0/GPL-3.0 by module",
+      "status": "candidate-pending-ADR-0002-and-license-review",
+      "auto_sync": false
+    },
+    "skia": {
+      "kind": "git",
+      "official_origin": "https://skia.googlesource.com/skia.git",
+      "revision": "76941bbcaf48f2927878038412a6a69db0f45449",
+      "license": "BSD-3-Clause plus third-party notices",
+      "status": "candidate-pending-ADR-0003-and-G1-qualification",
+      "profile": "graphics-spike"
+    },
+    "depot_tools": {
+      "kind": "git",
+      "official_origin": "https://chromium.googlesource.com/chromium/tools/depot_tools.git",
+      "revision": "1e85b18d8037bca45f9a9891ae9325729f3ebcd4",
+      "license": "Chromium depot_tools licenses",
+      "status": "candidate-paired-with-skia",
+      "profile": "graphics-spike"
+    }
+  }
+}
+

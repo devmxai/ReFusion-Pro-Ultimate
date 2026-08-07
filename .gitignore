@@ -1,0 +1,13 @@
+out/
+.deps-cache/
+.refusion/
+CMakeUserPresets.json
+compile_commands.json
+.DS_Store
+*.user
+*.swp
+*.tmp
+*.log
+.idea/
+.vscode/
+

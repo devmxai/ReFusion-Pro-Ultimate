@@ -1,0 +1,120 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON",
+        "REFUSION_STRICT_WARNINGS": "ON"
+      }
+    },
+    {
+      "name": "macos-core",
+      "inherits": "base",
+      "displayName": "macOS portable core",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "macos-studio",
+      "inherits": "macos-core",
+      "displayName": "macOS Qt Studio foundation shell",
+      "cacheVariables": {
+        "REFUSION_BUILD_STUDIO": "ON"
+      }
+    },
+    {
+      "name": "windows-core",
+      "inherits": "base",
+      "displayName": "Windows portable core",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-studio",
+      "inherits": "windows-core",
+      "displayName": "Windows Qt Studio foundation shell",
+      "cacheVariables": {
+        "REFUSION_BUILD_STUDIO": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "macos-core", "configurePreset": "macos-core" },
+    { "name": "macos-studio", "configurePreset": "macos-studio" },
+    { "name": "windows-core", "configurePreset": "windows-core" },
+    { "name": "windows-studio", "configurePreset": "windows-studio" }
+  ],
+  "testPresets": [
+    {
+      "name": "macos-core",
+      "configurePreset": "macos-core",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "macos-studio",
+      "configurePreset": "macos-studio",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-core",
+      "configurePreset": "windows-core",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-studio",
+      "configurePreset": "windows-studio",
+      "output": { "outputOnFailure": true }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "macos-core",
+      "steps": [
+        { "type": "configure", "name": "macos-core" },
+        { "type": "build", "name": "macos-core" },
+        { "type": "test", "name": "macos-core" }
+      ]
+    },
+    {
+      "name": "macos-studio",
+      "steps": [
+        { "type": "configure", "name": "macos-studio" },
+        { "type": "build", "name": "macos-studio" },
+        { "type": "test", "name": "macos-studio" }
+      ]
+    },
+    {
+      "name": "windows-core",
+      "steps": [
+        { "type": "configure", "name": "windows-core" },
+        { "type": "build", "name": "windows-core" },
+        { "type": "test", "name": "windows-core" }
+      ]
+    },
+    {
+      "name": "windows-studio",
+      "steps": [
+        { "type": "configure", "name": "windows-studio" },
+        { "type": "build", "name": "windows-studio" },
+        { "type": "test", "name": "windows-studio" }
+      ]
+    }
+  ]
+}
+
