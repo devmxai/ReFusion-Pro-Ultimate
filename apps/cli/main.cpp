@@ -12,15 +12,18 @@ int main() {
   });
 
   const auto result = authority.apply(RenameProjectCommand{
-      .expected_revision = RevisionId{1},
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_foundation_cli_demo_1"},
+          .expected_revision = RevisionId{1},
+          .idempotency_key = IdempotencyKey{"foundation-cli-demo-1"},
+      },
       .requested_name = "ReFusion Foundation",
-      .idempotency_key = "foundation-cli-demo-1",
   });
 
-  std::cout << "accepted=" << (result.accepted ? "true" : "false")
+  std::cout << "accepted=" << (result.accepted() ? "true" : "false")
             << " revision=" << result.active_snapshot.revision_id.value
+            << " command_id=" << result.command_id.value
             << " project_id=" << result.active_snapshot.project_id.value
             << " name=\"" << result.active_snapshot.display_name << "\"\n";
-  return result.accepted ? 0 : 1;
+  return result.accepted() ? 0 : 1;
 }
-

@@ -28,12 +28,17 @@ void StudioBridge::submitRename(const QString& requested_name) {
   const auto base = authority_.active_snapshot();
   ++command_sequence_;
   const auto result = authority_.apply(refusion::core::RenameProjectCommand{
-      .expected_revision = base.revision_id,
+      .envelope = refusion::core::CommandEnvelope{
+          .command_id = refusion::core::CommandId{
+              "cmd_qt_rename_" + std::to_string(command_sequence_)},
+          .expected_revision = base.revision_id,
+          .idempotency_key = refusion::core::IdempotencyKey{
+              "qt-command-" + std::to_string(command_sequence_)},
+      },
       .requested_name = requested_name.toStdString(),
-      .idempotency_key = "qt-command-" + std::to_string(command_sequence_),
   });
 
-  if (result.accepted) {
+  if (result.accepted()) {
     diagnostic_.clear();
     emit snapshotChanged();
   } else {
@@ -42,4 +47,3 @@ void StudioBridge::submitRename(const QString& requested_name) {
   }
   emit diagnosticChanged();
 }
-
