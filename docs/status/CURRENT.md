@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP01
 baseline_commit: 1a70f5a
-last_green_commit: 4c91df7f6abf0734a47cfb549a726d15ef35281e
-last_checkpoint: CP-G1-0001
+last_green_commit: b850a84ce8aff860bf8aac786440b396eb77024e
+last_checkpoint: CP-G1-0002
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -48,6 +48,15 @@ retained zero CPU pixel maps, uploads, readbacks, or unattributed GPU copies.
 `G1-WP01` remains active for physical sleep/wake, occlusion and device-loss
 qualification; this visual slice does not pass Windows or G1.
 
+By explicit product-owner direction, source commit
+`b850a84ce8aff860bf8aac786440b396eb77024e` made the macOS experience a
+file-backed project-open test instead of a hard-coded visual mock. The app now
+opens a validated 30-second 1080x1920 Reels Composition with stable Layer IDs,
+exact integer time and keyframed Shape/Text content; Runtime owns continuous
+30 fps looping and the UI only displays telemetry/snapshot metadata. Proposed
+ADR-0008 and the experimental schema record the boundary. This is a G2 seed,
+not G2 activation or a Video Layer/media/save/export claim.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -64,6 +73,8 @@ qualification; this visual slice does not pass Windows or G1.
    repository-local Windows Skia lock, then execute G1-WP02 D3D12/DXGI proof.
 4. Complete G0-WP05 and the G0/G1 cross-platform exit reviews only after the
    missing Windows receipts exist.
+5. Keep the experimental project schema bounded until G2 formally decides
+   persistence, migrations, journals, ChangeSets and save/reopen semantics.
 
 
 ## Do not repeat
@@ -81,3 +92,5 @@ qualification; this visual slice does not pass Windows or G1.
   source commit `24d5946e442de09ac9ccc798f9e7aeedeee04502`.
 - Do not interpret macOS runtime success as Windows/iOS/Android qualification;
   their state remains `not-run` until platform evidence exists.
+- Do not call the 30-second Shape/Text project a decoded video or stable project
+  format; actual Video/Audio import and transport remain G4.

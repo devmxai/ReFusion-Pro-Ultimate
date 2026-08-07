@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP01",
+  "source_commit": "b850a84ce8aff860bf8aac786440b396eb77024e",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "gpu": "Apple M1 7-core GPU",
+    "memory_gb": 16
+  },
+  "project": {
+    "path": "examples/projects/reels-demo-30s/ReFusionDemoReel.refusion.json",
+    "sha256": "9a86b36e67ff8d6e25ab1ded2b5df1a1037faa2108a5d0f35971acb0d4115c78",
+    "project_id": "prj_refusion_demo_reel_30s",
+    "revision": 1,
+    "composition_id": "cmp_reels_main",
+    "canvas_pixels": [1080, 1920],
+    "duration_ns": 30000000000,
+    "frame_rate": [30, 1],
+    "layer_count": 7,
+    "schema_status": "experimental"
+  },
+  "verification": {
+    "macos_visual": {"passed": 11, "failed": 0},
+    "macos_core": {"passed": 5, "failed": 0},
+    "macos_core_sanitized": {"passed": 5, "failed": 0},
+    "architecture_problems": 0,
+    "invalid_project_exit_code": 2,
+    "observed_loop_index": 2,
+    "observed_gpu_frames_at_artifact": 1450
+  },
+  "presenter_soak": {
+    "requested_frames": 10000,
+    "present_submissions": 10000,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "visual_artifact": {
+    "path": "docs/evidence/G1/artifacts/G1-WP01-macos-project-open-30s.png",
+    "sha256": "c2e1e20ceb4e7f06205883b90f10c13cb6d13cc29773d0dae1be73649fa41e66"
+  },
+  "claim_boundary": {
+    "macos_file_backed_shape_text_project": "passed",
+    "macos_full_lifecycle": "active",
+    "video_layer_decode": "not-implemented",
+    "save_reopen": "not-implemented",
+    "windows": "not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_exit": "not-passed",
+    "g2": "not-activated"
+  }
+}

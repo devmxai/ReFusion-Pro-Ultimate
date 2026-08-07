@@ -10,3 +10,4 @@
 | [ADR-0005](adrs/ADR-0005-qt-distribution-license.md) | adr | accepted | Qt distribution license and release line | product-owner | G0-WP02 | `adrs/ADR-0005-qt-distribution-license.md` |
 | [ADR-0006](adrs/ADR-0006-initial-os-media-profile.md) | adr | proposed | Initial qualification OS and media profile | product-media | G1-exit | `adrs/ADR-0006-initial-os-media-profile.md` |
 | [ADR-0007](adrs/ADR-0007-portable-font-baseline.md) | adr | proposed | Packaged portable font baseline | text-rendering | G1 | `adrs/ADR-0007-portable-font-baseline.md` |
+| [ADR-0008](adrs/ADR-0008-project-document-seed.md) | adr | proposed | Versioned JSON project-document seed | core-project | G2-entry | `adrs/ADR-0008-project-document-seed.md` |
