@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP03",
+  "source_commit": "a697c6a873760366bb957590038cbf3416e644d0",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "chip": "Apple M1",
+    "gpu_cores": 7,
+    "backend": "Metal"
+  },
+  "clock_authority": {
+    "owner": "refusion::core::ProjectClock",
+    "runtime_position_owner_removed": "passed",
+    "transport_epoch_stamped_frames": "passed",
+    "backward_tick_rejected": "passed",
+    "source_generation_change_rejected": "passed",
+    "pause_resume_loop_continuity": "passed",
+    "floating_point_seconds": "forbidden-not-used"
+  },
+  "fixture": {
+    "id": "RFX-H264-CFR-320X180-GOP1-001",
+    "path": "tests/fixtures/media/h264-cfr-320x180-gop1/video.h264",
+    "sha256": "1b307ec1e1b7cb12887b8f9aff6d4e4936badbfc00fefa69f70663a204c6b71e",
+    "frame_count": 8,
+    "timing": "CFR 30/1, all-IDR"
+  },
+  "decode_sequence": {
+    "hardware_required_sessions": 1,
+    "compressed_samples_submitted": 8,
+    "hardware_frames_decoded": 8,
+    "hardware_decoder_flushes": 1,
+    "surface_queues_published": 1,
+    "native_surface_plane_bindings": 16,
+    "native_surface_leases_issued": 8,
+    "native_surface_leases_released": 8,
+    "queue_order": "exact-presentation-time"
+  },
+  "core_transport_to_skia": {
+    "seek_frames": [3, 7, 1],
+    "project_time_ns": [100000000, 233333334, 33333334],
+    "transport_epoch_ids": [1, 2, 3],
+    "selected_source_frames": [3, 7, 1],
+    "selection": "exact-pts",
+    "skia_yuva_gpu_composite": "passed"
+  },
+  "forbidden_counters": {
+    "software_decoder_selections": 0,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_conversions": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "cross_adapter_events": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "workflows": {
+    "macos_core": {"passed": 7, "failed": 0},
+    "macos_core_sanitized": {"passed": 7, "failed": 0},
+    "macos_media": {"passed": 12, "failed": 0},
+    "macos_visual": {"passed": 18, "failed": 0},
+    "architecture_checked_source_files": 43,
+    "architecture_check_problems": 0,
+    "docs_doctor_checked_documents": 60,
+    "docs_doctor_problems": 0
+  },
+  "platform_state": {
+    "macos": "bounded-core-clock-multiframe-pts-gpu-proof-passed",
+    "windows": "portable-contract-and-fail-closed-lane-defined-not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_wp03": "active"
+  },
+  "not_qualified": [
+    "audio endpoint ClockSource",
+    "MP4 demux and import",
+    "B-frame/VFR/long-GOP seek",
+    "production Timeline Video Layer playback",
+    "drift and route-change budgets",
+    "export"
+  ]
+}

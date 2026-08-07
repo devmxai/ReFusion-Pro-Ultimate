@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP03
 baseline_commit: 1a70f5a
-last_green_commit: 1433a576e75f47fa4377259da9c095eab20291a9
-last_checkpoint: CP-G1-0006
+last_green_commit: a697c6a873760366bb957590038cbf3416e644d0
+last_checkpoint: CP-G1-0007
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -105,6 +105,16 @@ software-decode, CPU-pixel, readback and cross-adapter counters remain zero.
 This is a bounded all-IDR single-frame proof, not MP4 import or Timeline video
 playback.
 
+Source commit `a697c6a873760366bb957590038cbf3416e644d0` makes portable
+Core `ProjectClock` the executable single authority for transport state,
+ProjectTime, source generation and epoch under accepted ADR-0009. The viewport
+scheduler no longer owns mutable playback position. One hardware-required
+VideoToolbox session now decodes all eight bounded all-IDR access units into an
+immutable exact-PTS-indexed same-device surface queue; Core seeks `[3, 7, 1]`
+select and GPU-composite source frames `[3, 7, 1]` in Skia with all forbidden
+counters zero. This remains a G1 proof, not the final audio ClockSource, MP4
+import, dependency-aware production seek or Timeline Video Layer playback.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -113,10 +123,10 @@ playback.
 
 ## Next actions
 
-1. Continue `G1-WP03` with a bounded multi-frame VideoToolbox session and an
-   immutable PTS-indexed native-surface queue. Drive its frame selection from
-   the existing engine transport/`FixtureFrame` only, without a UI/media clock.
-   Then add B-frame, VFR, long-GOP and non-zero timestamp seek/lifecycle rows.
+1. Continue `G1-WP03` with B-frame, VFR, long-GOP and non-zero timestamp
+   fixtures. Prove decode-order versus presentation-order, dependency-aware
+   seek/flush, epoch/device-generation invalidation and bounded queue
+   residency/backpressure without a UI/media-owned clock.
 2. Keep every new semantic/media contract portable and define the matching
    Windows lane/fixture; native code may enter Apple/Windows adapters only.
 3. Retain an automated physical `G1-WP01` sleep/wake receipt when convenient;

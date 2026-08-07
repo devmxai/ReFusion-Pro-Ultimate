@@ -47,3 +47,11 @@ PTS/duration and Rec.709 NV12 output in an opaque engine surface lease; both
 planes bind to the engine Metal adapter and Skia composites them as YUVA without
 CPU pixel transfer. Multi-frame session scheduling and transport-driven PTS
 selection remain next; this is not decoded Timeline playback.
+
+Source commit `a697c6a873760366bb957590038cbf3416e644d0` adds the
+Core-owned canonical Project Clock and removes mutable playback position from
+the viewport scheduler. One hardware-required VideoToolbox session now decodes
+the eight all-IDR access units into one immutable exact-PTS-indexed GPU surface
+queue. Core Transport seeks `[3, 7, 1]` select those exact source frames in Skia
+at epochs `[1, 2, 3]`, with all forbidden counters zero. B-frame/VFR/long-GOP
+dependency-aware seek and production Video Layer integration remain next.
