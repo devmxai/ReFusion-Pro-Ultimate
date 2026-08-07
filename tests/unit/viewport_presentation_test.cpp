@@ -1,12 +1,19 @@
 #include "refusion/runtime/presentation/ViewportPresentation.hpp"
 
+#include <chrono>
+#include <source_location>
 #include <stdexcept>
+#include <string>
 
 namespace {
 
-void require(const bool condition) {
+void require(
+    const bool condition,
+    const std::source_location where = std::source_location::current()) {
   if (!condition) {
-    throw std::runtime_error("viewport presentation test requirement failed");
+    throw std::runtime_error(
+        "viewport presentation test requirement failed at line " +
+        std::to_string(where.line()));
   }
 }
 
@@ -96,7 +103,23 @@ int main() {
   };
   require(playback.valid());
   require(playback.frame_interval().count() == 33'333'333);
+  require(playback.frame_count() == 900);
+  require(playback.frame_at_time(10'000'000'000) == 300);
+  require(playback.time_at_frame(300) == 10'000'000'000);
   require(!PlaybackSpec{.duration_ns = 0}.valid());
+
+  const PlaybackSpec ntsc_playback{
+      .duration_ns = 10'000'000'000,
+      .frame_rate_numerator = 30'000,
+      .frame_rate_denominator = 1'001,
+      .loop = false,
+  };
+  require(ntsc_playback.valid());
+  require(ntsc_playback.frame_interval().count() == 33'366'667);
+  require(ntsc_playback.frame_count() == 300);
+  require(ntsc_playback.time_at_frame(1) == 33'366'667);
+  require(ntsc_playback.frame_at_time(33'366'666) == 0);
+  require(ntsc_playback.frame_at_time(33'366'667) == 1);
 
   FakePresenter fake_presenter;
   ViewportRenderSession session(fake_presenter, playback);
@@ -110,4 +133,59 @@ int main() {
   require(session.render_once().status == FrameStatus::rejected);
   require(!session.playback_state().running);
   require(session.playback_state().diagnostic == "injected frame rejection");
+
+  auto fake_now = std::chrono::steady_clock::time_point{};
+  FakePresenter transport_presenter;
+  ViewportRenderSession transport(
+      transport_presenter,
+      playback,
+      [&fake_now] { return fake_now; });
+  transport.start_playback();
+  fake_now += std::chrono::seconds(10);
+  require(transport.render_once().succeeded());
+  require(transport.playback_state().frame_index == 300);
+  require(transport.playback_state().position_ns == 10'000'000'000);
+
+  transport.pause_playback();
+  const auto paused = transport.playback_state();
+  require(!paused.running);
+  fake_now += std::chrono::seconds(5);
+  require(transport.render_once().succeeded());
+  require(transport.playback_state().frame_index == paused.frame_index);
+  require(transport.playback_state().position_ns == paused.position_ns);
+
+  const auto play_result = transport.submit_transport_command({
+      .kind = TransportCommandKind::play,
+  });
+  require(play_result.accepted);
+  fake_now += std::chrono::seconds(1);
+  require(transport.render_once().succeeded());
+  require(transport.playback_state().frame_index == 330);
+  require(transport.attach(NativeViewportHost{
+      .window_system = NativeWindowSystem::cocoa_view,
+      .handle = 1,
+  }).succeeded());
+
+  const auto seek_result = transport.submit_transport_command({
+      .kind = TransportCommandKind::seek_to_frame,
+      .frame_index = 450,
+  });
+  require(seek_result.accepted);
+  require(seek_result.snapshot.frame_index == 450);
+  require(seek_result.snapshot.position_ns == 15'000'000'000);
+  require(transport_presenter.last_frame.presentation_time_ns ==
+          15'000'000'000);
+
+  const auto pause_result = transport.submit_transport_command({
+      .kind = TransportCommandKind::pause,
+  });
+  require(pause_result.accepted);
+  require(!pause_result.snapshot.running);
+  const auto rejected_seek = transport.submit_transport_command({
+      .kind = TransportCommandKind::seek_to_frame,
+      .frame_index = 901,
+  });
+  require(!rejected_seek.accepted);
+  require(rejected_seek.diagnostic.find("RFX-TRANSPORT-SEEK-RANGE") !=
+          std::string::npos);
 }

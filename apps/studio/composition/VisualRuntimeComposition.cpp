@@ -1,6 +1,7 @@
 #include "StudioRuntimeComposition.hpp"
 
 #include "EngineViewportWindow.hpp"
+#include "StudioTransportBridge.hpp"
 
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
@@ -33,10 +34,21 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
             QString::fromStdString(device_service_->identity().adapter_name),
             std::move(project_path),
             require_composition(project),
-            *render_session_)) {}
+            *render_session_)),
+        transport_bridge_(std::make_unique<StudioTransportBridge>(
+            *render_session_, require_composition(project))) {
+    QObject::connect(viewport_window_.get(),
+                     &EngineViewportWindow::telemetryChanged,
+                     transport_bridge_.get(),
+                     &StudioTransportBridge::refresh);
+  }
 
   [[nodiscard]] QWindow* viewport_window() noexcept override {
     return viewport_window_.get();
+  }
+
+  [[nodiscard]] StudioTransportBridge* transport_bridge() noexcept override {
+    return transport_bridge_.get();
   }
 
  private:
@@ -65,6 +77,7 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
   std::unique_ptr<refusion::runtime::presentation::ViewportRenderSession>
       render_session_;
   std::unique_ptr<EngineViewportWindow> viewport_window_;
+  std::unique_ptr<StudioTransportBridge> transport_bridge_;
 };
 
 }  // namespace

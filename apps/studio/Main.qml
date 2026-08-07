@@ -154,7 +154,7 @@ ApplicationWindow {
                                     + engineViewportWindow.presentedFrames
                                     + "  •  "
                                     + (engineViewportWindow.playbackRunning
-                                       ? "PLAYING" : "STOPPED")
+                                       ? "PLAYING" : "PAUSED")
                                     + "  •  GPU "
                                     + engineViewportWindow.deviceStatus
                                   : "GPU viewport unavailable"
@@ -183,7 +183,7 @@ ApplicationWindow {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 230
+                Layout.preferredHeight: 260
                 color: root.panel
                 border.color: root.border
 
@@ -191,77 +191,289 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.margins: 12
                     spacing: 8
-                    RowLayout {
-                        Label { text: "TIMELINE"; color: root.textMuted; font.bold: true }
-                        Label {
-                            text: engineViewportWindow
-                                  ? engineViewportWindow.compositionName
-                                    + "  •  "
-                                    + engineViewportWindow.compositionWidth
-                                    + "×" + engineViewportWindow.compositionHeight
-                                  : "No composition"
-                            color: root.textMuted
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+
+                        Row {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
+                            Label {
+                                text: "TIMELINE"
+                                color: root.textMuted
+                                font.bold: true
+                            }
+                            Label {
+                                text: engineViewportWindow
+                                      ? engineViewportWindow.compositionName
+                                        + "  •  "
+                                        + engineViewportWindow.compositionWidth
+                                        + "×" + engineViewportWindow.compositionHeight
+                                      : "No composition"
+                                color: root.textMuted
+                            }
                         }
-                        Rectangle { Layout.fillWidth: true; color: "transparent" }
-                        Label {
-                            text: engineViewportWindow
-                                  ? root.playbackTime(engineViewportWindow.playbackPositionMs)
-                                    + " / "
-                                    + root.playbackTime(engineViewportWindow.playbackDurationMs)
-                                    + "  •  Loop "
-                                    + (engineViewportWindow.playbackLoop + 1)
-                                  : "00:00 / 00:00"
-                            color: engineViewportWindow
-                                   && engineViewportWindow.playbackRunning
-                                   ? "#7ee787" : root.textMuted
+
+                        ToolButton {
+                            id: playbackToggle
+                            anchors.centerIn: parent
+                            width: 44
+                            height: 30
+                            enabled: transportBridge !== null
+                            text: transportBridge && transportBridge.running
+                                  ? "❚❚" : "▶"
+                            font.pixelSize: 15
+                            font.bold: true
+                            onClicked: transportBridge.togglePlayback()
+                            ToolTip.visible: hovered
+                            ToolTip.text: transportBridge && transportBridge.running
+                                          ? "Pause at current frame"
+                                          : "Play from current frame"
+                            background: Rectangle {
+                                radius: 7
+                                color: playbackToggle.down
+                                       ? "#6548df"
+                                       : playbackToggle.hovered
+                                         ? "#2a3040" : root.panelRaised
+                                border.color: playbackToggle.enabled
+                                              ? root.accent : root.border
+                            }
+                            contentItem: Label {
+                                text: playbackToggle.text
+                                color: playbackToggle.enabled
+                                       ? root.textMain : root.textMuted
+                                font: playbackToggle.font
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+                            Label {
+                                text: transportBridge
+                                      ? transportBridge.positionTimecode
+                                        + " / "
+                                        + transportBridge.durationTimecode
+                                      : "00:00:00:00 / 00:00:00:00"
+                                color: transportBridge && transportBridge.running
+                                       ? "#7ee787" : root.textMuted
+                                font.family: "Menlo"
+                                font.pixelSize: 11
+                            }
+                            Label {
+                                text: engineViewportWindow
+                                      ? "Loop " + (engineViewportWindow.playbackLoop + 1)
+                                      : "Loop 1"
+                                color: root.textMuted
+                                font.pixelSize: 10
+                            }
                         }
                     }
+
                     Rectangle {
+                        id: timelineBody
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: root.panelRaised
                         border.color: root.border
 
-                        ColumnLayout {
+                        readonly property real trackLabelWidth: 150
+                        readonly property int rulerTicks: 7
+
+                        Column {
                             anchors.fill: parent
-                            anchors.margins: 8
-                            spacing: 3
+                            anchors.margins: 1
+                            spacing: 0
+
+                            Item {
+                                width: parent.width
+                                height: 25
+
+                                Rectangle {
+                                    width: timelineBody.trackLabelWidth
+                                    height: parent.height
+                                    color: "#171b24"
+                                    border.color: root.border
+                                    Label {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 9
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "LAYERS"
+                                        color: root.textMuted
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                    }
+                                }
+
+                                Item {
+                                    id: rulerLane
+                                    x: timelineBody.trackLabelWidth
+                                    width: parent.width - x
+                                    height: parent.height
+
+                                    Repeater {
+                                        model: timelineBody.rulerTicks
+                                        delegate: Item {
+                                            required property int index
+                                            x: index * (rulerLane.width - 1)
+                                               / (timelineBody.rulerTicks - 1)
+                                            width: 1
+                                            height: rulerLane.height
+                                            Rectangle {
+                                                anchors.bottom: parent.bottom
+                                                width: 1
+                                                height: index % 2 === 0 ? 9 : 6
+                                                color: root.border
+                                            }
+                                            Label {
+                                                anchors.top: parent.top
+                                                x: index === 0 ? 4
+                                                   : index === timelineBody.rulerTicks - 1
+                                                     ? -implicitWidth - 4
+                                                     : -implicitWidth / 2
+                                                text: transportBridge
+                                                      ? transportBridge.timecodeAtRatio(
+                                                            index / (timelineBody.rulerTicks - 1))
+                                                      : "00:00:00:00"
+                                                color: root.textMuted
+                                                font.family: "Menlo"
+                                                font.pixelSize: 8
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             Repeater {
-                                model: engineViewportWindow
-                                       ? engineViewportWindow.layerNames : []
-                                delegate: Rectangle {
-                                    required property string modelData
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 20
-                                    color: "#202532"
-                                    border.color: root.border
-                                    radius: 3
+                                model: transportBridge ? transportBridge.tracks : null
+                                delegate: Item {
+                                    required property int index
+                                    required property string layerId
+                                    required property string displayName
+                                    required property var startFrame
+                                    required property var durationFrames
+                                    width: timelineBody.width - 2
+                                    height: 24
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 8
-                                        anchors.rightMargin: 8
+                                    Rectangle {
+                                        width: timelineBody.trackLabelWidth
+                                        height: parent.height
+                                        color: index % 2 === 0 ? "#191e28" : "#171b24"
+                                        border.color: root.border
                                         Label {
-                                            text: modelData
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 9
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 8
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: displayName
                                             color: root.textMain
                                             font.pixelSize: 10
+                                            elide: Text.ElideRight
                                         }
+                                        ToolTip.visible: trackHover.hovered
+                                        ToolTip.text: layerId
+                                        HoverHandler { id: trackHover }
+                                    }
+
+                                    Item {
+                                        id: trackLane
+                                        x: timelineBody.trackLabelWidth
+                                        width: parent.width - x
+                                        height: parent.height
+
                                         Rectangle {
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 4
-                                            radius: 2
-                                            color: root.accent
+                                            anchors.fill: parent
+                                            color: index % 2 === 0 ? "#151923" : "#131720"
+                                            border.color: "#222837"
                                         }
-                                        Label {
-                                            text: "30s"
-                                            color: root.textMuted
-                                            font.pixelSize: 9
+
+                                        Rectangle {
+                                            x: transportBridge && transportBridge.durationFrames > 0
+                                               ? Number(startFrame)
+                                                 / transportBridge.durationFrames
+                                                 * trackLane.width : 0
+                                            width: transportBridge
+                                                   && transportBridge.durationFrames > 0
+                                                   ? Math.max(2,
+                                                       Number(durationFrames)
+                                                       / transportBridge.durationFrames
+                                                       * trackLane.width)
+                                                   : 0
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            height: 12
+                                            radius: 3
+                                            color: root.accent
+                                            border.color: "#987fff"
                                         }
                                     }
                                 }
                             }
                         }
+
+                        Item {
+                            id: playheadLane
+                            x: timelineBody.trackLabelWidth + 1
+                            y: 1
+                            width: timelineBody.width - x - 1
+                            height: timelineBody.height - 2
+                            z: 20
+
+                            Rectangle {
+                                id: playheadLine
+                                x: transportBridge
+                                   ? Math.round(transportBridge.positionRatio
+                                                * (playheadLane.width - width))
+                                   : 0
+                                y: 18
+                                width: 2
+                                height: playheadLane.height - y
+                                color: "#47d7ff"
+
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.bottom: parent.top
+                                    width: 11
+                                    height: 9
+                                    radius: 2
+                                    color: "#47d7ff"
+                                    border.color: "#b7f2ff"
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: transportBridge !== null
+                                hoverEnabled: true
+                                cursorShape: pressed
+                                             ? Qt.ClosedHandCursor
+                                             : Qt.SplitHCursor
+                                onPressed: function(mouse) {
+                                    transportBridge.seekFromTimelinePosition(
+                                                mouse.x, width)
+                                }
+                                onPositionChanged: function(mouse) {
+                                    if (pressed) {
+                                        transportBridge.seekFromTimelinePosition(
+                                                    mouse.x, width)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        visible: transportBridge
+                                 && transportBridge.diagnostic.length > 0
+                        text: transportBridge ? transportBridge.diagnostic : ""
+                        color: "#ff6f7d"
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
                     }
                 }
             }

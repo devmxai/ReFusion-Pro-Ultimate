@@ -46,6 +46,8 @@ qt_standard_project_setup(REQUIRES 6.11)
 add_library(refusion_studio_bridge STATIC
   StudioBridge.cpp
   StudioBridge.hpp
+  StudioTransportBridge.cpp
+  StudioTransportBridge.hpp
 )
 
 add_library(ReFusion::StudioBridge ALIAS refusion_studio_bridge)
@@ -58,6 +60,7 @@ target_include_directories(refusion_studio_bridge
 target_link_libraries(refusion_studio_bridge
   PUBLIC
     ReFusion::Application
+    ReFusion::RuntimePresentation
     Qt6::Core
 )
 

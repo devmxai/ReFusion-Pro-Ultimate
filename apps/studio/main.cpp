@@ -1,5 +1,6 @@
 #include "StudioBridge.hpp"
 #include "StudioRuntimeComposition.hpp"
+#include "StudioTransportBridge.hpp"
 #include "adapters/QtJsonProjectFileAdapter.hpp"
 
 #include "refusion/application/ProjectCommandService.hpp"
@@ -34,11 +35,13 @@ int main(int argc, char* argv[]) {
   StudioBridge bridge(*commands);
   std::unique_ptr<StudioRuntimeComposition> runtime_composition;
   QWindow* viewport_window = nullptr;
+  StudioTransportBridge* transport_bridge = nullptr;
   QString viewport_diagnostic;
   try {
     runtime_composition = create_studio_runtime_composition(
         opened_project.snapshot, opened_project.canonical_path);
     viewport_window = runtime_composition->viewport_window();
+    transport_bridge = runtime_composition->transport_bridge();
   } catch (const std::exception& error) {
     viewport_diagnostic = QString::fromUtf8(error.what());
     qCritical() << "Engine viewport initialization failed:" << viewport_diagnostic;
@@ -48,6 +51,8 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty(QStringLiteral("studioBridge"), &bridge);
   engine.rootContext()->setContextProperty(
       QStringLiteral("engineViewportWindow"), viewport_window);
+  engine.rootContext()->setContextProperty(
+      QStringLiteral("transportBridge"), transport_bridge);
   engine.rootContext()->setContextProperty(
       QStringLiteral("engineViewportAvailable"), viewport_window != nullptr);
   engine.rootContext()->setContextProperty(

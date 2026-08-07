@@ -7,6 +7,9 @@ namespace {
 class NullRuntimeComposition final : public StudioRuntimeComposition {
  public:
   [[nodiscard]] QWindow* viewport_window() noexcept override { return nullptr; }
+  [[nodiscard]] StudioTransportBridge* transport_bridge() noexcept override {
+    return nullptr;
+  }
 };
 
 }  // namespace

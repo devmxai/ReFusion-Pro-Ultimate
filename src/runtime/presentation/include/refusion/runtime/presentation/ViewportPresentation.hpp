@@ -73,14 +73,39 @@ struct PlaybackSpec final {
 
   [[nodiscard]] bool valid() const noexcept;
   [[nodiscard]] std::chrono::nanoseconds frame_interval() const noexcept;
+  [[nodiscard]] std::uint64_t frame_count() const noexcept;
+  [[nodiscard]] std::uint64_t frame_at_time(
+      std::uint64_t position_ns) const noexcept;
+  [[nodiscard]] std::uint64_t time_at_frame(
+      std::uint64_t frame_index) const noexcept;
 };
 
 struct PlaybackState final {
   bool running{false};
   std::uint64_t position_ns{0};
   std::uint64_t duration_ns{0};
+  std::uint64_t frame_index{0};
+  std::uint64_t frame_count{0};
   std::uint64_t loop_index{0};
   FrameStatus last_frame_status{FrameStatus::skipped};
+  std::string diagnostic;
+};
+
+enum class TransportCommandKind : std::uint8_t {
+  play,
+  pause,
+  seek_to_frame,
+};
+
+struct TransportCommand final {
+  TransportCommandKind kind{TransportCommandKind::play};
+  std::uint64_t frame_index{0};
+};
+
+struct TransportCommandResult final {
+  bool accepted{false};
+  PlaybackState snapshot;
+  std::string code;
   std::string diagnostic;
 };
 
@@ -141,9 +166,12 @@ class ViewportPresenter {
 class ViewportRenderSession final {
  public:
   using FrameObserver = std::function<void()>;
+  using ClockNow =
+      std::function<std::chrono::steady_clock::time_point()>;
 
   explicit ViewportRenderSession(ViewportPresenter& presenter,
-                                 PlaybackSpec playback_spec = {});
+                                 PlaybackSpec playback_spec = {},
+                                 ClockNow clock_now = {});
   ~ViewportRenderSession();
 
   ViewportRenderSession(const ViewportRenderSession&) = delete;
@@ -154,7 +182,12 @@ class ViewportRenderSession final {
   [[nodiscard]] FrameResult resize(ViewportExtent extent);
   void set_visible(bool visible) noexcept;
   void start_playback();
+  void resume_playback();
+  void pause_playback() noexcept;
   void stop_playback() noexcept;
+  [[nodiscard]] FrameResult seek_to_frame(std::uint64_t frame_index);
+  [[nodiscard]] TransportCommandResult submit_transport_command(
+      TransportCommand command);
   [[nodiscard]] FrameResult render_once();
   [[nodiscard]] PresentationTelemetry telemetry() const noexcept;
   [[nodiscard]] PlaybackState playback_state() const;
@@ -163,6 +196,9 @@ class ViewportRenderSession final {
  private:
   [[nodiscard]] FixtureFrame next_frame_locked(
       std::chrono::steady_clock::time_point now) noexcept;
+  [[nodiscard]] FixtureFrame current_frame_locked() noexcept;
+  void update_position_locked(
+      std::chrono::steady_clock::time_point now) noexcept;
   void render_loop(std::stop_token stop_token);
   void notify_frame_observer();
 
@@ -170,7 +206,9 @@ class ViewportRenderSession final {
   PlaybackSpec playback_spec_;
   mutable std::mutex mutex_;
   std::condition_variable_any wake_;
+  ClockNow clock_now_;
   std::chrono::steady_clock::time_point epoch_;
+  std::uint64_t playback_origin_ns_{0};
   std::uint64_t next_frame_index_{0};
   std::uint64_t position_ns_{0};
   std::uint64_t loop_index_{0};

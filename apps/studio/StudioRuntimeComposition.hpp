@@ -7,12 +7,14 @@
 #include <memory>
 
 class QWindow;
+class StudioTransportBridge;
 
 class StudioRuntimeComposition {
  public:
   virtual ~StudioRuntimeComposition() = default;
 
   [[nodiscard]] virtual QWindow* viewport_window() noexcept = 0;
+  [[nodiscard]] virtual StudioTransportBridge* transport_bridge() noexcept = 0;
 };
 
 [[nodiscard]] std::unique_ptr<StudioRuntimeComposition>
