@@ -25,3 +25,11 @@ refusion_enable_warnings(refusion-viewport-presentation-tests)
 
 add_test(NAME refusion.viewport_presentation
   COMMAND refusion-viewport-presentation-tests)
+
+add_executable(refusion-media-capability-tests media_capability_test.cpp)
+target_link_libraries(refusion-media-capability-tests
+  PRIVATE ReFusion::RuntimeMedia)
+refusion_enable_warnings(refusion-media-capability-tests)
+
+add_test(NAME refusion.media_capability
+  COMMAND refusion-media-capability-tests)

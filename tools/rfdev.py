@@ -354,7 +354,8 @@ def cross_platform_contract_problems(root: pathlib.Path) -> list[str]:
     }
     required_lanes = {
         "macos-core", "macos-studio", "macos-graphics",
-        "windows-core", "windows-studio", "windows-graphics",
+        "macos-media", "windows-core", "windows-studio", "windows-graphics",
+        "windows-media",
     }
     for name in sorted(required_lanes - configure_names):
         problems.append(f"CMakePresets.json is missing configure lane {name}")

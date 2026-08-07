@@ -1,8 +1,25 @@
-if(APPLE AND NOT IOS)
-  add_subdirectory(apple/metal)
-elseif(WIN32)
-  add_subdirectory(windows/d3d12)
-else()
-  message(FATAL_ERROR
-    "REFUSION_BUILD_PLATFORM_GPU is enabled, but this platform has no admitted GPU implementation")
+if(REFUSION_BUILD_PLATFORM_GPU)
+  if(APPLE AND NOT IOS)
+    add_subdirectory(apple/metal)
+  elseif(WIN32)
+    add_subdirectory(windows/d3d12)
+  else()
+    message(FATAL_ERROR
+      "REFUSION_BUILD_PLATFORM_GPU is enabled, but this platform has no admitted GPU implementation")
+  endif()
+endif()
+
+if(REFUSION_BUILD_PLATFORM_MEDIA)
+  if(NOT TARGET ReFusion::PlatformGpu)
+    message(FATAL_ERROR
+      "REFUSION_BUILD_PLATFORM_MEDIA requires the engine-owned platform GPU service")
+  endif()
+  if(APPLE AND NOT IOS)
+    add_subdirectory(apple/media)
+  elseif(WIN32)
+    add_subdirectory(windows/media)
+  else()
+    message(FATAL_ERROR
+      "REFUSION_BUILD_PLATFORM_MEDIA is enabled, but this platform has no admitted media probe")
+  endif()
 endif()

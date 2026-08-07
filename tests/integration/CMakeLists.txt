@@ -17,6 +17,16 @@ if(TARGET ReFusion::PlatformGpu)
   endif()
 endif()
 
+if(APPLE AND TARGET ReFusion::PlatformMedia)
+  add_executable(refusion-apple-media-capability-tests
+    apple_media_capability_test.cpp)
+  target_link_libraries(refusion-apple-media-capability-tests
+    PRIVATE ReFusion::PlatformGpu ReFusion::PlatformMedia)
+  refusion_enable_warnings(refusion-apple-media-capability-tests)
+  add_test(NAME refusion.apple_media_capability
+    COMMAND refusion-apple-media-capability-tests)
+endif()
+
 if(TARGET ReFusion::SkiaAdapter)
   add_executable(refusion-skia-adapter-tests skia_adapter_test.cpp)
   target_link_libraries(refusion-skia-adapter-tests PRIVATE ReFusion::SkiaAdapter)

@@ -69,6 +69,15 @@
       }
     },
     {
+      "name": "macos-media",
+      "inherits": "macos-core",
+      "displayName": "macOS strict hardware-media capability and native surface proof",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_BUILD_PLATFORM_MEDIA": "ON"
+      }
+    },
+    {
       "name": "windows-core",
       "inherits": "base",
       "displayName": "Windows portable core",
@@ -96,6 +105,15 @@
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
         "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/windows-x64-d3d12"
       }
+    },
+    {
+      "name": "windows-media",
+      "inherits": "windows-core",
+      "displayName": "Windows strict hardware-media compile lane",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_BUILD_PLATFORM_MEDIA": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -104,9 +122,11 @@
     { "name": "macos-studio", "configurePreset": "macos-studio" },
     { "name": "macos-graphics", "configurePreset": "macos-graphics" },
     { "name": "macos-visual", "configurePreset": "macos-visual" },
+    { "name": "macos-media", "configurePreset": "macos-media" },
     { "name": "windows-core", "configurePreset": "windows-core" },
     { "name": "windows-studio", "configurePreset": "windows-studio" },
-    { "name": "windows-graphics", "configurePreset": "windows-graphics" }
+    { "name": "windows-graphics", "configurePreset": "windows-graphics" },
+    { "name": "windows-media", "configurePreset": "windows-media" }
   ],
   "testPresets": [
     {
@@ -139,6 +159,11 @@
       "output": { "outputOnFailure": true }
     },
     {
+      "name": "macos-media",
+      "configurePreset": "macos-media",
+      "output": { "outputOnFailure": true }
+    },
+    {
       "name": "windows-core",
       "configurePreset": "windows-core",
       "output": { "outputOnFailure": true }
@@ -151,6 +176,11 @@
     {
       "name": "windows-graphics",
       "configurePreset": "windows-graphics",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-media",
+      "configurePreset": "windows-media",
       "output": { "outputOnFailure": true }
     }
   ],
@@ -196,6 +226,14 @@
       ]
     },
     {
+      "name": "macos-media",
+      "steps": [
+        { "type": "configure", "name": "macos-media" },
+        { "type": "build", "name": "macos-media" },
+        { "type": "test", "name": "macos-media" }
+      ]
+    },
+    {
       "name": "windows-core",
       "steps": [
         { "type": "configure", "name": "windows-core" },
@@ -217,6 +255,14 @@
         { "type": "configure", "name": "windows-graphics" },
         { "type": "build", "name": "windows-graphics" },
         { "type": "test", "name": "windows-graphics" }
+      ]
+    },
+    {
+      "name": "windows-media",
+      "steps": [
+        { "type": "configure", "name": "windows-media" },
+        { "type": "build", "name": "windows-media" },
+        { "type": "test", "name": "windows-media" }
       ]
     }
   ]

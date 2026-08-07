@@ -4,6 +4,8 @@ project(ReFusion VERSION 0.0.1 LANGUAGES CXX)
 
 option(REFUSION_BUILD_STUDIO "Build the Qt command-only Studio shell" OFF)
 option(REFUSION_BUILD_PLATFORM_GPU "Build the native engine-owned GPU service" OFF)
+option(REFUSION_BUILD_PLATFORM_MEDIA
+       "Build the strict native hardware-media capability probe" OFF)
 option(REFUSION_ENABLE_SKIA "Build the Skia adapter from a verified local source tree" OFF)
 option(REFUSION_STRICT_WARNINGS "Treat warnings in ReFusion-owned code as errors" ON)
 option(REFUSION_RELEASE_BUILD "Enable fail-closed redistributable build gates" OFF)
@@ -12,7 +14,8 @@ set(REFUSION_QT_COMMERCIAL_SDK_ROOT "" CACHE PATH
 set(REFUSION_QT_COMMERCIAL_RECEIPT "" CACHE FILEPATH
     "Private Qt Commercial entitlement receipt admitted for release builds")
 
-if(APPLE AND (REFUSION_BUILD_PLATFORM_GPU OR REFUSION_ENABLE_SKIA))
+if(APPLE AND (REFUSION_BUILD_PLATFORM_GPU OR REFUSION_BUILD_PLATFORM_MEDIA OR
+              REFUSION_ENABLE_SKIA))
   enable_language(OBJCXX)
 endif()
 
@@ -33,7 +36,7 @@ add_subdirectory(src/application)
 add_subdirectory(src/runtime)
 add_subdirectory(apps/cli)
 
-if(REFUSION_BUILD_PLATFORM_GPU)
+if(REFUSION_BUILD_PLATFORM_GPU OR REFUSION_BUILD_PLATFORM_MEDIA)
   add_subdirectory(src/platform)
 endif()
 
