@@ -6,6 +6,11 @@ option(REFUSION_BUILD_STUDIO "Build the Qt command-only Studio shell" OFF)
 option(REFUSION_BUILD_PLATFORM_GPU "Build the native engine-owned GPU service" OFF)
 option(REFUSION_ENABLE_SKIA "Build the Skia adapter from a verified local source tree" OFF)
 option(REFUSION_STRICT_WARNINGS "Treat warnings in ReFusion-owned code as errors" ON)
+option(REFUSION_RELEASE_BUILD "Enable fail-closed redistributable build gates" OFF)
+set(REFUSION_QT_COMMERCIAL_SDK_ROOT "" CACHE PATH
+    "ReFusion-local Qt Commercial SDK root admitted for release builds")
+set(REFUSION_QT_COMMERCIAL_RECEIPT "" CACHE FILEPATH
+    "Private Qt Commercial entitlement receipt admitted for release builds")
 
 if(APPLE AND (REFUSION_BUILD_PLATFORM_GPU OR REFUSION_ENABLE_SKIA))
   enable_language(OBJCXX)
@@ -24,6 +29,7 @@ include(RefusionWarnings)
 include(CTest)
 
 add_subdirectory(src/core)
+add_subdirectory(src/application)
 add_subdirectory(src/runtime)
 add_subdirectory(apps/cli)
 
@@ -42,4 +48,5 @@ endif()
 if(BUILD_TESTING)
   add_subdirectory(tests/unit)
   add_subdirectory(tests/integration)
+  add_subdirectory(tests/tools)
 endif()

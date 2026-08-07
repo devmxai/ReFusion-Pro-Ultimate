@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "windows-x64-development-pending",
+  "status": "awaiting-runner",
+  "host": "windows-x64",
+  "versions": {},
+  "scope": "Portable Core CI fingerprint to be captured by G0-WP03",
+  "release_claim": false,
+  "update_policy": "Record the first green runner image, MSVC, SDK, CMake, Ninja and Python versions before closing G0-WP03"
+}

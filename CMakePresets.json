@@ -28,6 +28,16 @@
       }
     },
     {
+      "name": "macos-core-sanitized",
+      "inherits": "macos-core",
+      "displayName": "macOS portable core with ASan and UBSan",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
       "name": "macos-studio",
       "inherits": "macos-core",
       "displayName": "macOS Qt Studio foundation shell",
@@ -78,6 +88,7 @@
   ],
   "buildPresets": [
     { "name": "macos-core", "configurePreset": "macos-core" },
+    { "name": "macos-core-sanitized", "configurePreset": "macos-core-sanitized" },
     { "name": "macos-studio", "configurePreset": "macos-studio" },
     { "name": "macos-graphics", "configurePreset": "macos-graphics" },
     { "name": "windows-core", "configurePreset": "windows-core" },
@@ -89,6 +100,15 @@
       "name": "macos-core",
       "configurePreset": "macos-core",
       "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "macos-core-sanitized",
+      "configurePreset": "macos-core-sanitized",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      }
     },
     {
       "name": "macos-studio",
@@ -123,6 +143,14 @@
         { "type": "configure", "name": "macos-core" },
         { "type": "build", "name": "macos-core" },
         { "type": "test", "name": "macos-core" }
+      ]
+    },
+    {
+      "name": "macos-core-sanitized",
+      "steps": [
+        { "type": "configure", "name": "macos-core-sanitized" },
+        { "type": "build", "name": "macos-core-sanitized" },
+        { "type": "test", "name": "macos-core-sanitized" }
       ]
     },
     {

@@ -21,7 +21,11 @@ using Microsoft::WRL::ComPtr;
     return "D3D12 adapter";
   }
   std::string converted(static_cast<std::size_t>(required), '\0');
-  WideCharToMultiByte(CP_UTF8, 0, value, -1, converted.data(), required, nullptr, nullptr);
+  const int converted_size = WideCharToMultiByte(
+      CP_UTF8, 0, value, -1, converted.data(), required, nullptr, nullptr);
+  if (converted_size != required) {
+    throw std::runtime_error("D3D12 adapter name UTF-8 conversion failed");
+  }
   converted.pop_back();
   return converted;
 }
@@ -44,13 +48,19 @@ class D3D12GpuDeviceService final : public runtime::gpu::GpuDeviceService {
     ComPtr<ID3D12Device> selected_device;
     for (UINT index = 0;; ++index) {
       ComPtr<IDXGIAdapter1> candidate;
-      if (factory->EnumAdapterByGpuPreference(
-              index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-              IID_PPV_ARGS(&candidate)) == DXGI_ERROR_NOT_FOUND) {
+      const HRESULT enumeration = factory->EnumAdapterByGpuPreference(
+          index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+          IID_PPV_ARGS(&candidate));
+      if (enumeration == DXGI_ERROR_NOT_FOUND) {
         break;
       }
+      if (FAILED(enumeration) || !candidate) {
+        throw std::runtime_error("DXGI hardware-adapter enumeration failed");
+      }
       DXGI_ADAPTER_DESC1 description{};
-      candidate->GetDesc1(&description);
+      if (FAILED(candidate->GetDesc1(&description))) {
+        throw std::runtime_error("DXGI adapter description query failed");
+      }
       if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0) {
         continue;
       }
@@ -75,7 +85,9 @@ class D3D12GpuDeviceService final : public runtime::gpu::GpuDeviceService {
     }
 
     DXGI_ADAPTER_DESC1 description{};
-    selected_adapter->GetDesc1(&description);
+    if (FAILED(selected_adapter->GetDesc1(&description))) {
+      throw std::runtime_error("selected DXGI adapter description query failed");
+    }
     const auto low = static_cast<std::uint32_t>(description.AdapterLuid.LowPart);
     const auto high = static_cast<std::uint32_t>(description.AdapterLuid.HighPart);
     identity_ = runtime::gpu::DeviceIdentity{

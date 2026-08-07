@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "id": "macos-arm64-development-2026-08-07",
+  "status": "qualified-local",
+  "host": "macos-arm64",
+  "versions": {
+    "git": "git version 2.50.1 (Apple Git-155)",
+    "cmake": "cmake version 4.3.3",
+    "ninja": "1.13.2",
+    "python": "3.14.6",
+    "qt6": "6.11.1",
+    "xcode": "Xcode 26.6",
+    "macos_sdk": "26.5",
+    "apple_clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)"
+  },
+  "scope": "Local G0 development and evidence reproduction only",
+  "release_claim": false,
+  "update_policy": "Change through a reviewed toolchain qualification record and rerun all native evidence"
+}

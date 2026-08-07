@@ -7,6 +7,11 @@ Every production dependency must record official origin, immutable revision or
 archive digest, license/SPDX obligations, build options, supported triples,
 patch digests, security owner, update policy, and acceptance evidence.
 
+Host toolchain qualifications live in `deps/toolchains`. A `qualified-local`
+record is exact and `bootstrap.py doctor` fails when the active host drifts. A
+platform marked `awaiting-runner` is not qualified and cannot close its native
+gate; it remains usable only to capture the first explicit CI fingerprint.
+
 Normal CMake configure/build is offline. `tools/bootstrap.py` is the only
 foundation network-fetch entry point and writes to the ignored ReFusion-local
 `out/deps-src`. For production-intake dependencies, external machine caches and

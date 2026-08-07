@@ -7,11 +7,14 @@ current_gate: G0
 gate_status: active
 active_work_packages:
   - G0-WP03
+  - G0-WP04A
+  - G0-WP04B
 baseline_commit: 1a70f5a
 last_green_commit: 075be91
 last_checkpoint: CP-G0-0004
 blocking_risks:
   - RISK-002
+  - RISK-003
 last_updated: 2026-08-07
 ---
 
@@ -24,7 +27,9 @@ last_updated: 2026-08-07
 Windows x64 run. By explicit owner direction, checkpoint `CP-G0-0004` also
 materialized a fresh official Skia dependency graph inside ReFusion and proved
 the engine-owned Metal plus same-device Ganesh/Graphite contract on macOS.
-G1 itself remains gated and is not activated by this preflight.
+The 2026-08-07 independent audit activated `G0-WP04A` and `G0-WP04B` to correct
+authority ownership and dependency/toolchain admission. G1 itself remains gated
+and is not activated by this preflight or correction work.
 
 ## Read next
 
@@ -34,11 +39,13 @@ G1 itself remains gated and is not activated by this preflight.
 
 ## Next actions
 
-1. Connect a CI-capable Git remote or Windows x64 runner.
-2. Run `.github/workflows/portable-core.yml` and retain portable-Core evidence.
-3. Materialize the locked official sources inside the Windows checkout, build
-   profile `windows-x64-d3d12`, and run preset `windows-graphics`.
-4. Only after Windows evidence, close G0-WP03 and continue the ordered gates.
+1. Complete and prove `G0-WP04A` authority/boundary correction locally.
+2. Complete the local `G0-WP04B` provenance and release-admission controls.
+3. Connect a CI-capable Git remote or Windows x64 runner; run portable Core and
+   retain the run URL, image and compiler evidence.
+4. Do not run or accept `windows-graphics` as same-device proof until G0-WP05
+   defines and G1 implements the missing D3D/Dawn context, link and runtime test.
+5. Complete G0-WP05 and perform the criterion-by-criterion G0 exit review.
 
 
 ## Do not repeat

@@ -4,6 +4,9 @@ refusion_import_skia()
 set(refusion_skia_adapter_sources SkiaRuntime.cpp)
 if(APPLE)
   list(APPEND refusion_skia_adapter_sources SkiaGpuContextsMetal.mm)
+elseif(WIN32)
+  message(FATAL_ERROR
+    "Windows Skia GPU contexts are not implemented; windows-graphics is intentionally fail-closed")
 endif()
 
 add_library(refusion_skia_adapter STATIC ${refusion_skia_adapter_sources})

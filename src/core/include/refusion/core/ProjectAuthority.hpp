@@ -53,7 +53,7 @@ struct RenameProjectCommand final {
 struct Diagnostic final {
   std::string code;
   std::string message;
-  bool blocking{true};
+  bool blocking{false};
 };
 
 enum class ApplyStatus : std::uint8_t {

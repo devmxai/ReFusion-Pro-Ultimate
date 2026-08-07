@@ -93,6 +93,8 @@ void command_contract_is_deterministic_and_preserves_lkg() {
   require(accepted.accepted());
   require(!accepted.replayed());
   require(accepted.command_id == CommandId{"cmd_001"});
+  require(!accepted.diagnostic.blocking);
+  require(accepted.diagnostic.code.empty());
   require(accepted.committed_revision == RevisionId{8});
   require(accepted.active_snapshot.project_id == ProjectId{"prj_stable"});
   require(accepted.active_snapshot.revision_id == RevisionId{8});
@@ -119,6 +121,7 @@ void command_contract_is_deterministic_and_preserves_lkg() {
   const auto stale =
       authority.apply(rename_command("cmd_003", "idem_003", 7, "Stale overwrite"));
   require(!stale.accepted());
+  require(stale.diagnostic.blocking);
   require(stale.diagnostic.code == "RFX-REV-409");
   require(stale.active_snapshot.revision_id == RevisionId{9});
   require(stale.active_snapshot.display_name == "Latest accepted");

@@ -10,6 +10,18 @@ function(refusion_import_skia)
   set(REFUSION_SKIA_BUILD_DIR "${CMAKE_SOURCE_DIR}/out/deps-build/skia/macos-arm64-metal"
       CACHE PATH "Verified prebuilt Skia profile directory")
 
+  file(REAL_PATH "${CMAKE_SOURCE_DIR}" refusion_repo_root)
+  file(REAL_PATH "${REFUSION_SKIA_SOURCE_DIR}" refusion_skia_source_real)
+  file(REAL_PATH "${REFUSION_SKIA_BUILD_DIR}" refusion_skia_build_real)
+  cmake_path(IS_PREFIX refusion_repo_root "${refusion_skia_source_real}"
+             NORMALIZE refusion_skia_source_is_local)
+  cmake_path(IS_PREFIX refusion_repo_root "${refusion_skia_build_real}"
+             NORMALIZE refusion_skia_build_is_local)
+  if(NOT refusion_skia_source_is_local OR NOT refusion_skia_build_is_local)
+    message(FATAL_ERROR
+      "Skia sources and build artifacts must remain inside this ReFusion checkout")
+  endif()
+
   file(READ "${CMAKE_SOURCE_DIR}/deps/manifest.lock.json" refusion_dependency_lock)
   string(JSON expected_skia_revision GET "${refusion_dependency_lock}"
          components skia revision)
@@ -51,21 +63,77 @@ function(refusion_import_skia)
     message(FATAL_ERROR "Skia source worktree is modified; rematerialize it with --fresh")
   endif()
 
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/bootstrap.py"
+            verify-skia-materialization
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE materialization_result
+    OUTPUT_VARIABLE materialization_output
+    ERROR_VARIABLE materialization_error
+  )
+  if(NOT materialization_result EQUAL 0)
+    message(FATAL_ERROR
+      "Skia transitive materialization verification failed:\n${materialization_output}${materialization_error}")
+  endif()
+
   set(build_record "${REFUSION_SKIA_BUILD_DIR}/refusion-build.json")
   if(NOT EXISTS "${build_record}")
     message(FATAL_ERROR
       "Verified Skia build record is missing; run tools/bootstrap.py build-skia --profile <profile>")
   endif()
   file(READ "${build_record}" skia_build_record)
+  string(JSON build_record_schema GET "${skia_build_record}" schema_version)
+  if(NOT build_record_schema EQUAL 2)
+    message(FATAL_ERROR "Skia build record schema is stale; rebuild the profile")
+  endif()
+  string(JSON built_skia_origin GET "${skia_build_record}" source_origin)
+  if(NOT built_skia_origin STREQUAL expected_skia_origin)
+    message(FATAL_ERROR "Skia artifact build record has an unexpected source origin")
+  endif()
   string(JSON built_skia_revision GET "${skia_build_record}" source_revision)
   if(NOT built_skia_revision STREQUAL expected_skia_revision)
     message(FATAL_ERROR "Skia artifact was built from an unexpected source revision")
   endif()
   string(JSON built_args_path GET "${skia_build_record}" gn_args)
   string(JSON expected_args_sha256 GET "${skia_build_record}" gn_args_sha256)
-  file(SHA256 "${CMAKE_SOURCE_DIR}/${built_args_path}" actual_args_sha256)
+  file(REAL_PATH "${CMAKE_SOURCE_DIR}/${built_args_path}" built_args_real)
+  cmake_path(IS_PREFIX refusion_repo_root "${built_args_real}"
+             NORMALIZE built_args_is_local)
+  if(NOT built_args_is_local)
+    message(FATAL_ERROR "Skia build record references a GN profile outside ReFusion")
+  endif()
+  file(SHA256 "${built_args_real}" actual_args_sha256)
   if(NOT actual_args_sha256 STREQUAL expected_args_sha256)
     message(FATAL_ERROR "Skia GN profile changed after the recorded build")
+  endif()
+  string(JSON dependency_record_path GET "${skia_build_record}" dependency_record)
+  string(JSON expected_dependency_sha256 GET "${skia_build_record}"
+         dependency_record_sha256)
+  if(NOT dependency_record_path STREQUAL "out/deps-src/skia-dependencies.lock.json")
+    message(FATAL_ERROR "Skia build record references an unexpected dependency inventory")
+  endif()
+  file(SHA256 "${CMAKE_SOURCE_DIR}/${dependency_record_path}"
+       actual_dependency_sha256)
+  if(NOT actual_dependency_sha256 STREQUAL expected_dependency_sha256)
+    message(FATAL_ERROR "Skia dependency inventory changed after the recorded build")
+  endif()
+  string(JSON tracked_dependency_path GET "${skia_build_record}"
+         tracked_dependency_lock)
+  string(JSON expected_tracked_dependency_sha256 GET "${skia_build_record}"
+         tracked_dependency_lock_sha256)
+  file(REAL_PATH "${CMAKE_SOURCE_DIR}/${tracked_dependency_path}"
+       tracked_dependency_real)
+  file(REAL_PATH "${CMAKE_SOURCE_DIR}/deps/locks" tracked_dependency_root)
+  cmake_path(IS_PREFIX tracked_dependency_root "${tracked_dependency_real}"
+             NORMALIZE tracked_dependency_is_local)
+  if(NOT tracked_dependency_is_local)
+    message(FATAL_ERROR "Skia build record references an untracked dependency lock path")
+  endif()
+  file(SHA256 "${tracked_dependency_real}" actual_tracked_dependency_sha256)
+  if(NOT actual_tracked_dependency_sha256 STREQUAL
+         expected_tracked_dependency_sha256)
+    message(FATAL_ERROR "Tracked Skia dependency lock changed after the build")
   endif()
 
   if(WIN32)

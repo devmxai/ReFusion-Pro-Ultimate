@@ -2,32 +2,28 @@
 
 #include <string>
 
-StudioBridge::StudioBridge(QObject* parent)
-    : QObject(parent),
-      authority_(refusion::core::ProjectSnapshot{
-          .project_id = refusion::core::ProjectId{"prj_refusion_foundation"},
-          .revision_id = refusion::core::RevisionId{1},
-          .display_name = "ReFusion Foundation",
-      }) {}
+StudioBridge::StudioBridge(refusion::application::ProjectCommandService& commands,
+                           QObject* parent)
+    : QObject(parent), commands_(&commands) {}
 
 QString StudioBridge::projectId() const {
-  return QString::fromStdString(authority_.active_snapshot().project_id.value);
+  return QString::fromStdString(commands_->active_snapshot().project_id.value);
 }
 
 QString StudioBridge::projectName() const {
-  return QString::fromStdString(authority_.active_snapshot().display_name);
+  return QString::fromStdString(commands_->active_snapshot().display_name);
 }
 
 qulonglong StudioBridge::revision() const {
-  return authority_.active_snapshot().revision_id.value;
+  return commands_->active_snapshot().revision_id.value;
 }
 
 QString StudioBridge::diagnostic() const { return diagnostic_; }
 
 void StudioBridge::submitRename(const QString& requested_name) {
-  const auto base = authority_.active_snapshot();
+  const auto base = commands_->active_snapshot();
   ++command_sequence_;
-  const auto result = authority_.apply(refusion::core::RenameProjectCommand{
+  const auto result = commands_->submit(refusion::core::RenameProjectCommand{
       .envelope = refusion::core::CommandEnvelope{
           .command_id = refusion::core::CommandId{
               "cmd_qt_rename_" + std::to_string(command_sequence_)},

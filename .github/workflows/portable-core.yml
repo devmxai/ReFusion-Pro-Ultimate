@@ -25,6 +25,10 @@ jobs:
             runner: macos-15
             preset: macos-core
             python: python3
+          - name: macOS 15 arm64 / Apple Clang / ASan+UBSan
+            runner: macos-15
+            preset: macos-core-sanitized
+            python: python3
           - name: Windows Server 2025 x64 / MSVC
             runner: windows-2025
             preset: windows-core

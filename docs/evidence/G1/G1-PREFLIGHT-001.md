@@ -42,8 +42,10 @@ The generated dependency inventory is retained inside the ignored project path
 - Official GN plus pinned Ninja executed 1,473 build commands for target `skia`.
 - The profile enabled Ganesh, Graphite and Metal and disabled GL, Vulkan, Dawn,
   system third-party libraries, partition allocator and performance tracing.
-- ICU, HarfBuzz and image codec dependencies were built from Skia's pinned
-  sources rather than host packages.
+- HarfBuzz and image codec dependencies required by target `skia` were built
+  from Skia's pinned sources rather than host packages. ICU sources were pinned
+  and its targets were generated, but `skunicode_icu` was not built by this
+  target; no ICU runtime claim arises from this preflight.
 - Fourteen produced static archives were combined deterministically.
 - Bundle size: 820,062,752 bytes.
 - Bundle SHA-256, reproduced identically by two consecutive bundle operations:

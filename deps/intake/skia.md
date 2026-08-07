@@ -29,10 +29,20 @@ quality, package licenses and no CPU video-pixel path. No backend is accepted ye
 - Skia's pinned `DEPS` graph resolved 46 Git dependencies and recorded their
   official origins and revisions.
 - The tracked macOS arm64 GN profile built Ganesh, Graphite and Metal from
-  source with bundled image/text dependencies.
+  source with the HarfBuzz and image dependencies required by target `skia`.
 - ReFusion CMake rejected unverified source/build state, then imported the
   deterministic archive after origin, revision, profile and artifact checks.
 - Metal device/queue ownership and both Skia context factories passed on macOS.
 
 This is not backend selection or a Windows/presenter/video qualification. Those
 remain measured G1 decisions.
+
+The current bundle does not contain `skshaper`, `skparagraph`, or
+`skunicode_icu`; setting `skia_use_icu=true` makes those targets available but
+does not cause target `skia` to build them. G1/G3 text work must name, build and
+test its exact shaping/unicode targets rather than inferring them from GN flags.
+
+`macos-arm64-metal-release` is a separate `is_official_build=true` definition.
+It is deliberately `defined-not-built`: it receives no release claim until a
+clean independent rebuild, typography/render fixture, SBOM/notices, packaging
+and platform qualification pass.

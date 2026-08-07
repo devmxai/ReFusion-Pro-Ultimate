@@ -1,6 +1,6 @@
 #pragma once
 
-#include "refusion/core/ProjectAuthority.hpp"
+#include "refusion/application/ProjectCommandService.hpp"
 
 #include <QObject>
 #include <QString>
@@ -13,7 +13,8 @@ class StudioBridge final : public QObject {
   Q_PROPERTY(QString diagnostic READ diagnostic NOTIFY diagnosticChanged)
 
  public:
-  explicit StudioBridge(QObject* parent = nullptr);
+  explicit StudioBridge(refusion::application::ProjectCommandService& commands,
+                        QObject* parent = nullptr);
 
   [[nodiscard]] QString projectId() const;
   [[nodiscard]] QString projectName() const;
@@ -27,8 +28,7 @@ class StudioBridge final : public QObject {
   void diagnosticChanged();
 
  private:
-  refusion::core::ProjectAuthority authority_;
+  refusion::application::ProjectCommandService* commands_;
   QString diagnostic_;
   qulonglong command_sequence_{0};
 };
-

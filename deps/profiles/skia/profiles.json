@@ -6,13 +6,23 @@
       "gn_args": "macos-arm64-metal.gn",
       "targets": ["skia"],
       "bundle_artifact": "librefusion_skia_bundle.a",
-      "qualification": "local-build-required"
+      "purpose": "G1 graphics preflight; not a release artifact",
+      "qualification": "macos-context-creation-proved"
+    },
+    "macos-arm64-metal-release": {
+      "host": "macos-arm64",
+      "gn_args": "macos-arm64-metal-release.gn",
+      "targets": ["skia"],
+      "bundle_artifact": "librefusion_skia_bundle.a",
+      "purpose": "redistributable candidate; requires clean rebuild and G1 qualification",
+      "qualification": "defined-not-built"
     },
     "windows-x64-d3d12": {
       "host": "windows-x64",
       "gn_args": "windows-x64-d3d12.gn",
       "targets": ["skia"],
       "bundle_artifact": "refusion_skia_bundle.lib",
+      "purpose": "G1 D3D/Dawn candidate; blocked by missing same-device adapter",
       "qualification": "windows-runner-required"
     }
   }

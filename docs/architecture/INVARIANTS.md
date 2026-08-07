@@ -1,10 +1,11 @@
 ---
 id: ARCH-INV-001
 kind: invariants
-status: proposed
+status: accepted
 owner_role: principal-architecture
 canonical_for: architecture-invariants
 last_verified: 2026-08-07
+accepted_by: product-owner-user-instruction-2026-08-07
 ---
 
 # Architecture invariants
@@ -32,7 +33,9 @@ last_verified: 2026-08-07
 Qt/QML may own windows, controls, panels, input collection, view models, and
 diagnostic presentation. It sends typed intents and displays immutable engine
 snapshots. It owns no project model, decoder, transport clock, frame cache,
-render graph, swapchain, or acceptance queue.
+render graph, project-viewport swapchain, or acceptance queue. Qt may own the
+shell window/control rendering required for Studio itself; that authority never
+extends to project Canvas presentation or engine frames.
 
 Qt values such as `QPointF` may exist only while adapting an event; the adapter
 must immediately convert them to explicit engine coordinate/unit types.
@@ -69,4 +72,3 @@ producer inside the render graph, not the project schema or scheduler.
   revision, or main render process. Public native ABI is post-v1.
 - Mobile does not download executable native plugins; only packaged or
   declarative content is eligible, subject to store policy.
-

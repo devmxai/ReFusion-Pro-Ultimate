@@ -20,16 +20,24 @@ diagnostics, and isolated hardware-media interop proofs.
 G0 is passed; Qt license/module lane and pinned foundation dependencies are
 approved; device lab and signing paths have named owners.
 
-## Workstreams
+## Work packages
 
-1. Qt shell and engine-owned native viewport boundary.
-2. `GpuDeviceService`, presenter, resource lease and fence contracts.
-3. Skia Ganesh/Graphite/Dawn/native bake-off using the same physical device.
-4. Apple VideoToolbox/CoreVideo/Metal surface proof.
-5. Windows Media Foundation D3D surface proof and D3D11/D3D12 bridge comparison.
-6. Runtime zero-CPU-pixel counters and fail-closed diagnostics.
-7. macOS/Windows packaging, signing/notarization skeleton and clean-machine lab.
-8. iOS Metal and Android Vulkan contract/build canaries.
+1. [`G1-WP01`](work-packages/G1-WP01-macos-presenter.md) — macOS native
+   presenter and Skia fixture.
+2. [`G1-WP02`](work-packages/G1-WP02-windows-presenter-skia.md) — Windows
+   D3D12/DXGI presenter and real Skia/D3D/Dawn bake-off.
+3. [`G1-WP03`](work-packages/G1-WP03-apple-media-surface.md) — Apple hardware
+   media-surface proof.
+4. [`G1-WP04`](work-packages/G1-WP04-windows-media-surface.md) — Windows
+   hardware media-surface proof.
+5. [`G1-WP05`](work-packages/G1-WP05-gpu-observability.md) — leases, fences,
+   counters, traces and device loss.
+6. [`G1-WP06`](work-packages/G1-WP06-packaging-signing.md) — packaging,
+   licensing, signing and clean-machine evidence.
+7. [`G1-WP07`](work-packages/G1-WP07-mobile-canaries.md) — iOS/Android compile
+   canaries without runtime claims.
+8. [`G1-WP08`](work-packages/G1-WP08-walking-product.md) — accepted-candidate
+   integration and G1 exit artifact.
 
 ## Measurements
 
@@ -51,4 +59,3 @@ sync/lifetime, or commercially incompatible distribution terms.
 Mac and Windows artifacts, traces/captures, dependency fingerprints, device
 profiles, diagnostics, clean-machine receipts, and accepted ADRs for the selected
 GPU/Skia/media/presentation/package paths.
-

@@ -27,39 +27,20 @@ public plugin ABI, full dependency ecosystem, and signed public release.
 
 ## Work packages
 
-### G0-WP01 — Repository operating system
+Each package is a machine-checkable authority file under `work-packages/`:
 
-- Outcome: safe Git root, canonical docs, status, templates, Agent guidance and
-  progressive-disclosure skill.
-- Allowed paths: root docs/config, `docs/`, `.agents/`, `tools/rfdev.py`.
-- Verification: docs doctor, skill validator, context manifest.
-- Evidence: `docs/evidence/G0/G0-WP01.md`.
-
-### G0-WP02 — Product, matrix, and legal decisions
-
-- Outcome: review Product Contract and initial media/device matrix; decide Qt
-  licensing lane and module allowlist; record codec/font/Skia obligations.
-- Deliverables: ADRs and Dependency Intake records.
-- Stop condition: commercial distribution obligations remain ownerless.
-
-### G0-WP03 — Portable command/revision baseline
-
-- Outcome: C++20 typed project snapshot, expected-revision command acceptance,
-  deterministic rejection, and Last-Known-Good test/CLI proof.
-- Allowed paths: `src/core`, `apps/cli`, `tests/unit`, CMake files.
-- Verification: `cmake --workflow --preset macos-core` and Windows CI equivalent.
-
-### G0-WP04 — Architecture and dependency enforcement
-
-- Outcome: official pinned manifest, offline-normal-build rule, forbidden include
-  scanner, dependency direction checks, docs freshness checks, CI design.
-- Stop condition: scanner is treated as runtime evidence; it is structural only.
-
-### G0-WP05 — G1 experiment readiness review
-
-- Outcome: approve G1 devices, metrics, traces, fixtures, kill criteria,
-  packaging lanes, and evidence schema.
-- Exit: every G0 Master Plan criterion has evidence or an explicit rejection.
+1. [`G0-WP01`](work-packages/G0-WP01-repo-os.md) — Repository operating system
+   — passed.
+2. [`G0-WP02`](work-packages/G0-WP02-decisions.md) — Product, matrix, and legal
+   decisions — passed.
+3. [`G0-WP03`](work-packages/G0-WP03-portable-core.md) — Portable command and
+   revision baseline — code complete, awaiting Windows.
+4. [`G0-WP04A`](work-packages/G0-WP04A-authority-integrity.md) — Authority and
+   boundary integrity — active.
+5. [`G0-WP04B`](work-packages/G0-WP04B-supply-chain.md) — Dependency/toolchain
+   integrity — active.
+6. [`G0-WP05`](work-packages/G0-WP05-g1-readiness.md) — G1 experiment readiness
+   review — planned.
 
 ## Platform matrix
 
@@ -72,4 +53,3 @@ from compile-only evidence.
 An owner reviews evidence and marks G0 `passed`, `failed`, or `waived` criterion
 by criterion. An Agent may prepare the record but cannot silently approve legal
 or product decisions.
-
