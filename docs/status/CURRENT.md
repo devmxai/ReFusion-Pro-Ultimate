@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP01
 baseline_commit: 1a70f5a
-last_green_commit: b850a84ce8aff860bf8aac786440b396eb77024e
-last_checkpoint: CP-G1-0002
+last_green_commit: 73d59a7960bae38ba7e2e9c41ae2df4898c8f565
+last_checkpoint: CP-G1-0003
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -57,6 +57,15 @@ exact integer time and keyframed Shape/Text content; Runtime owns continuous
 ADR-0008 and the experimental schema record the boundary. This is a G2 seed,
 not G2 activation or a Video Layer/media/save/export claim.
 
+Source commit `73d59a7960bae38ba7e2e9c41ae2df4898c8f565` hardened the
+GPU lifecycle contract across the declared Metal and D3D12 lanes. macOS now
+observes native system sleep/wake and window occlusion, presentation reports
+typed health/generation telemetry, loss advances the generation, and Runtime
+stops fail-closed on its first rejected frame. Physical full-window
+occlusion/resume and injected device-loss receipts pass with zero CPU pixel
+transfer. `G1-WP01` remains active only for the actual system sleep/wake receipt
+on `MAC-LAB-001`; simulated notifications do not close that physical criterion.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -65,8 +74,9 @@ not G2 activation or a Video Layer/media/save/export claim.
 
 ## Next actions
 
-1. Complete the remaining `G1-WP01` physical lifecycle receipts on
-   `MAC-LAB-001`: occlusion, sleep/wake and fail-closed device-loss behavior.
+1. Complete the remaining `G1-WP01` physical lifecycle receipt on
+   `MAC-LAB-001`: one actual system sleep/wake cycle with `GPU READY`, event
+   sequence `2`, resumed frame growth and zero device-loss rejection.
 2. Keep every new semantic/presenter contract portable and define the matching
    Windows lane/fixture; platform code may enter Apple/Windows adapters only.
 3. When a Windows x64 runner/device becomes available, run G0-WP03, create the

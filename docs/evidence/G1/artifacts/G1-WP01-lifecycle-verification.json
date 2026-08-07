@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP01",
+  "source_commit": "73d59a7960bae38ba7e2e9c41ae2df4898c8f565",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "gpu": "Apple M1 7-core GPU"
+  },
+  "verification": {
+    "macos_visual": {"passed": 12, "failed": 0},
+    "macos_core": {"passed": 5, "failed": 0},
+    "macos_core_sanitized": {"passed": 5, "failed": 0},
+    "native_notification_sequence": 2,
+    "physical_occlusion_suspends": 1,
+    "physical_occlusion_resumes": 1,
+    "physical_test_visibility_suspends": 0,
+    "physical_test_visibility_resumes": 1,
+    "injected_device_loss_generation_delta": 1,
+    "stale_generation_acceptances": 0,
+    "physical_sleep_wake": "pending"
+  },
+  "presenter_soak": {
+    "requested_frames": 10000,
+    "present_submissions": 10000,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "visual_artifact": {
+    "path": "docs/evidence/G1/artifacts/G1-WP01-macos-occlusion-resume.png",
+    "sha256": "6c679b9513450af5abcaa221bb21b32df0a4c6830d665301e0d3df47233e3e24"
+  },
+  "claim_boundary": {
+    "macos_physical_occlusion": "passed",
+    "macos_native_sleep_wake_notification_path": "passed",
+    "macos_physical_sleep_wake": "pending",
+    "device_loss_fail_closed": "passed-injected",
+    "windows": "not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_wp01": "active"
+  }
+}

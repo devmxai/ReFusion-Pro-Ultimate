@@ -56,3 +56,11 @@ half-open integer time ranges, Layers and scalar keyframes; Runtime owns the
 30 fps looping clock; Skia evaluates the accepted Composition snapshot. This is
 a bounded project-open seed under proposed ADR-0008, not a stable file-format,
 G2, Video Layer, media-decode, save/reopen or export completion claim.
+
+Source commit `73d59a7960bae38ba7e2e9c41ae2df4898c8f565` adds the
+portable GPU `ready/suspended/lost` lifecycle contract, generation invalidation,
+native macOS sleep/wake and occlusion observation, equivalent D3D12 contract
+implementation, fail-closed presenter behavior and lifecycle telemetry. A
+physical full-window occlusion/resume receipt and injected stale-generation
+device-loss proof pass. Keep this package `active` until an actual system
+sleep/wake cycle is observed on `MAC-LAB-001`.
