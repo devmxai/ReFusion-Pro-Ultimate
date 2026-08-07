@@ -1,6 +1,8 @@
-#include "refusion/runtime/media/MediaCapability.hpp"
-
+#include <memory>
 #include <stdexcept>
+
+#include "refusion/runtime/media/HardwareVideoDecode.hpp"
+#include "refusion/runtime/media/MediaCapability.hpp"
 
 namespace {
 
@@ -12,6 +14,21 @@ void require(const bool condition) {
 
 }  // namespace
 
+class TestSurfaceLease final
+    : public refusion::runtime::media::NativeVideoSurfaceLease {
+ public:
+  explicit TestSurfaceLease(refusion::runtime::media::DecodedSurfaceInfo info)
+      : info_(std::move(info)) {}
+
+  [[nodiscard]] const refusion::runtime::media::DecodedSurfaceInfo& info()
+      const noexcept override {
+    return info_;
+  }
+
+ private:
+  refusion::runtime::media::DecodedSurfaceInfo info_;
+};
+
 int main() {
   using namespace refusion::runtime::media;
 
@@ -20,11 +37,13 @@ int main() {
   require(SourceFrameTiming{
       .presentation_time = {.value = 90'000, .timescale = 90'000},
       .duration = {.value = 3'003, .timescale = 90'000},
-  }.valid());
+  }
+              .valid());
   require(!SourceFrameTiming{
       .presentation_time = {.value = 0, .timescale = 30},
       .duration = {.value = 0, .timescale = 30},
-  }.valid());
+  }
+               .valid());
 
   const StrictDecodeProfile reference_profile{
       .coded_width = 1920,
@@ -43,12 +62,13 @@ int main() {
       .hardware_decoder = true,
       .native_gpu_surface = true,
       .native_plane_count = 2,
-      .device = refusion::runtime::gpu::DeviceIdentity{
-          .backend = refusion::runtime::gpu::Backend::metal,
-          .adapter_name = "test-adapter",
-          .adapter_id = 1,
-          .generation = 1,
-      },
+      .device =
+          refusion::runtime::gpu::DeviceIdentity{
+              .backend = refusion::runtime::gpu::Backend::metal,
+              .adapter_name = "test-adapter",
+              .adapter_id = 1,
+              .generation = 1,
+          },
       .counters = {},
   };
   require(admitted.admitted());
@@ -56,4 +76,43 @@ int main() {
   auto contaminated = admitted;
   contaminated.counters.software_decoder_selections = 1;
   require(!contaminated.admitted());
+
+  const HardwareDecodeRequest request{
+      .source_path = "fixture.h264",
+      .expected_profile = reference_profile,
+      .source_frame_index = 3,
+      .packet_timing =
+          {
+              .presentation_time = {.value = 3, .timescale = 30},
+              .duration = {.value = 1, .timescale = 30},
+          },
+  };
+  require(request.valid());
+  require(!HardwareDecodeRequest{}.valid());
+
+  const DecodedSurfaceInfo surface_info{
+      .lease_id = 7,
+      .source_frame_index = 3,
+      .profile = reference_profile,
+      .timing = request.packet_timing,
+      .device =
+          {
+              .backend = refusion::runtime::gpu::Backend::metal,
+              .adapter_name = "test-adapter",
+              .adapter_id = 1,
+              .generation = 1,
+          },
+      .plane_count = 2,
+  };
+  require(surface_info.valid());
+  const HardwareDecodeResult decoded{
+      .state = DecodeState::decoded,
+      .hardware_decoder = true,
+      .surface = std::make_shared<TestSurfaceLease>(surface_info),
+      .counters = {},
+  };
+  require(decoded.admitted());
+  auto mapped = decoded;
+  mapped.counters.cpu_pixel_maps = 1;
+  require(!mapped.admitted());
 }

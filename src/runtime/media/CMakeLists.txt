@@ -1,4 +1,5 @@
 add_library(refusion_runtime_media STATIC
+  HardwareVideoDecode.cpp
   MediaCapability.cpp
 )
 

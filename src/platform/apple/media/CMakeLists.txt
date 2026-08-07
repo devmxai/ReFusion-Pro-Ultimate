@@ -1,4 +1,5 @@
 add_library(refusion_platform_media STATIC
+  AppleHardwareVideoDecoder.mm
   AppleMediaCapabilityProbe.mm
 )
 
@@ -7,6 +8,7 @@ add_library(ReFusion::PlatformMedia ALIAS refusion_platform_media)
 target_include_directories(refusion_platform_media
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(refusion_platform_media

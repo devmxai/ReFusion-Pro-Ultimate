@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import io
 import json
 import pathlib
@@ -26,6 +27,23 @@ def require(condition: bool, message: str) -> None:
 
 
 def main() -> None:
+    fixture_directory = (
+        ROOT / "tests" / "fixtures" / "media" / "h264-cfr-320x180-gop1"
+    )
+    fixture_manifest = json.loads(
+        (fixture_directory / "fixture.json").read_text(encoding="utf-8")
+    )
+    fixture_payload = fixture_directory / fixture_manifest["payload"]
+    fixture_bytes = fixture_payload.read_bytes()
+    require(
+        len(fixture_bytes) == fixture_manifest["byte_size"],
+        "the bounded H.264 fixture byte size does not match its manifest",
+    )
+    require(
+        hashlib.sha256(fixture_bytes).hexdigest() == fixture_manifest["sha256"],
+        "the bounded H.264 fixture digest does not match its manifest",
+    )
+
     with tempfile.TemporaryDirectory(prefix="refusion-policy-") as temporary:
         root = pathlib.Path(temporary)
         studio = root / "apps" / "studio"

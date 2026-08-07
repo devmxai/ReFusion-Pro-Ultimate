@@ -25,6 +25,16 @@ if(APPLE AND TARGET ReFusion::PlatformMedia)
   refusion_enable_warnings(refusion-apple-media-capability-tests)
   add_test(NAME refusion.apple_media_capability
     COMMAND refusion-apple-media-capability-tests)
+
+  add_executable(refusion-apple-hardware-decode-tests
+    apple_hardware_decode_test.cpp)
+  target_link_libraries(refusion-apple-hardware-decode-tests
+    PRIVATE ReFusion::PlatformGpu ReFusion::PlatformMedia)
+  target_compile_definitions(refusion-apple-hardware-decode-tests PRIVATE
+    REFUSION_TEST_H264_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/h264-cfr-320x180-gop1/video.h264")
+  refusion_enable_warnings(refusion-apple-hardware-decode-tests)
+  add_test(NAME refusion.apple_hardware_decode
+    COMMAND refusion-apple-hardware-decode-tests)
 endif()
 
 if(TARGET ReFusion::SkiaAdapter)
@@ -60,6 +70,25 @@ if(TARGET ReFusion::SkiaAdapter)
     refusion_enable_warnings(refusion-metal-viewport-presenter-tests)
     add_test(NAME refusion.metal_viewport_presenter
       COMMAND refusion-metal-viewport-presenter-tests)
+
+    if(TARGET ReFusion::PlatformMedia)
+      add_executable(refusion-skia-decoded-video-surface-tests
+        skia_decoded_video_surface_test.mm)
+      target_link_libraries(refusion-skia-decoded-video-surface-tests
+        PRIVATE
+          ReFusion::PlatformGpu
+          ReFusion::PlatformMedia
+          ReFusion::SkiaAdapter
+          "-framework Metal")
+      target_compile_definitions(
+        refusion-skia-decoded-video-surface-tests PRIVATE
+        REFUSION_TEST_H264_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/h264-cfr-320x180-gop1/video.h264")
+      target_compile_options(refusion-skia-decoded-video-surface-tests
+        PRIVATE -fobjc-arc)
+      refusion_enable_warnings(refusion-skia-decoded-video-surface-tests)
+      add_test(NAME refusion.skia_decoded_video_surface
+        COMMAND refusion-skia-decoded-video-surface-tests)
+    endif()
   endif()
   refusion_enable_warnings(refusion-skia-adapter-tests)
   add_test(NAME refusion.skia_adapter COMMAND refusion-skia-adapter-tests)

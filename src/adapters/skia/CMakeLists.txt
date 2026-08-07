@@ -22,9 +22,16 @@ target_link_libraries(refusion_skia_adapter
   PUBLIC
     ReFusion::Core
     ReFusion::RuntimeGpu
+    ReFusion::RuntimeMedia
     ReFusion::RuntimePresentation
   PRIVATE Skia::Skia
 )
+
+if(APPLE AND TARGET ReFusion::PlatformMedia)
+  target_link_libraries(refusion_skia_adapter PRIVATE ReFusion::PlatformMedia)
+  target_compile_definitions(refusion_skia_adapter PRIVATE
+    REFUSION_SKIA_APPLE_MEDIA=1)
+endif()
 
 target_compile_features(refusion_skia_adapter PUBLIC cxx_std_20)
 if(APPLE)

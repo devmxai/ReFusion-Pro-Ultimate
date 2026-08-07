@@ -63,6 +63,7 @@
       "cacheVariables": {
         "REFUSION_BUILD_STUDIO": "ON",
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_BUILD_PLATFORM_MEDIA": "ON",
         "REFUSION_ENABLE_SKIA": "ON",
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
         "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/macos-arm64-metal"

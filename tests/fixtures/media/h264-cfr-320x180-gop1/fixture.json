@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "RFX-H264-CFR-320X180-GOP1-001",
+  "payload": "video.h264",
+  "sha256": "1b307ec1e1b7cb12887b8f9aff6d4e4936badbfc00fefa69f70663a204c6b71e",
+  "byte_size": 42734,
+  "ownership": "ReFusion-generated synthetic test pattern",
+  "container": "H.264 Annex B elementary stream",
+  "codec": "H.264/AVC High profile level 3.1",
+  "coded_extent": [320, 180],
+  "pixel_format": "8-bit 4:2:0 video-range",
+  "color": "SDR Rec.709",
+  "access_unit_delimiter": true,
+  "frame_count": 8,
+  "all_frames_idr": true,
+  "first_presentation_time": {"value": 0, "timescale": 30},
+  "frame_duration": {"value": 1, "timescale": 30},
+  "generation": {
+    "purpose": "offline fixture creation only; FFmpeg is not a ReFusion build or runtime dependency",
+    "encoder": "Apple h264_videotoolbox hardware encoder",
+    "source": "lavfi testsrc2 synthetic pattern",
+    "command": "ffmpeg -f lavfi -i testsrc2=size=320x180:rate=30 -frames:v 8 -an -vf format=nv12 -c:v h264_videotoolbox -profile:v high -level:v 3.1 -g 1 -bf 0 -b:v 800k -r 30 -color_range tv -color_primaries bt709 -color_trc bt709 -colorspace bt709 -bsf:v h264_metadata=aud=insert -f h264 video.h264"
+  }
+}

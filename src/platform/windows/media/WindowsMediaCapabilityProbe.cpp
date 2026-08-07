@@ -1,6 +1,6 @@
-#include "refusion/platform/PlatformMediaCapability.hpp"
-
 #include <memory>
+
+#include "refusion/platform/PlatformMediaCapability.hpp"
 
 namespace refusion::platform {
 namespace {
@@ -22,7 +22,36 @@ class WindowsMediaCapabilityProbe final
         .counters = counters_,
         .code = "RFX-MEDIA-WINDOWS-NOT-QUALIFIED",
         .diagnostic =
-            "The Windows hardware-media surface probe requires G1-WP04 device evidence",
+            "The Windows hardware-media surface probe requires "
+            "G1-WP04 device evidence",
+    };
+  }
+
+  [[nodiscard]] runtime::media::MediaPathCounters counters() const override {
+    return counters_;
+  }
+
+ private:
+  runtime::media::MediaPathCounters counters_;
+};
+
+class WindowsHardwareVideoDecoder final
+    : public runtime::media::HardwareVideoDecoder {
+ public:
+  explicit WindowsHardwareVideoDecoder(runtime::gpu::GpuDeviceService&) {}
+
+  [[nodiscard]] runtime::media::HardwareDecodeResult decode(
+      const runtime::media::HardwareDecodeRequest&) override {
+    ++counters_.hardware_decoder_queries;
+    return runtime::media::HardwareDecodeResult{
+        .state = runtime::media::DecodeState::unsupported,
+        .hardware_decoder = false,
+        .surface = nullptr,
+        .counters = counters_,
+        .code = "RFX-MEDIA-WINDOWS-DECODE-NOT-QUALIFIED",
+        .diagnostic =
+            "The Windows hardware decoder remains fail-closed until "
+            "G1-WP04 physical evidence",
     };
   }
 
@@ -40,6 +69,12 @@ std::unique_ptr<runtime::media::MediaCapabilityProbe>
 create_platform_media_capability_probe(
     runtime::gpu::GpuDeviceService& gpu_device_service) {
   return std::make_unique<WindowsMediaCapabilityProbe>(gpu_device_service);
+}
+
+std::unique_ptr<runtime::media::HardwareVideoDecoder>
+create_platform_hardware_video_decoder(
+    runtime::gpu::GpuDeviceService& gpu_device_service) {
+  return std::make_unique<WindowsHardwareVideoDecoder>(gpu_device_service);
 }
 
 }  // namespace refusion::platform
