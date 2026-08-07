@@ -57,6 +57,18 @@
       }
     },
     {
+      "name": "macos-visual",
+      "inherits": "macos-core",
+      "displayName": "macOS native Qt + Metal + Skia visual runtime",
+      "cacheVariables": {
+        "REFUSION_BUILD_STUDIO": "ON",
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
+        "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/macos-arm64-metal"
+      }
+    },
+    {
       "name": "windows-core",
       "inherits": "base",
       "displayName": "Windows portable core",
@@ -91,6 +103,7 @@
     { "name": "macos-core-sanitized", "configurePreset": "macos-core-sanitized" },
     { "name": "macos-studio", "configurePreset": "macos-studio" },
     { "name": "macos-graphics", "configurePreset": "macos-graphics" },
+    { "name": "macos-visual", "configurePreset": "macos-visual" },
     { "name": "windows-core", "configurePreset": "windows-core" },
     { "name": "windows-studio", "configurePreset": "windows-studio" },
     { "name": "windows-graphics", "configurePreset": "windows-graphics" }
@@ -118,6 +131,11 @@
     {
       "name": "macos-graphics",
       "configurePreset": "macos-graphics",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "macos-visual",
+      "configurePreset": "macos-visual",
       "output": { "outputOnFailure": true }
     },
     {
@@ -167,6 +185,14 @@
         { "type": "configure", "name": "macos-graphics" },
         { "type": "build", "name": "macos-graphics" },
         { "type": "test", "name": "macos-graphics" }
+      ]
+    },
+    {
+      "name": "macos-visual",
+      "steps": [
+        { "type": "configure", "name": "macos-visual" },
+        { "type": "build", "name": "macos-visual" },
+        { "type": "test", "name": "macos-visual" }
       ]
     },
     {

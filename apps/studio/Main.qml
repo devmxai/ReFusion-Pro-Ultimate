@@ -9,7 +9,7 @@ ApplicationWindow {
     minimumWidth: 1100
     minimumHeight: 680
     visible: true
-    title: "ReFusion Studio — G0 Foundation"
+    title: "ReFusion Studio — G1 macOS Visual Proof"
     color: "#0b0d12"
 
     readonly property color panel: "#12151c"
@@ -86,6 +86,7 @@ ApplicationWindow {
                 border.color: root.border
 
                 Rectangle {
+                    id: viewportFrame
                     anchors.centerIn: parent
                     width: Math.min(parent.width * 0.72, 820)
                     height: width * 0.5625
@@ -93,9 +94,17 @@ ApplicationWindow {
                     border.color: "#343b4d"
                     border.width: 1
 
+                    WindowContainer {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        visible: engineViewportAvailable
+                        window: engineViewportWindow
+                    }
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 10
+                        visible: !engineViewportAvailable
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "Native GPU Viewport Boundary"
@@ -108,6 +117,47 @@ ApplicationWindow {
                             text: "Reserved for the engine presenter — no QML Canvas or CPU video path"
                             color: root.textMuted
                         }
+                    }
+
+                    Rectangle {
+                        id: viewportStatusBadge
+                        anchors.left: parent.left
+                        anchors.top: parent.bottom
+                        anchors.topMargin: 8
+                        width: viewportStatus.implicitWidth + 18
+                        height: 28
+                        radius: 8
+                        color: "#cc12151c"
+                        border.color: root.border
+                        visible: engineViewportAvailable
+
+                        Label {
+                            id: viewportStatus
+                            anchors.centerIn: parent
+                            text: engineViewportWindow
+                                  ? engineViewportWindow.adapterName
+                                    + "  •  GPU frames "
+                                    + engineViewportWindow.presentedFrames
+                                  : "GPU viewport unavailable"
+                            color: engineViewportWindow && engineViewportWindow.zeroCopy
+                                   ? "#7ee787" : "#ff6f7d"
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    Label {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: viewportStatusBadge.bottom
+                        anchors.topMargin: 4
+                        visible: engineViewportDiagnostic.length > 0
+                                 || (engineViewportWindow
+                                     && engineViewportWindow.diagnostic.length > 0)
+                        text: engineViewportDiagnostic.length > 0
+                              ? engineViewportDiagnostic
+                              : engineViewportWindow.diagnostic
+                        color: "#ff6f7d"
+                        wrapMode: Text.Wrap
                     }
                 }
             }
@@ -202,4 +252,3 @@ ApplicationWindow {
         }
     }
 }
-

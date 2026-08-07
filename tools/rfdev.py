@@ -282,6 +282,11 @@ def studio_authority_problems(root: pathlib.Path) -> list[str]:
         "ProjectAuthority",
         'refusion/core/ProjectAuthority.hpp',
     )
+    composition_only_tokens = (
+        "create_platform_gpu_device_service",
+        "create_platform_viewport_presenter",
+        "SkiaGpuContexts::create",
+    )
     for base in boundaries:
         if not base.exists():
             continue
@@ -294,6 +299,13 @@ def studio_authority_problems(root: pathlib.Path) -> list[str]:
                     problems.append(
                         f"{path.relative_to(root)} owns forbidden concrete authority token {token}"
                     )
+            if "composition" not in path.parts:
+                for token in composition_only_tokens:
+                    if token in text:
+                        problems.append(
+                            f"{path.relative_to(root)} constructs engine runtime "
+                            f"outside composition with {token}"
+                        )
     studio_cmake = root / "apps" / "studio" / "CMakeLists.txt"
     if studio_cmake.is_file() and "ReFusion::Core" in studio_cmake.read_text(encoding="utf-8"):
         problems.append("apps/studio/CMakeLists.txt links Core directly instead of Application")

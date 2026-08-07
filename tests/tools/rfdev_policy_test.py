@@ -35,6 +35,9 @@ def main() -> None:
         (studio / "BadBridge.cpp").write_text(
             "ProjectAuthority forbidden_authority;\n", encoding="utf-8"
         )
+        (studio / "BadViewport.cpp").write_text(
+            "auto gpu = create_platform_gpu_device_service();\n", encoding="utf-8"
+        )
         (studio / "CMakeLists.txt").write_text(
             "target_link_libraries(bad PRIVATE ReFusion::Core)\n", encoding="utf-8"
         )
@@ -42,7 +45,7 @@ def main() -> None:
             "target_link_libraries(bad PRIVATE ReFusion::Core)\n", encoding="utf-8"
         )
         problems = RFDEV.studio_authority_problems(root)
-        require(len(problems) == 3, f"expected 3 policy failures, got {problems}")
+        require(len(problems) == 4, f"expected 4 policy failures, got {problems}")
 
     require(
         not RFDEV.studio_authority_problems(ROOT),

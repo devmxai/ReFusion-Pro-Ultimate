@@ -63,7 +63,28 @@ target_link_libraries(refusion_studio_bridge
 
 refusion_enable_warnings(refusion_studio_bridge)
 
-qt_add_executable(refusion-studio main.cpp)
+set(refusion_studio_sources
+  main.cpp
+  StudioRuntimeComposition.hpp
+)
+
+set(refusion_studio_visual_runtime OFF)
+if(APPLE AND TARGET ReFusion::PlatformGpu AND TARGET ReFusion::SkiaAdapter)
+  list(APPEND refusion_studio_sources
+    EngineViewportWindow.cpp
+    EngineViewportWindow.hpp
+    composition/VisualRuntimeComposition.cpp
+  )
+  set(refusion_studio_visual_runtime ON)
+else()
+  list(APPEND refusion_studio_sources composition/NullRuntimeComposition.cpp)
+endif()
+
+qt_add_executable(refusion-studio ${refusion_studio_sources})
+
+target_include_directories(refusion-studio
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 qt_add_qml_module(refusion-studio
   URI ReFusion.Studio
@@ -80,5 +101,13 @@ target_link_libraries(refusion-studio
     Qt6::Quick
     Qt6::QuickControls2
 )
+
+if(refusion_studio_visual_runtime)
+  target_link_libraries(refusion-studio
+    PRIVATE
+      ReFusion::PlatformGpu
+      ReFusion::SkiaAdapter
+  )
+endif()
 
 refusion_enable_warnings(refusion-studio)

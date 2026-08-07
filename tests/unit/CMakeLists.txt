@@ -11,3 +11,11 @@ target_link_libraries(refusion-application-host-tests PRIVATE ReFusion::Applicat
 refusion_enable_warnings(refusion-application-host-tests)
 
 add_test(NAME refusion.application_host COMMAND refusion-application-host-tests)
+
+add_executable(refusion-viewport-presentation-tests viewport_presentation_test.cpp)
+target_link_libraries(refusion-viewport-presentation-tests
+  PRIVATE ReFusion::RuntimePresentation)
+refusion_enable_warnings(refusion-viewport-presentation-tests)
+
+add_test(NAME refusion.viewport_presentation
+  COMMAND refusion-viewport-presentation-tests)
