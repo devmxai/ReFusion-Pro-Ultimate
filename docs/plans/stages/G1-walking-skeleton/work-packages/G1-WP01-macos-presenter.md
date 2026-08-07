@@ -1,7 +1,7 @@
 ---
 id: G1-WP01
 kind: work-package
-status: planned
+status: active
 gate: G1
 owner_role: apple-gpu
 evidence: docs/evidence/G1/G1-WP01.md
@@ -25,6 +25,14 @@ Metal 4. Additional Desktop-v1 tiers require separate evidence.
 - Draw, submit, present and 10,000-frame soak with zero validation failure.
 - Resize, occlusion, sleep/wake and device-loss/fail-closed diagnostics.
 - Arabic/Latin fixture geometry and preview/export semantic digest recorded.
+
+# Cross-platform constraint
+
+The presenter API, fixture description, commands, diagnostics and acceptance
+metrics are portable C++ contracts shared with G1-WP02. Only CAMetalLayer/Metal
+implementation belongs to the Apple adapter. No Apple conditional or native
+type may enter Core, Application, Runtime public contracts, Studio commands, or
+project state. Windows remains `not-run`, not waived.
 
 # Kill criteria
 

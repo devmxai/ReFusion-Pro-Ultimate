@@ -3,7 +3,7 @@
 | ID | Severity | Risk | Required response | Gate |
 |---|---|---|---|---|
 | RISK-001 | closed | Qt distribution lane selected as Commercial | ADR-0005 accepted; prove commercial entitlement only at the redistributable RC gate | G6 |
-| RISK-002 | P0 | macOS same-device Skia contexts proved; Windows, presentation and media-surface interop remain unproven | Complete G1 Windows/presenter/media bake-off before feature expansion | G1 |
+| RISK-002 | P0 | macOS same-device Skia contexts proved; Windows, presentation and media-surface interop remain unproven | Allow only the bounded macOS presenter proof; complete the matching Windows/presenter/media bake-off before cross-platform exit or feature expansion | G1 |
 | RISK-003 | P0 | Windows hardware decode surface path may require explicit GPU bridge | Compare MF D3D surfaces/direct D3D12 with counters | G1 |
 | RISK-004 | P1 | Strict hardware-only policy narrows usable media/device matrix | Publish matrix and fail closed; never hide software fallback | G1/G4 |
 | RISK-005 | P1 | Mobile lifecycle/store rules conflict with desktop native extensions | Keep mobile declarative/packaged; separate product gate | G9 |

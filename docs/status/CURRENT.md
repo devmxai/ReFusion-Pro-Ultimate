@@ -9,9 +9,10 @@ active_work_packages:
   - G0-WP03
   - G0-WP04B
   - G0-WP05
+  - G1-WP01
 baseline_commit: 1a70f5a
-last_green_commit: 24d5946e442de09ac9ccc798f9e7aeedeee04502
-last_checkpoint: CP-G0-0006
+last_green_commit: 7a0124ad3b8102ce00d8bfed0d685cd3d9bac88e
+last_checkpoint: CP-G0-0007
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -33,8 +34,11 @@ same service. The local controls in `G0-WP04B` are code complete and fail closed
 Windows materialization/build/runtime still requires external evidence. By the
 product owner's direction in `CP-G0-0006`, Qt Commercial SDK and entitlement
 verification is explicitly deferred to the redistributable release-candidate
-gate and does not block G0/G1 engineering. `G0-WP05` is active only to close the
-technical readiness record; G1 remains gated by the Windows proofs.
+gate and does not block G0/G1 engineering. Checkpoint `CP-G0-0007` accepts
+cross-platform-first implementation with macOS-only physical runtime evidence
+while no Windows device is available. `G1-WP01` is active for the first real
+visual experience on macOS; Windows remains `not-run`, and neither G0 nor G1 may
+pass from the macOS evidence alone.
 
 ## Read next
 
@@ -44,14 +48,14 @@ technical readiness record; G1 remains gated by the Windows proofs.
 
 ## Next actions
 
-1. Connect a CI-capable Git remote or Windows x64 runner; run portable Core and
-   retain the run URL, image and compiler evidence.
-2. Materialize the repository-local Windows Skia graph and lock on that clean
-   runner; implement and prove the D3D/Dawn same-device context before accepting
-   `windows-graphics`.
-3. Do not run or accept `windows-graphics` as same-device proof until G0-WP05
-   defines and G1 implements the missing D3D/Dawn context, link and runtime test.
-4. Complete G0-WP05 and perform the criterion-by-criterion G0 exit review.
+1. Execute `G1-WP01` on `MAC-LAB-001`: engine-owned CAMetalLayer presenter,
+   GPU-backed Skia Text/Shape fixture, counters and lifecycle diagnostics.
+2. Keep every new semantic/presenter contract portable and define the matching
+   Windows lane/fixture; platform code may enter Apple/Windows adapters only.
+3. When a Windows x64 runner/device becomes available, run G0-WP03, create the
+   repository-local Windows Skia lock, then execute G1-WP02 D3D12/DXGI proof.
+4. Complete G0-WP05 and the G0/G1 cross-platform exit reviews only after the
+   missing Windows receipts exist.
 
 
 ## Do not repeat
@@ -59,10 +63,13 @@ technical readiness record; G1 remains gated by the Windows proofs.
 - Do not turn the research draft into an implementation plan.
 - Do not reuse, search for, or copy any external Skia checkout or machine cache;
   only the ReFusion-local clean bootstrap path is admitted.
-- Do not start renderer/media feature work before G1 entry criteria.
+- Do not expand beyond the bounded macOS `G1-WP01` presenter/fixture while G0
+  Windows evidence is pending.
 - Do not repeat Qt/Skia/media/font intake research; use ADR-0005 through ADR-0007.
 - Do not reopen the Qt licensing lane without a superseding ADR.
 - Do not request or claim Qt Commercial SDK/entitlement evidence during G0/G1;
   preserve the fail-closed release gate for the later redistributable RC.
 - Do not re-implement the Application Host boundary or the macOS Skia lock; use
   source commit `24d5946e442de09ac9ccc798f9e7aeedeee04502`.
+- Do not interpret macOS runtime success as Windows/iOS/Android qualification;
+  their state remains `not-run` until platform evidence exists.

@@ -1,7 +1,7 @@
 ---
 id: G1
 kind: stage-plan
-status: planned
+status: active-macos-runtime-only
 master_plan: MP-001
 owner_role: gpu-release-lead
 last_verified: 2026-08-07
@@ -18,9 +18,11 @@ proofs.
 
 ## Entry gate
 
-G0 is passed; the Qt module lane and pinned foundation dependencies are
-approved, and the device lab has named owners. Commercial SDK/entitlement
-verification is deferred and does not block this entry gate.
+The normal exit remains cross-platform. By product-owner direction, the bounded
+G1-WP01 macOS runtime package may execute while G0 Windows evidence is pending,
+because no Windows device is currently available. This overlap cannot pass G0,
+G1, or any Windows criterion. Commercial SDK/entitlement verification is
+deferred and does not block technical work.
 
 ## Work packages
 

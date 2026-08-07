@@ -52,7 +52,7 @@ not delay Desktop v1.
 | Gate | Product outcome | Installable evidence | Status |
 |---|---|---|---|
 | G0 | Product, architecture, dependency, legal, and qualification contract | Core/CLI build baseline | active |
-| G1 | Development walking skeleton and GPU/media kill-risk proof | macOS + Windows development artifacts | planned |
+| G1 | Development walking skeleton and GPU/media kill-risk proof | macOS + Windows development artifacts | active on macOS; cross-platform exit pending |
 | G2 | Command/Revision/Live-Authoring vertical slice | Qt Studio with Text/Shape/Image round-trip | planned |
 | G3 | Unified visual authoring | Complete Image/Text/Shape/Group/Adjustment slice | planned |
 | G4 | Hardware media, audio, and exact transport | Video+Audio import/play/seek/edit/export slice | planned |

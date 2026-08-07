@@ -34,4 +34,6 @@ from a skeleton, inactive backend, or compile-only result.
 
 The eight G1 proof packages and the macOS lab device are recorded. Windows
 device/driver identity remains the exact external input required before the G0
-exit review can pass. Commercial entitlement is deliberately deferred.
+exit review can pass. Commercial entitlement is deliberately deferred. The
+bounded macOS G1-WP01 runtime experiment may proceed in parallel, but cannot
+satisfy any Windows or cross-platform exit criterion.
