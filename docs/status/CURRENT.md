@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP03
 baseline_commit: 1a70f5a
-last_green_commit: 79aafb072ad0f254ef64726231b2e7c7e50b5fe8
-last_checkpoint: CP-G1-0005
+last_green_commit: 1433a576e75f47fa4377259da9c095eab20291a9
+last_checkpoint: CP-G1-0006
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -95,6 +95,16 @@ time ruler, real track extents and a clickable/draggable playhead. Physical
 macOS observation proved pause stability, resume without reset and paused seek
 updating the Skia Canvas. This is not decoded-video playback or G4 completion.
 
+Source commit `1433a576e75f47fa4377259da9c095eab20291a9` delivered the
+first actual compressed-video GPU slice. A repository-owned H.264 High/Rec.709
+fixture enters a VideoToolbox decompression session that requires and confirms
+hardware acceleration. Exact PTS/duration survive into an opaque engine surface
+lease; the NV12 output binds as two textures on the engine Metal adapter, and
+Skia composites the decoded surface into a private GPU render target. All
+software-decode, CPU-pixel, readback and cross-adapter counters remain zero.
+This is a bounded all-IDR single-frame proof, not MP4 import or Timeline video
+playback.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -103,10 +113,10 @@ updating the Skia Canvas. This is not decoded-video playback or G4 completion.
 
 ## Next actions
 
-1. Continue `G1-WP03` with a repository-owned bounded H.264 sample corpus and a
-   hardware-required VideoToolbox decompression session. Prove output PTS/color,
-   engine surface lease/lifetime and two-plane same-device Metal binding without
-   CPU pixel mapping.
+1. Continue `G1-WP03` with a bounded multi-frame VideoToolbox session and an
+   immutable PTS-indexed native-surface queue. Drive its frame selection from
+   the existing engine transport/`FixtureFrame` only, without a UI/media clock.
+   Then add B-frame, VFR, long-GOP and non-zero timestamp seek/lifecycle rows.
 2. Keep every new semantic/media contract portable and define the matching
    Windows lane/fixture; native code may enter Apple/Windows adapters only.
 3. Retain an automated physical `G1-WP01` sleep/wake receipt when convenient;
@@ -136,7 +146,8 @@ updating the Skia Canvas. This is not decoded-video playback or G4 completion.
   their state remains `not-run` until platform evidence exists.
 - Do not call the 30-second Shape/Text project a decoded video or stable project
   format; actual Video/Audio import and transport remain G4.
-- Do not call the G1-WP03 capability/native-surface probe an actual decoded
-  frame; no compressed sample has entered VideoToolbox yet.
+- Do not call the bounded G1-WP03 all-IDR single-frame decode proof MP4 import,
+  a production decoder queue, Video Layer playback, Timeline seek qualification
+  or G4 media completion.
 - Do not call the Timeline transport control decoded-video playback or complete
   G4 transport; it currently drives the bounded Shape/Text walking Composition.

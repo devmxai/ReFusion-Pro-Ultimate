@@ -39,3 +39,11 @@ Source commit `79aafb072ad0f254ef64726231b2e7c7e50b5fe8` also supplies
 the portable frame-addressed Play/Pause/Seek substrate and Timeline control
 needed to exercise later decoded media. It is qualified here only against the
 Shape/Text walking Composition; decoded output has not yet entered transport.
+
+Source commit `1433a576e75f47fa4377259da9c095eab20291a9` advances the
+proof from capability to one actual compressed all-IDR H.264 frame. A
+hardware-required and hardware-confirmed VideoToolbox session preserves exact
+PTS/duration and Rec.709 NV12 output in an opaque engine surface lease; both
+planes bind to the engine Metal adapter and Skia composites them as YUVA without
+CPU pixel transfer. Multi-frame session scheduling and transport-driven PTS
+selection remain next; this is not decoded Timeline playback.
