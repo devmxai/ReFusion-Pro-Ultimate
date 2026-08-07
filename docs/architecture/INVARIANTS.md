@@ -61,6 +61,12 @@ producer inside the render graph, not the project schema or scheduler.
 
 ## Time and coordinates
 
+- Portable Core `ProjectClock` is the only mutable authority for canonical
+  project playback time. Runtime/platform clock sources provide correlated
+  ticks only; UI, presenter, video, audio clips and render callbacks own no
+  independent project clock.
+- Every scheduled evaluation is stamped with the Core transport epoch; stale
+  epoch work must not publish or present.
 - Project time uses checked rational/integer domains and half-open ranges.
 - VFR frame selection uses presentation timestamps/indexes, never average FPS.
 - Audio addressing uses integer sample domains.

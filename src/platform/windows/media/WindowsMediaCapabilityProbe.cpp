@@ -55,6 +55,21 @@ class WindowsHardwareVideoDecoder final
     };
   }
 
+  [[nodiscard]] runtime::media::HardwareDecodeSequenceResult decode_sequence(
+      const runtime::media::HardwareDecodeSequenceRequest&) override {
+    ++counters_.hardware_decoder_queries;
+    return runtime::media::HardwareDecodeSequenceResult{
+        .state = runtime::media::DecodeState::unsupported,
+        .hardware_decoder = false,
+        .queue = nullptr,
+        .counters = counters_,
+        .code = "RFX-MEDIA-WINDOWS-SEQUENCE-NOT-QUALIFIED",
+        .diagnostic =
+            "The Windows hardware decode queue remains fail-closed until "
+            "G1-WP04 physical evidence",
+    };
+  }
+
   [[nodiscard]] runtime::media::MediaPathCounters counters() const override {
     return counters_;
   }

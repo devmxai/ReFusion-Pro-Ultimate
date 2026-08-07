@@ -173,7 +173,9 @@ inside the declared matrix.
 ### Exit criteria
 
 - VFR, B-frames, non-zero PTS and sample offsets use presentation/sample truth;
-- Project Transport owns ProjectTime; audio endpoint may provide realtime pulse;
+- Core `ProjectClock` owns canonical ProjectTime and transport epoch; Runtime
+  clock-source adapters may provide realtime pulses, with the qualified audio
+  endpoint preferred during forward playback;
 - supported profiles pass drift/seek/performance budgets on real hardware;
 - production path contains no Qt Multimedia, software video decode, CPU video
   pixel transfer, or silent fallback;

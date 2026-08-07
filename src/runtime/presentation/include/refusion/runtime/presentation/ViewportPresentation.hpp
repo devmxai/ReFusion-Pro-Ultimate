@@ -1,7 +1,5 @@
 #pragma once
 
-#include "refusion/runtime/gpu/GpuDeviceService.hpp"
-
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -9,6 +7,9 @@
 #include <mutex>
 #include <string>
 #include <thread>
+
+#include "refusion/core/ProjectClock.hpp"
+#include "refusion/runtime/gpu/GpuDeviceService.hpp"
 
 namespace refusion::runtime::presentation {
 
@@ -63,6 +64,7 @@ struct FixtureFrame final {
   std::uint64_t presentation_time_ns{0};
   std::uint64_t duration_ns{0};
   std::uint64_t loop_index{0};
+  std::uint64_t transport_epoch_id{0};
 };
 
 struct PlaybackSpec final {
@@ -87,6 +89,9 @@ struct PlaybackState final {
   std::uint64_t frame_index{0};
   std::uint64_t frame_count{0};
   std::uint64_t loop_index{0};
+  std::uint64_t clock_epoch_id{0};
+  std::uint64_t clock_source_generation{0};
+  std::uint64_t clock_sample_sequence{0};
   FrameStatus last_frame_status{FrameStatus::skipped};
   std::string diagnostic;
 };
@@ -146,7 +151,8 @@ class ViewportFrameRenderer {
  public:
   virtual ~ViewportFrameRenderer() = default;
 
-  [[nodiscard]] virtual const gpu::DeviceIdentity& device_identity() const noexcept = 0;
+  [[nodiscard]] virtual const gpu::DeviceIdentity& device_identity()
+      const noexcept = 0;
   [[nodiscard]] virtual FrameResult render(const NativeFrameTarget& target,
                                            const FixtureFrame& frame) = 0;
 };
@@ -166,8 +172,7 @@ class ViewportPresenter {
 class ViewportRenderSession final {
  public:
   using FrameObserver = std::function<void()>;
-  using ClockNow =
-      std::function<std::chrono::steady_clock::time_point()>;
+  using ClockNow = std::function<std::chrono::steady_clock::time_point()>;
 
   explicit ViewportRenderSession(ViewportPresenter& presenter,
                                  PlaybackSpec playback_spec = {},
@@ -183,8 +188,8 @@ class ViewportRenderSession final {
   void set_visible(bool visible) noexcept;
   void start_playback();
   void resume_playback();
-  void pause_playback() noexcept;
-  void stop_playback() noexcept;
+  void pause_playback();
+  void stop_playback();
   [[nodiscard]] FrameResult seek_to_frame(std::uint64_t frame_index);
   [[nodiscard]] TransportCommandResult submit_transport_command(
       TransportCommand command);
@@ -195,28 +200,23 @@ class ViewportRenderSession final {
 
  private:
   [[nodiscard]] FixtureFrame next_frame_locked(
-      std::chrono::steady_clock::time_point now) noexcept;
-  [[nodiscard]] FixtureFrame current_frame_locked() noexcept;
-  void update_position_locked(
-      std::chrono::steady_clock::time_point now) noexcept;
+      const core::ProjectClockSnapshot& clock_snapshot) noexcept;
+  [[nodiscard]] core::ClockTick clock_tick(
+      std::chrono::steady_clock::time_point now) const noexcept;
   void render_loop(std::stop_token stop_token);
   void notify_frame_observer();
 
   ViewportPresenter& presenter_;
   PlaybackSpec playback_spec_;
+  core::ProjectClock project_clock_;
   mutable std::mutex mutex_;
   std::condition_variable_any wake_;
   ClockNow clock_now_;
-  std::chrono::steady_clock::time_point epoch_;
-  std::uint64_t playback_origin_ns_{0};
   std::uint64_t next_frame_index_{0};
-  std::uint64_t position_ns_{0};
-  std::uint64_t loop_index_{0};
   FrameStatus last_frame_status_{FrameStatus::skipped};
   std::string diagnostic_;
   bool attached_{false};
   bool visible_{false};
-  bool running_{false};
 
   std::mutex observer_mutex_;
   FrameObserver frame_observer_;

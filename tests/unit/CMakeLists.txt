@@ -12,6 +12,12 @@ refusion_enable_warnings(refusion-project-document-tests)
 
 add_test(NAME refusion.project_document COMMAND refusion-project-document-tests)
 
+add_executable(refusion-project-clock-tests project_clock_test.cpp)
+target_link_libraries(refusion-project-clock-tests PRIVATE ReFusion::Core)
+refusion_enable_warnings(refusion-project-clock-tests)
+
+add_test(NAME refusion.project_clock COMMAND refusion-project-clock-tests)
+
 add_executable(refusion-application-host-tests application_host_test.cpp)
 target_link_libraries(refusion-application-host-tests PRIVATE ReFusion::Application)
 refusion_enable_warnings(refusion-application-host-tests)

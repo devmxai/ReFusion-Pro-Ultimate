@@ -11,3 +11,4 @@
 | [ADR-0006](adrs/ADR-0006-initial-os-media-profile.md) | adr | proposed | Initial qualification OS and media profile | product-media | G1-exit | `adrs/ADR-0006-initial-os-media-profile.md` |
 | [ADR-0007](adrs/ADR-0007-portable-font-baseline.md) | adr | proposed | Packaged portable font baseline | text-rendering | G1 | `adrs/ADR-0007-portable-font-baseline.md` |
 | [ADR-0008](adrs/ADR-0008-project-document-seed.md) | adr | proposed | Versioned JSON project-document seed | core-project | G2-entry | `adrs/ADR-0008-project-document-seed.md` |
+| [ADR-0009](adrs/ADR-0009-core-project-clock-authority.md) | adr | accepted | Core-owned canonical Project Clock authority | core-transport | G1-WP03 | `adrs/ADR-0009-core-project-clock-authority.md` |

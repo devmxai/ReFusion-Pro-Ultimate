@@ -13,24 +13,25 @@ namespace {
   if (points == 0 || !std::isfinite(scale) || scale <= 0.0F) {
     return 0;
   }
-  const double pixels = static_cast<double>(points) * static_cast<double>(scale);
+  const double pixels =
+      static_cast<double>(points) * static_cast<double>(scale);
   if (pixels > static_cast<double>(std::numeric_limits<std::uint32_t>::max())) {
     return 0;
   }
   return static_cast<std::uint32_t>(std::lround(pixels));
 }
 
-[[nodiscard]] bool multiply_fits(const std::uint64_t lhs,
-                                 const std::uint64_t rhs) noexcept {
-  return lhs == 0 || rhs <= std::numeric_limits<std::uint64_t>::max() / lhs;
-}
-
-[[nodiscard]] std::uint64_t saturating_add(const std::uint64_t lhs,
-                                           const std::uint64_t rhs) noexcept {
-  if (rhs > std::numeric_limits<std::uint64_t>::max() - lhs) {
-    return std::numeric_limits<std::uint64_t>::max();
-  }
-  return lhs + rhs;
+[[nodiscard]] core::ProjectClockSpec project_clock_spec(
+    const PlaybackSpec& playback_spec) noexcept {
+  return core::ProjectClockSpec{
+      .duration_ns = playback_spec.duration_ns,
+      .frame_rate =
+          core::RationalRate{
+              .numerator = playback_spec.frame_rate_numerator,
+              .denominator = playback_spec.frame_rate_denominator,
+          },
+      .loop = playback_spec.loop,
+  };
 }
 
 }  // namespace
@@ -55,83 +56,32 @@ bool NativeFrameTarget::valid() const noexcept {
 }
 
 bool PlaybackSpec::valid() const noexcept {
-  constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
-  return duration_ns != 0 && frame_rate_numerator != 0 &&
-         frame_rate_denominator != 0 &&
-         multiply_fits(nanoseconds_per_second, frame_rate_denominator) &&
-         multiply_fits(duration_ns, frame_rate_numerator) &&
-         frame_interval().count() > 0 && frame_count() > 0;
+  return project_clock_spec(*this).valid();
 }
 
 std::chrono::nanoseconds PlaybackSpec::frame_interval() const noexcept {
-  if (frame_rate_numerator == 0 || frame_rate_denominator == 0) {
-    return std::chrono::nanoseconds::zero();
-  }
-  constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
-  const auto scaled_second =
-      nanoseconds_per_second * static_cast<std::uint64_t>(frame_rate_denominator);
-  const auto rate = static_cast<std::uint64_t>(frame_rate_numerator);
-  const auto quotient = scaled_second / rate;
-  const auto remainder = scaled_second % rate;
-  const auto interval = quotient +
-                        static_cast<std::uint64_t>(
-                            remainder >= (rate + 1) / 2);
+  const auto interval = project_clock_spec(*this).frame_interval_ns();
   if (interval == 0 ||
-      interval > static_cast<std::uint64_t>(
-                     std::numeric_limits<std::chrono::nanoseconds::rep>::max())) {
+      interval >
+          static_cast<std::uint64_t>(
+              std::numeric_limits<std::chrono::nanoseconds::rep>::max())) {
     return std::chrono::nanoseconds::zero();
   }
   return std::chrono::nanoseconds(interval);
 }
 
 std::uint64_t PlaybackSpec::frame_count() const noexcept {
-  constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
-  if (duration_ns == 0 || frame_rate_numerator == 0 ||
-      frame_rate_denominator == 0 ||
-      !multiply_fits(duration_ns, frame_rate_numerator) ||
-      !multiply_fits(nanoseconds_per_second, frame_rate_denominator)) {
-    return 0;
-  }
-  const auto scaled_duration =
-      duration_ns * static_cast<std::uint64_t>(frame_rate_numerator);
-  const auto frame_denominator =
-      nanoseconds_per_second *
-      static_cast<std::uint64_t>(frame_rate_denominator);
-  return scaled_duration / frame_denominator +
-         static_cast<std::uint64_t>(scaled_duration % frame_denominator != 0);
+  return project_clock_spec(*this).frame_count();
 }
 
 std::uint64_t PlaybackSpec::frame_at_time(
     const std::uint64_t position_ns) const noexcept {
-  constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
-  if (frame_rate_numerator == 0 || frame_rate_denominator == 0 ||
-      !multiply_fits(position_ns, frame_rate_numerator) ||
-      !multiply_fits(nanoseconds_per_second, frame_rate_denominator)) {
-    return 0;
-  }
-  const auto frame_denominator =
-      nanoseconds_per_second *
-      static_cast<std::uint64_t>(frame_rate_denominator);
-  return (position_ns * static_cast<std::uint64_t>(frame_rate_numerator)) /
-         frame_denominator;
+  return project_clock_spec(*this).frame_at_time(position_ns);
 }
 
 std::uint64_t PlaybackSpec::time_at_frame(
     const std::uint64_t frame_index) const noexcept {
-  constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
-  if (frame_rate_numerator == 0 || frame_rate_denominator == 0 ||
-      !multiply_fits(frame_index, frame_rate_denominator)) {
-    return 0;
-  }
-  const auto scaled_frame =
-      frame_index * static_cast<std::uint64_t>(frame_rate_denominator);
-  if (!multiply_fits(scaled_frame, nanoseconds_per_second)) {
-    return 0;
-  }
-  const auto scaled_time = scaled_frame * nanoseconds_per_second;
-  const auto rate = static_cast<std::uint64_t>(frame_rate_numerator);
-  return scaled_time / rate +
-         static_cast<std::uint64_t>(scaled_time % rate != 0);
+  return project_clock_spec(*this).time_at_frame(frame_index);
 }
 
 bool FrameResult::succeeded() const noexcept {
@@ -148,9 +98,9 @@ ViewportRenderSession::ViewportRenderSession(ViewportPresenter& presenter,
                                              ClockNow clock_now)
     : presenter_(presenter),
       playback_spec_(playback_spec),
+      project_clock_(project_clock_spec(playback_spec)),
       clock_now_(clock_now ? std::move(clock_now)
                            : [] { return std::chrono::steady_clock::now(); }),
-      epoch_(clock_now_()),
       render_thread_([this](const std::stop_token stop_token) {
         render_loop(stop_token);
       }) {
@@ -205,13 +155,9 @@ void ViewportRenderSession::set_visible(const bool visible) noexcept {
 void ViewportRenderSession::start_playback() {
   {
     std::scoped_lock lock(mutex_);
-    epoch_ = clock_now_();
-    playback_origin_ns_ = 0;
     next_frame_index_ = 0;
-    position_ns_ = 0;
-    loop_index_ = 0;
-    running_ = true;
-    diagnostic_.clear();
+    const auto result = project_clock_.start(clock_tick(clock_now_()));
+    diagnostic_ = result.accepted ? std::string{} : result.diagnostic;
     wake_.notify_all();
   }
   notify_frame_observer();
@@ -220,93 +166,55 @@ void ViewportRenderSession::start_playback() {
 void ViewportRenderSession::resume_playback() {
   {
     std::scoped_lock lock(mutex_);
-    if (running_) {
-      return;
-    }
-    if (position_ns_ >= playback_spec_.duration_ns) {
-      position_ns_ = 0;
-      loop_index_ = 0;
-    }
-    const auto loop_offset =
-        multiply_fits(loop_index_, playback_spec_.duration_ns)
-            ? loop_index_ * playback_spec_.duration_ns
-            : std::numeric_limits<std::uint64_t>::max();
-    playback_origin_ns_ = saturating_add(loop_offset, position_ns_);
-    epoch_ = clock_now_();
-    running_ = true;
-    diagnostic_.clear();
+    const auto result = project_clock_.play(clock_tick(clock_now_()));
+    diagnostic_ = result.accepted ? std::string{} : result.diagnostic;
     wake_.notify_all();
   }
   notify_frame_observer();
 }
 
-void ViewportRenderSession::pause_playback() noexcept {
+void ViewportRenderSession::pause_playback() {
   {
     std::scoped_lock lock(mutex_);
-    if (!running_) {
-      return;
-    }
-    update_position_locked(clock_now_());
-    running_ = false;
+    const auto result = project_clock_.pause(clock_tick(clock_now_()));
+    diagnostic_ = result.accepted ? std::string{} : result.diagnostic;
     wake_.notify_all();
   }
   notify_frame_observer();
 }
 
-void ViewportRenderSession::stop_playback() noexcept {
+void ViewportRenderSession::stop_playback() {
   {
     std::scoped_lock lock(mutex_);
-    running_ = false;
-    playback_origin_ns_ = 0;
-    position_ns_ = 0;
-    loop_index_ = 0;
+    const auto result = project_clock_.stop();
+    diagnostic_ = result.accepted ? std::string{} : result.diagnostic;
     wake_.notify_all();
   }
   notify_frame_observer();
 }
 
-void ViewportRenderSession::update_position_locked(
-    const std::chrono::steady_clock::time_point now) noexcept {
-  if (!running_) {
-    return;
-  }
+core::ClockTick ViewportRenderSession::clock_tick(
+    const std::chrono::steady_clock::time_point now) const noexcept {
   const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      now - epoch_);
-  const auto elapsed_ns = elapsed.count() < 0
-                              ? 0ULL
-                              : static_cast<std::uint64_t>(elapsed.count());
-  const auto absolute_ns = saturating_add(playback_origin_ns_, elapsed_ns);
-  std::uint64_t unsnapped_position_ns = 0;
-  if (playback_spec_.loop) {
-    loop_index_ = absolute_ns / playback_spec_.duration_ns;
-    unsnapped_position_ns = absolute_ns % playback_spec_.duration_ns;
-  } else if (absolute_ns >= playback_spec_.duration_ns) {
-    position_ns_ = playback_spec_.duration_ns;
-    running_ = false;
-    loop_index_ = 0;
-    return;
-  } else {
-    unsnapped_position_ns = absolute_ns;
-    loop_index_ = 0;
+      now.time_since_epoch());
+  if (elapsed.count() < 0) {
+    return {};
   }
-
-  const auto frame_index = playback_spec_.frame_at_time(unsnapped_position_ns);
-  position_ns_ = playback_spec_.time_at_frame(frame_index);
-}
-
-FixtureFrame ViewportRenderSession::current_frame_locked() noexcept {
-  return FixtureFrame{
-      .frame_index = next_frame_index_++,
-      .presentation_time_ns = position_ns_,
-      .duration_ns = playback_spec_.duration_ns,
-      .loop_index = loop_index_,
+  return core::ClockTick{
+      .nanoseconds = static_cast<std::uint64_t>(elapsed.count()),
+      .source_generation = 1,
   };
 }
 
 FixtureFrame ViewportRenderSession::next_frame_locked(
-    const std::chrono::steady_clock::time_point now) noexcept {
-  update_position_locked(now);
-  return current_frame_locked();
+    const core::ProjectClockSnapshot& clock_snapshot) noexcept {
+  return FixtureFrame{
+      .frame_index = next_frame_index_++,
+      .presentation_time_ns = clock_snapshot.position_ns,
+      .duration_ns = playback_spec_.duration_ns,
+      .loop_index = clock_snapshot.loop_index,
+      .transport_epoch_id = clock_snapshot.epoch_id,
+  };
 }
 
 FrameResult ViewportRenderSession::seek_to_frame(
@@ -314,26 +222,23 @@ FrameResult ViewportRenderSession::seek_to_frame(
   FrameResult result{.status = FrameStatus::accepted};
   {
     std::scoped_lock lock(mutex_);
-    const auto total_frames = playback_spec_.frame_count();
-    if (frame_index > total_frames) {
+    const auto now = clock_now_();
+    const auto clock_result =
+        project_clock_.seek_to_frame(frame_index, clock_tick(now));
+    if (!clock_result.accepted) {
       return {
           .status = FrameStatus::rejected,
-          .diagnostic = "RFX-TRANSPORT-SEEK-RANGE: frame is outside the composition",
+          .diagnostic = "RFX-TRANSPORT-SEEK-RANGE: " + clock_result.code +
+                        ": " + clock_result.diagnostic,
       };
     }
-    position_ns_ = frame_index == total_frames
-                       ? playback_spec_.duration_ns
-                       : playback_spec_.time_at_frame(frame_index);
-    loop_index_ = 0;
-    playback_origin_ns_ = position_ns_;
-    epoch_ = clock_now_();
     diagnostic_.clear();
     if (attached_) {
-      result = presenter_.present(current_frame_locked());
+      result = presenter_.present(next_frame_locked(clock_result.snapshot));
       last_frame_status_ = result.status;
       diagnostic_ = result.diagnostic;
       if (result.status == FrameStatus::rejected) {
-        running_ = false;
+        static_cast<void>(project_clock_.pause(clock_tick(now)));
       }
     }
     wake_.notify_all();
@@ -362,8 +267,7 @@ TransportCommandResult ViewportRenderSession::submit_transport_command(
   return TransportCommandResult{
       .accepted = accepted,
       .snapshot = state,
-      .code = accepted ? "RFX-TRANSPORT-ACCEPTED"
-                       : "RFX-TRANSPORT-REJECTED",
+      .code = accepted ? "RFX-TRANSPORT-ACCEPTED" : "RFX-TRANSPORT-REJECTED",
       .diagnostic = accepted ? std::string{} : frame_result.diagnostic,
   };
 }
@@ -372,11 +276,21 @@ FrameResult ViewportRenderSession::render_once() {
   FrameResult result;
   {
     std::scoped_lock lock(mutex_);
-    result = presenter_.present(next_frame_locked(clock_now_()));
+    const auto now = clock_now_();
+    const auto clock_result = project_clock_.sample(clock_tick(now));
+    if (!clock_result.accepted) {
+      diagnostic_ = clock_result.code + ": " + clock_result.diagnostic;
+      static_cast<void>(project_clock_.suspend());
+      return {
+          .status = FrameStatus::rejected,
+          .diagnostic = diagnostic_,
+      };
+    }
+    result = presenter_.present(next_frame_locked(clock_result.snapshot));
     last_frame_status_ = result.status;
     diagnostic_ = result.diagnostic;
     if (result.status == FrameStatus::rejected) {
-      running_ = false;
+      static_cast<void>(project_clock_.pause(clock_tick(now)));
     }
   }
   notify_frame_observer();
@@ -390,15 +304,17 @@ PresentationTelemetry ViewportRenderSession::telemetry() const noexcept {
 
 PlaybackState ViewportRenderSession::playback_state() const {
   std::scoped_lock lock(mutex_);
+  const auto clock_snapshot = project_clock_.snapshot();
   return PlaybackState{
-      .running = running_,
-      .position_ns = position_ns_,
-      .duration_ns = playback_spec_.duration_ns,
-      .frame_index = position_ns_ >= playback_spec_.duration_ns
-                         ? playback_spec_.frame_count()
-                         : playback_spec_.frame_at_time(position_ns_),
-      .frame_count = playback_spec_.frame_count(),
-      .loop_index = loop_index_,
+      .running = clock_snapshot.running(),
+      .position_ns = clock_snapshot.position_ns,
+      .duration_ns = clock_snapshot.duration_ns,
+      .frame_index = clock_snapshot.frame_index,
+      .frame_count = clock_snapshot.frame_count,
+      .loop_index = clock_snapshot.loop_index,
+      .clock_epoch_id = clock_snapshot.epoch_id,
+      .clock_source_generation = clock_snapshot.clock_source_generation,
+      .clock_sample_sequence = clock_snapshot.sample_sequence,
       .last_frame_status = last_frame_status_,
       .diagnostic = diagnostic_,
   };
@@ -424,17 +340,24 @@ void ViewportRenderSession::render_loop(const std::stop_token stop_token) {
     {
       std::unique_lock lock(mutex_);
       wake_.wait(lock, stop_token, [this] {
-        return running_ && attached_ && visible_;
+        return project_clock_.snapshot().running() && attached_ && visible_;
       });
       if (stop_token.stop_requested()) {
         break;
       }
       const auto now = clock_now_();
-      result = presenter_.present(next_frame_locked(now));
+      const auto clock_result = project_clock_.sample(clock_tick(now));
+      if (!clock_result.accepted) {
+        last_frame_status_ = FrameStatus::rejected;
+        diagnostic_ = clock_result.code + ": " + clock_result.diagnostic;
+        static_cast<void>(project_clock_.suspend());
+        continue;
+      }
+      result = presenter_.present(next_frame_locked(clock_result.snapshot));
       last_frame_status_ = result.status;
       diagnostic_ = result.diagnostic;
       if (result.status == FrameStatus::rejected) {
-        running_ = false;
+        static_cast<void>(project_clock_.pause(clock_tick(now)));
       }
       next_deadline = now + frame_interval;
     }
@@ -442,7 +365,7 @@ void ViewportRenderSession::render_loop(const std::stop_token stop_token) {
 
     std::unique_lock lock(mutex_);
     wake_.wait_until(lock, stop_token, next_deadline, [this] {
-      return !running_ || !attached_ || !visible_;
+      return !project_clock_.snapshot().running() || !attached_ || !visible_;
     });
   }
 }

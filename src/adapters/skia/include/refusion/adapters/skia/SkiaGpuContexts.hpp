@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "refusion/core/ProjectDocument.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
@@ -21,11 +23,13 @@ class SkiaGpuContexts final
 
   [[nodiscard]] static std::unique_ptr<SkiaGpuContexts> create(
       runtime::gpu::DeviceLease lease, core::CompositionSnapshot composition,
-      std::shared_ptr<const runtime::media::NativeVideoSurfaceLease>
-          decoded_video_fixture = nullptr);
+      std::shared_ptr<const runtime::media::DecodedSurfaceQueue>
+          decoded_video_queue = nullptr);
 
   [[nodiscard]] bool ganesh_ready() const noexcept;
   [[nodiscard]] bool graphite_ready() const noexcept;
+  [[nodiscard]] std::optional<std::uint64_t> selected_video_source_frame_index()
+      const noexcept;
   [[nodiscard]] const runtime::gpu::DeviceIdentity& device_identity()
       const noexcept override;
   [[nodiscard]] runtime::presentation::FrameResult render(

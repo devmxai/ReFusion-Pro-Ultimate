@@ -1,6 +1,7 @@
 add_library(refusion_core STATIC
   ProjectDocument.cpp
   ProjectAuthority.cpp
+  ProjectClock.cpp
 )
 
 add_library(ReFusion::Core ALIAS refusion_core)

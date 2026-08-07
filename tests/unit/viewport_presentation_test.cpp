@@ -1,15 +1,14 @@
-#include "refusion/runtime/presentation/ViewportPresentation.hpp"
-
 #include <chrono>
 #include <source_location>
 #include <stdexcept>
 #include <string>
 
+#include "refusion/runtime/presentation/ViewportPresentation.hpp"
+
 namespace {
 
-void require(
-    const bool condition,
-    const std::source_location where = std::source_location::current()) {
+void require(const bool condition, const std::source_location where =
+                                       std::source_location::current()) {
   if (!condition) {
     throw std::runtime_error(
         "viewport presentation test requirement failed at line " +
@@ -45,8 +44,8 @@ class FakePresenter final
     ++state.present_submissions;
     return {.status = refusion::runtime::presentation::FrameStatus::presented};
   }
-  [[nodiscard]] refusion::runtime::presentation::PresentationTelemetry telemetry()
-      const noexcept override {
+  [[nodiscard]] refusion::runtime::presentation::PresentationTelemetry
+  telemetry() const noexcept override {
     return state;
   }
 
@@ -73,7 +72,8 @@ int main() {
   require(NativeViewportHost{
       .window_system = NativeWindowSystem::cocoa_view,
       .handle = 1,
-  }.valid());
+  }
+              .valid());
   require(!NativeViewportHost{}.valid());
 
   require(NativeFrameTarget{
@@ -83,7 +83,8 @@ int main() {
       .width_pixels = 1280,
       .height_pixels = 720,
       .device_generation = 1,
-  }.valid());
+  }
+              .valid());
 
   PresentationTelemetry telemetry;
   require(telemetry.zero_cpu_pixel_transfer());
@@ -136,19 +137,21 @@ int main() {
 
   auto fake_now = std::chrono::steady_clock::time_point{};
   FakePresenter transport_presenter;
-  ViewportRenderSession transport(
-      transport_presenter,
-      playback,
-      [&fake_now] { return fake_now; });
+  ViewportRenderSession transport(transport_presenter, playback,
+                                  [&fake_now] { return fake_now; });
   transport.start_playback();
   fake_now += std::chrono::seconds(10);
   require(transport.render_once().succeeded());
   require(transport.playback_state().frame_index == 300);
   require(transport.playback_state().position_ns == 10'000'000'000);
+  require(transport.playback_state().clock_epoch_id == 1);
+  require(transport.playback_state().clock_source_generation == 1);
+  require(transport_presenter.last_frame.transport_epoch_id == 1);
 
   transport.pause_playback();
   const auto paused = transport.playback_state();
   require(!paused.running);
+  require(paused.clock_epoch_id == 2);
   fake_now += std::chrono::seconds(5);
   require(transport.render_once().succeeded());
   require(transport.playback_state().frame_index == paused.frame_index);
@@ -161,10 +164,13 @@ int main() {
   fake_now += std::chrono::seconds(1);
   require(transport.render_once().succeeded());
   require(transport.playback_state().frame_index == 330);
-  require(transport.attach(NativeViewportHost{
-      .window_system = NativeWindowSystem::cocoa_view,
-      .handle = 1,
-  }).succeeded());
+  require(transport.playback_state().clock_epoch_id == 3);
+  require(transport
+              .attach(NativeViewportHost{
+                  .window_system = NativeWindowSystem::cocoa_view,
+                  .handle = 1,
+              })
+              .succeeded());
 
   const auto seek_result = transport.submit_transport_command({
       .kind = TransportCommandKind::seek_to_frame,
@@ -173,14 +179,17 @@ int main() {
   require(seek_result.accepted);
   require(seek_result.snapshot.frame_index == 450);
   require(seek_result.snapshot.position_ns == 15'000'000'000);
+  require(seek_result.snapshot.clock_epoch_id == 4);
   require(transport_presenter.last_frame.presentation_time_ns ==
           15'000'000'000);
+  require(transport_presenter.last_frame.transport_epoch_id == 4);
 
   const auto pause_result = transport.submit_transport_command({
       .kind = TransportCommandKind::pause,
   });
   require(pause_result.accepted);
   require(!pause_result.snapshot.running);
+  require(pause_result.snapshot.clock_epoch_id == 5);
   const auto rejected_seek = transport.submit_transport_command({
       .kind = TransportCommandKind::seek_to_frame,
       .frame_index = 901,

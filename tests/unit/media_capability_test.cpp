@@ -115,4 +115,89 @@ int main() {
   auto mapped = decoded;
   mapped.counters.cpu_pixel_maps = 1;
   require(!mapped.admitted());
+
+  const HardwareDecodeSequenceRequest sequence_request{
+      .source_path = "fixture.h264",
+      .expected_profile = reference_profile,
+      .samples =
+          {
+              {
+                  .access_unit_index = 0,
+                  .source_frame_index = 0,
+                  .timing =
+                      {
+                          .presentation_time = {.value = 0, .timescale = 30},
+                          .duration = {.value = 1, .timescale = 30},
+                      },
+                  .decode_time = {.value = 0, .timescale = 30},
+                  .sync_sample = true,
+              },
+              {
+                  .access_unit_index = 1,
+                  .source_frame_index = 1,
+                  .timing =
+                      {
+                          .presentation_time = {.value = 1, .timescale = 30},
+                          .duration = {.value = 1, .timescale = 30},
+                      },
+                  .decode_time = {.value = 1, .timescale = 30},
+                  .sync_sample = true,
+              },
+          },
+  };
+  require(sequence_request.valid());
+  auto repeated_access_unit = sequence_request;
+  repeated_access_unit.samples[1].access_unit_index = 0;
+  require(!repeated_access_unit.valid());
+
+  require(compare_exact_media_time(
+              {.value = 1, .timescale = 30},
+              {.value = 33'333'333, .timescale = 1'000'000'000}) ==
+          std::strong_ordering::greater);
+  require(compare_exact_media_time(
+              {.value = 1, .timescale = 30},
+              {.value = 33'333'334, .timescale = 1'000'000'000}) ==
+          std::strong_ordering::less);
+  require(compare_exact_media_time({.value = -1, .timescale = 30},
+                                   {.value = 0, .timescale = 1}) ==
+          std::strong_ordering::less);
+
+  auto frame_zero_info = surface_info;
+  frame_zero_info.lease_id = 10;
+  frame_zero_info.source_frame_index = 0;
+  frame_zero_info.timing.presentation_time = {.value = 0, .timescale = 30};
+  auto frame_one_info = surface_info;
+  frame_one_info.lease_id = 11;
+  frame_one_info.source_frame_index = 1;
+  frame_one_info.timing.presentation_time = {.value = 1, .timescale = 30};
+  auto frame_two_info = surface_info;
+  frame_two_info.lease_id = 12;
+  frame_two_info.source_frame_index = 2;
+  frame_two_info.timing.presentation_time = {.value = 2, .timescale = 30};
+  auto queue = DecodedSurfaceQueue::create({
+      std::make_shared<TestSurfaceLease>(frame_two_info),
+      std::make_shared<TestSurfaceLease>(frame_zero_info),
+      std::make_shared<TestSurfaceLease>(frame_one_info),
+  });
+  require(queue->size() == 3);
+  require(queue->frame(0)->info().source_frame_index == 0);
+  require(queue->frame(2)->info().source_frame_index == 2);
+  require(queue->select_at({.value = 33'333'333, .timescale = 1'000'000'000})
+              ->info()
+              .source_frame_index == 0);
+  require(queue->select_at({.value = 33'333'334, .timescale = 1'000'000'000})
+              ->info()
+              .source_frame_index == 1);
+  require(queue->select_at({.value = 100'000'000, .timescale = 1'000'000'000})
+              ->info()
+              .source_frame_index == 2);
+  require(!queue->select_at({.value = -1, .timescale = 1'000'000'000}));
+
+  const HardwareDecodeSequenceResult sequence_decoded{
+      .state = DecodeState::decoded,
+      .hardware_decoder = true,
+      .queue = queue,
+      .counters = {},
+  };
+  require(sequence_decoded.admitted());
 }

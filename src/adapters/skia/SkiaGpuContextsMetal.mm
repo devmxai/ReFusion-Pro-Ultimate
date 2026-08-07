@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -43,18 +44,27 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace refusion::adapters::skia {
 
 struct SkiaGpuContexts::Implementation final {
+  struct DecodedVideoFrame final {
+    std::uint64_t lease_id{0};
+    std::uint64_t source_frame_index{0};
+    sk_sp<SkImage> image;
+  };
+
   runtime::gpu::DeviceLease lease;
   sk_sp<GrDirectContext> ganesh;
   std::unique_ptr<skgpu::graphite::Context> graphite;
   sk_sp<SkFontMgr> font_manager;
   std::unique_ptr<SkShaper> shaper;
   core::CompositionSnapshot composition;
-  std::shared_ptr<const runtime::media::NativeVideoSurfaceLease> decoded_video_fixture;
-  sk_sp<SkImage> decoded_video_image;
+  std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue;
+  std::vector<DecodedVideoFrame> decoded_video_frames;
+  std::unique_ptr<std::atomic_uint64_t> selected_video_source_frame_index{
+      std::make_unique<std::atomic_uint64_t>(std::numeric_limits<std::uint64_t>::max())};
 };
 
 namespace {
@@ -213,7 +223,7 @@ SkiaGpuContexts::~SkiaGpuContexts() = default;
 
 std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
     runtime::gpu::DeviceLease lease, core::CompositionSnapshot composition,
-    std::shared_ptr<const runtime::media::NativeVideoSurfaceLease> decoded_video_fixture) {
+    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue) {
   if (!lease.valid() || lease.identity().backend != runtime::gpu::Backend::metal) {
     throw std::invalid_argument("Skia Metal contexts require a valid Metal device lease");
   }
@@ -251,11 +261,24 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
     throw std::runtime_error("Skia failed to create the portable text shaping stack");
   }
 
-  sk_sp<SkImage> decoded_video_image;
-  if (decoded_video_fixture) {
+  std::vector<Implementation::DecodedVideoFrame> decoded_video_frames;
+  if (decoded_video_queue) {
+    const auto &queue_device = decoded_video_queue->device_identity();
+    if (queue_device.backend != lease.identity().backend ||
+        queue_device.adapter_id != lease.identity().adapter_id ||
+        queue_device.generation != lease.identity().generation) {
+      throw std::invalid_argument("Decoded video queue does not belong to the Skia GPU generation");
+    }
 #if defined(REFUSION_SKIA_APPLE_MEDIA)
-    decoded_video_image =
-        make_decoded_video_image(*ganesh, decoded_video_fixture, lease.identity());
+    decoded_video_frames.reserve(decoded_video_queue->size());
+    for (std::size_t index = 0; index < decoded_video_queue->size(); ++index) {
+      const auto &surface = decoded_video_queue->frame(index);
+      decoded_video_frames.push_back({
+          .lease_id = surface->info().lease_id,
+          .source_frame_index = surface->info().source_frame_index,
+          .image = make_decoded_video_image(*ganesh, surface, lease.identity()),
+      });
+    }
 #else
     throw std::invalid_argument("This Skia build has no admitted native video-surface bridge");
 #endif
@@ -269,8 +292,8 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
           .font_manager = std::move(font_manager),
           .shaper = std::move(shaper),
           .composition = std::move(composition),
-          .decoded_video_fixture = std::move(decoded_video_fixture),
-          .decoded_video_image = std::move(decoded_video_image),
+          .decoded_video_queue = std::move(decoded_video_queue),
+          .decoded_video_frames = std::move(decoded_video_frames),
       })));
 }
 
@@ -280,6 +303,17 @@ bool SkiaGpuContexts::ganesh_ready() const noexcept {
 
 bool SkiaGpuContexts::graphite_ready() const noexcept {
   return implementation_ && static_cast<bool>(implementation_->graphite);
+}
+
+std::optional<std::uint64_t> SkiaGpuContexts::selected_video_source_frame_index() const noexcept {
+  if (!implementation_) {
+    return std::nullopt;
+  }
+  const auto index = implementation_->selected_video_source_frame_index->load();
+  if (index == std::numeric_limits<std::uint64_t>::max()) {
+    return std::nullopt;
+  }
+  return index;
 }
 
 const runtime::gpu::DeviceIdentity &SkiaGpuContexts::device_identity() const noexcept {
@@ -329,10 +363,38 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   draw_project(canvas, *implementation_->shaper, *implementation_->font_manager,
                implementation_->composition, frame, static_cast<float>(target.width_pixels),
                static_cast<float>(target.height_pixels));
-  if (implementation_->decoded_video_image) {
-    draw_decoded_video_fixture(canvas, *implementation_->decoded_video_image,
-                               static_cast<float>(target.width_pixels),
-                               static_cast<float>(target.height_pixels));
+  if (implementation_->decoded_video_queue) {
+    if (frame.presentation_time_ns >
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+      return FrameResult{
+          .status = FrameStatus::rejected,
+          .diagnostic = "Skia rejected ProjectTime outside the exact media domain",
+      };
+    }
+    const auto selected_surface = implementation_->decoded_video_queue->select_at({
+        .value = static_cast<std::int64_t>(frame.presentation_time_ns),
+        .timescale = 1'000'000'000,
+    });
+    if (selected_surface) {
+      const auto selected_image = std::find_if(
+          implementation_->decoded_video_frames.begin(),
+          implementation_->decoded_video_frames.end(), [&selected_surface](const auto &candidate) {
+            return candidate.lease_id == selected_surface->info().lease_id;
+          });
+      if (selected_image == implementation_->decoded_video_frames.end() || !selected_image->image) {
+        return FrameResult{
+            .status = FrameStatus::rejected,
+            .diagnostic = "Skia could not resolve the PTS-selected decoded surface",
+        };
+      }
+      draw_decoded_video_fixture(canvas, *selected_image->image,
+                                 static_cast<float>(target.width_pixels),
+                                 static_cast<float>(target.height_pixels));
+      implementation_->selected_video_source_frame_index->store(selected_image->source_frame_index);
+    } else {
+      implementation_->selected_video_source_frame_index->store(
+          std::numeric_limits<std::uint64_t>::max());
+    }
   }
   implementation_->ganesh->flushAndSubmit(surface.get(), GrSyncCpu::kNo);
   if (implementation_->ganesh->abandoned()) {

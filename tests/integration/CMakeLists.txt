@@ -35,6 +35,17 @@ if(APPLE AND TARGET ReFusion::PlatformMedia)
   refusion_enable_warnings(refusion-apple-hardware-decode-tests)
   add_test(NAME refusion.apple_hardware_decode
     COMMAND refusion-apple-hardware-decode-tests)
+
+  add_executable(refusion-apple-hardware-decode-sequence-tests
+    apple_hardware_decode_sequence_test.cpp)
+  target_link_libraries(refusion-apple-hardware-decode-sequence-tests
+    PRIVATE ReFusion::PlatformGpu ReFusion::PlatformMedia)
+  target_compile_definitions(
+    refusion-apple-hardware-decode-sequence-tests PRIVATE
+    REFUSION_TEST_H264_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/h264-cfr-320x180-gop1/video.h264")
+  refusion_enable_warnings(refusion-apple-hardware-decode-sequence-tests)
+  add_test(NAME refusion.apple_hardware_decode_sequence
+    COMMAND refusion-apple-hardware-decode-sequence-tests)
 endif()
 
 if(TARGET ReFusion::SkiaAdapter)

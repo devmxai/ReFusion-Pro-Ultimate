@@ -26,9 +26,12 @@ namespace refusion::platform {
 namespace {
 
 using runtime::media::DecodedSurfaceInfo;
+using runtime::media::DecodedSurfaceQueue;
 using runtime::media::DecodeState;
 using runtime::media::HardwareDecodeRequest;
 using runtime::media::HardwareDecodeResult;
+using runtime::media::HardwareDecodeSequenceRequest;
+using runtime::media::HardwareDecodeSequenceResult;
 using runtime::media::MediaPathCounters;
 using runtime::media::NativeVideoSurfaceLease;
 
@@ -208,8 +211,15 @@ class AppleDecodedSurfaceLease final : public NativeVideoSurfaceLease {
                            const HardwareDecodeRequest &request, const CMTime presentation_time,
                            const CMTime duration, const std::uint64_t lease_id)
       : lifetime_(std::move(lifetime)), counter_state_(std::move(counter_state)) {
+    const auto expected_presentation_time =
+        CMTimeMake(request.packet_timing.presentation_time.value,
+                   request.packet_timing.presentation_time.timescale);
+    const auto expected_duration =
+        CMTimeMake(request.packet_timing.duration.value, request.packet_timing.duration.timescale);
     if (image_buffer == nullptr || !CMTIME_IS_NUMERIC(presentation_time) ||
         !CMTIME_IS_NUMERIC(duration) || duration.value <= 0 ||
+        CMTimeCompare(presentation_time, expected_presentation_time) != 0 ||
+        CMTimeCompare(duration, expected_duration) != 0 ||
         CVPixelBufferGetPixelFormatType(image_buffer) !=
             kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
         !CVPixelBufferIsPlanar(image_buffer) || CVPixelBufferGetPlaneCount(image_buffer) != 2 ||
@@ -318,39 +328,44 @@ class AppleDecodedSurfaceLease final : public NativeVideoSurfaceLease {
   DecodedSurfaceInfo info_;
 };
 
-struct DecodeCallbackContext final {
+struct SequenceCallbackContext final {
   std::mutex mutex;
   std::shared_ptr<AppleDecodeLifetime> lifetime;
   std::shared_ptr<CounterState> counter_state;
-  HardwareDecodeRequest request;
-  std::shared_ptr<const NativeVideoSurfaceLease> surface;
+  std::vector<std::shared_ptr<const NativeVideoSurfaceLease>> surfaces;
   std::string diagnostic;
   OSStatus status{noErr};
+};
+
+struct SampleCallbackContext final {
+  SequenceCallbackContext *sequence{nullptr};
+  HardwareDecodeRequest request;
   std::uint64_t lease_id{0};
 };
 
-void decompression_output_callback(void *output_context, void *, const OSStatus status,
-                                   const VTDecodeInfoFlags info_flags,
+void decompression_output_callback(void *output_context, void *source_frame_context,
+                                   const OSStatus status, const VTDecodeInfoFlags info_flags,
                                    CVImageBufferRef image_buffer, const CMTime presentation_time,
                                    const CMTime duration) {
-  auto &context = *static_cast<DecodeCallbackContext *>(output_context);
-  std::scoped_lock lock(context.mutex);
+  auto &sequence = *static_cast<SequenceCallbackContext *>(output_context);
+  auto *sample = static_cast<SampleCallbackContext *>(source_frame_context);
+  std::scoped_lock lock(sequence.mutex);
   if (status != noErr || (info_flags & kVTDecodeInfo_FrameDropped) != 0 ||
-      image_buffer == nullptr) {
-    context.status = status == noErr ? kVTVideoDecoderBadDataErr : status;
-    context.diagnostic = "VideoToolbox did not return the requested frame";
+      image_buffer == nullptr || sample == nullptr || sample->sequence != &sequence) {
+    sequence.status = status == noErr ? kVTVideoDecoderBadDataErr : status;
+    sequence.diagnostic = "VideoToolbox did not return a requested sequence frame";
     return;
   }
 
   try {
     auto surface = std::make_shared<AppleDecodedSurfaceLease>(
-        context.lifetime, context.counter_state, image_buffer, context.request, presentation_time,
-        duration, context.lease_id);
-    context.counter_state->increment(&MediaPathCounters::hardware_frames_decoded);
-    context.surface = std::move(surface);
+        sequence.lifetime, sequence.counter_state, image_buffer, sample->request, presentation_time,
+        duration, sample->lease_id);
+    sequence.counter_state->increment(&MediaPathCounters::hardware_frames_decoded);
+    sequence.surfaces.push_back(std::move(surface));
   } catch (const std::exception &error) {
-    context.status = kVTVideoDecoderBadDataErr;
-    context.diagnostic = error.what();
+    sequence.status = kVTVideoDecoderBadDataErr;
+    sequence.diagnostic = error.what();
   }
 }
 
@@ -360,56 +375,93 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
       : gpu_device_service_(gpu_device_service), counter_state_(std::make_shared<CounterState>()) {}
 
   [[nodiscard]] HardwareDecodeResult decode(const HardwareDecodeRequest &request) override {
+    HardwareDecodeSequenceRequest sequence_request{
+        .source_path = request.source_path,
+        .expected_profile = request.expected_profile,
+    };
+    if (request.valid()) {
+      sequence_request.samples.push_back({
+          .access_unit_index = request.source_frame_index,
+          .source_frame_index = request.source_frame_index,
+          .timing = request.packet_timing,
+          .decode_time = request.packet_timing.presentation_time,
+          .sync_sample = true,
+      });
+    }
+    auto sequence = decode_sequence(sequence_request);
+    if (!request.valid()) {
+      sequence.code = "RFX-MEDIA-DECODE-REQUEST-INVALID";
+      sequence.diagnostic = "The hardware decode request is incomplete or invalid";
+    }
+    return HardwareDecodeResult{
+        .state = sequence.state,
+        .hardware_decoder = sequence.hardware_decoder,
+        .surface = sequence.queue ? sequence.queue->frame(0) : nullptr,
+        .counters = sequence.counters,
+        .code = sequence.admitted() ? "RFX-MEDIA-H264-HARDWARE-DECODED" : std::move(sequence.code),
+        .diagnostic = sequence.admitted() ? "VideoToolbox decoded H.264 to a same-device NV12 "
+                                            "Metal surface lease"
+                                          : std::move(sequence.diagnostic),
+    };
+  }
+
+  [[nodiscard]] HardwareDecodeSequenceResult decode_sequence(
+      const HardwareDecodeSequenceRequest &request) override {
     std::scoped_lock operation_lock(operation_mutex_);
     counter_state_->increment(&MediaPathCounters::hardware_decoder_queries);
     if (!request.valid()) {
-      return failure(DecodeState::invalid_request, "RFX-MEDIA-DECODE-REQUEST-INVALID",
-                     "The hardware decode request is incomplete or invalid");
+      return sequence_failure(DecodeState::invalid_request,
+                              "RFX-MEDIA-DECODE-SEQUENCE-REQUEST-INVALID",
+                              "The hardware decode sequence request is incomplete or invalid");
     }
 
     std::optional<runtime::gpu::DeviceLease> gpu_lease;
     try {
       gpu_lease.emplace(gpu_device_service_.borrow());
     } catch (const std::exception &error) {
-      return failure(DecodeState::device_unavailable, "RFX-MEDIA-GPU-NOT-READY",
-                     std::string("The engine GPU device is not ready: ") + error.what());
+      return sequence_failure(DecodeState::device_unavailable, "RFX-MEDIA-GPU-NOT-READY",
+                              std::string("The engine GPU device is not ready: ") + error.what());
     }
     if (!gpu_lease->valid() || gpu_lease->identity().backend != runtime::gpu::Backend::metal) {
       counter_state_->increment(&MediaPathCounters::cross_adapter_events);
-      return failure(DecodeState::device_unavailable, "RFX-MEDIA-METAL-DEVICE-REQUIRED",
-                     "Apple decode requires the engine Metal device");
+      return sequence_failure(DecodeState::device_unavailable, "RFX-MEDIA-METAL-DEVICE-REQUIRED",
+                              "Apple decode requires the engine Metal device");
     }
     if (!VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)) {
-      return failure(DecodeState::unsupported, "RFX-MEDIA-H264-HARDWARE-UNAVAILABLE",
-                     "VideoToolbox reports no H.264 hardware decoder");
+      return sequence_failure(DecodeState::unsupported, "RFX-MEDIA-H264-HARDWARE-UNAVAILABLE",
+                              "VideoToolbox reports no H.264 hardware decoder");
     }
     counter_state_->increment(&MediaPathCounters::hardware_decoder_admissions);
 
     std::ifstream input(request.source_path, std::ios::binary | std::ios::ate);
     if (!input) {
-      return failure(DecodeState::source_open_failed, "RFX-MEDIA-SOURCE-OPEN",
-                     "The bounded H.264 fixture could not be opened");
+      return sequence_failure(DecodeState::source_open_failed, "RFX-MEDIA-SOURCE-OPEN",
+                              "The bounded H.264 fixture could not be opened");
     }
     const auto end = input.tellg();
     if (end <= 0 || static_cast<std::uintmax_t>(end) > kMaximumFixtureBytes) {
-      return failure(DecodeState::source_invalid, "RFX-MEDIA-SOURCE-BOUNDS",
-                     "The bounded H.264 fixture has an invalid size");
+      return sequence_failure(DecodeState::source_invalid, "RFX-MEDIA-SOURCE-BOUNDS",
+                              "The bounded H.264 fixture has an invalid size");
     }
     std::vector<std::uint8_t> source(static_cast<std::size_t>(end));
     input.seekg(0, std::ios::beg);
     input.read(reinterpret_cast<char *>(source.data()),
                static_cast<std::streamsize>(source.size()));
     if (!input) {
-      return failure(DecodeState::source_open_failed, "RFX-MEDIA-SOURCE-READ",
-                     "The bounded H.264 fixture could not be read completely");
+      return sequence_failure(DecodeState::source_open_failed, "RFX-MEDIA-SOURCE-READ",
+                              "The bounded H.264 fixture could not be read completely");
     }
 
     const auto parsed = parse_annex_b(source);
+    const bool samples_in_bounds =
+        std::all_of(request.samples.begin(), request.samples.end(), [&parsed](const auto &sample) {
+          return sample.access_unit_index < parsed.access_units.size();
+        });
     if (parsed.parameter_set_sequence.empty() || parsed.parameter_set_picture.empty() ||
-        request.source_frame_index >= parsed.access_units.size()) {
-      return failure(DecodeState::source_invalid, "RFX-MEDIA-H264-ANNEXB",
-                     "The fixture lacks SPS, PPS, AUD-framed access units, or "
-                     "the requested frame");
+        !samples_in_bounds) {
+      return sequence_failure(DecodeState::source_invalid, "RFX-MEDIA-H264-ANNEXB",
+                              "The fixture lacks SPS, PPS, AUD-framed access units, or a requested "
+                              "access unit");
     }
 
     const std::array<const std::uint8_t *, 2> parameter_sets{
@@ -425,8 +477,8 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
         kCFAllocatorDefault, parameter_sets.size(), parameter_sets.data(),
         parameter_set_sizes.data(), 4, &format_description);
     if (status != noErr || format_description == nullptr) {
-      return failure(DecodeState::source_invalid, "RFX-MEDIA-H264-FORMAT",
-                     "CoreMedia rejected the H.264 parameter sets");
+      return sequence_failure(DecodeState::source_invalid, "RFX-MEDIA-H264-FORMAT",
+                              "CoreMedia rejected the H.264 parameter sets");
     }
 
     const auto dimensions = CMVideoFormatDescriptionGetDimensions(format_description);
@@ -436,10 +488,10 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
         dimensions.height == static_cast<std::int32_t>(request.expected_profile.coded_height);
     if (!format_matches) {
       CFRelease(format_description);
-      return failure(DecodeState::source_invalid, "RFX-MEDIA-H264-PROFILE-MISMATCH",
-                     "The H.264 format does not match the admitted codec/extent: " +
-                         std::to_string(dimensions.width) + "x" +
-                         std::to_string(dimensions.height));
+      return sequence_failure(DecodeState::source_invalid, "RFX-MEDIA-H264-PROFILE-MISMATCH",
+                              "The H.264 format does not match the admitted codec/extent: " +
+                                  std::to_string(dimensions.width) + "x" +
+                                  std::to_string(dimensions.height));
     }
 
     std::shared_ptr<AppleDecodeLifetime> lifetime;
@@ -447,8 +499,8 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
       lifetime = std::make_shared<AppleDecodeLifetime>(std::move(*gpu_lease));
     } catch (const std::exception &error) {
       CFRelease(format_description);
-      return failure(DecodeState::native_surface_interop_failed, "RFX-MEDIA-METAL-TEXTURE-CACHE",
-                     error.what());
+      return sequence_failure(DecodeState::native_surface_interop_failed,
+                              "RFX-MEDIA-METAL-TEXTURE-CACHE", error.what());
     }
 
     NSDictionary *decoder_specification = @{
@@ -465,11 +517,9 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
       (__bridge NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
       (__bridge NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     };
-    DecodeCallbackContext callback_context{
+    SequenceCallbackContext callback_context{
         .lifetime = lifetime,
         .counter_state = counter_state_,
-        .request = request,
-        .lease_id = next_lease_id_.fetch_add(1),
     };
     const VTDecompressionOutputCallbackRecord callback{
         .decompressionOutputCallback = decompression_output_callback,
@@ -481,9 +531,9 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
         (__bridge CFDictionaryRef)output_attributes, &callback, &session);
     if (status != noErr || session == nullptr) {
       CFRelease(format_description);
-      return failure(DecodeState::session_failed, "RFX-MEDIA-VT-SESSION",
-                     "VideoToolbox could not create a hardware-required "
-                     "decompression session");
+      return sequence_failure(DecodeState::session_failed, "RFX-MEDIA-VT-SESSION",
+                              "VideoToolbox could not create a hardware-required decompression "
+                              "session");
     }
 
     CFTypeRef hardware_property = nullptr;
@@ -500,97 +550,139 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
       CFRelease(session);
       CFRelease(format_description);
       counter_state_->increment(&MediaPathCounters::software_decoder_selections);
-      return failure(DecodeState::session_failed, "RFX-MEDIA-VT-HARDWARE-REQUIRED",
-                     "VideoToolbox did not confirm the required hardware decoder");
+      return sequence_failure(DecodeState::session_failed, "RFX-MEDIA-VT-HARDWARE-REQUIRED",
+                              "VideoToolbox did not confirm the required hardware decoder");
     }
     counter_state_->increment(&MediaPathCounters::hardware_decoder_sessions);
 
-    CMBlockBufferRef block_buffer = nullptr;
-    CMSampleBufferRef sample_buffer = nullptr;
-    try {
-      const auto avcc_sample = make_avcc_sample(parsed.access_units[request.source_frame_index]);
-      status = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, nullptr, avcc_sample.size(),
-                                                  kCFAllocatorDefault, nullptr, 0,
-                                                  avcc_sample.size(), 0, &block_buffer);
-      if (status == noErr) {
-        status =
-            CMBlockBufferReplaceDataBytes(avcc_sample.data(), block_buffer, 0, avcc_sample.size());
+    std::vector<std::unique_ptr<SampleCallbackContext>> sample_contexts;
+    sample_contexts.reserve(request.samples.size());
+    for (const auto &sample_descriptor : request.samples) {
+      CMBlockBufferRef block_buffer = nullptr;
+      CMSampleBufferRef sample_buffer = nullptr;
+      try {
+        const auto avcc_sample =
+            make_avcc_sample(parsed.access_units[sample_descriptor.access_unit_index]);
+        status = CMBlockBufferCreateWithMemoryBlock(
+            kCFAllocatorDefault, nullptr, avcc_sample.size(), kCFAllocatorDefault, nullptr, 0,
+            avcc_sample.size(), 0, &block_buffer);
+        if (status == noErr) {
+          status = CMBlockBufferReplaceDataBytes(avcc_sample.data(), block_buffer, 0,
+                                                 avcc_sample.size());
+        }
+        const CMSampleTimingInfo timing{
+            .duration = CMTimeMake(sample_descriptor.timing.duration.value,
+                                   sample_descriptor.timing.duration.timescale),
+            .presentationTimeStamp =
+                CMTimeMake(sample_descriptor.timing.presentation_time.value,
+                           sample_descriptor.timing.presentation_time.timescale),
+            .decodeTimeStamp = CMTimeMake(sample_descriptor.decode_time.value,
+                                          sample_descriptor.decode_time.timescale),
+        };
+        const auto sample_size = avcc_sample.size();
+        if (status == noErr) {
+          status = CMSampleBufferCreateReady(kCFAllocatorDefault, block_buffer, format_description,
+                                             1, 1, &timing, 1, &sample_size, &sample_buffer);
+        }
+      } catch (const std::exception &error) {
+        std::scoped_lock callback_lock(callback_context.mutex);
+        callback_context.diagnostic = error.what();
+        status = kVTVideoDecoderBadDataErr;
       }
-      const CMSampleTimingInfo timing{
-          .duration = CMTimeMake(request.packet_timing.duration.value,
-                                 request.packet_timing.duration.timescale),
-          .presentationTimeStamp = CMTimeMake(request.packet_timing.presentation_time.value,
-                                              request.packet_timing.presentation_time.timescale),
-          .decodeTimeStamp = CMTimeMake(request.packet_timing.presentation_time.value,
-                                        request.packet_timing.presentation_time.timescale),
-      };
-      const auto sample_size = avcc_sample.size();
-      if (status == noErr) {
-        status = CMSampleBufferCreateReady(kCFAllocatorDefault, block_buffer, format_description, 1,
-                                           1, &timing, 1, &sample_size, &sample_buffer);
+
+      if (status == noErr && sample_buffer != nullptr) {
+        const auto attachments = CMSampleBufferGetSampleAttachmentsArray(sample_buffer, true);
+        if (attachments != nullptr && CFArrayGetCount(attachments) > 0) {
+          const auto attachment = static_cast<CFMutableDictionaryRef>(
+              const_cast<void *>(CFArrayGetValueAtIndex(attachments, 0)));
+          CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync,
+                               sample_descriptor.sync_sample ? kCFBooleanFalse : kCFBooleanTrue);
+        }
+
+        const auto lease_id = next_lease_id_.fetch_add(1);
+        sample_contexts.push_back(std::make_unique<SampleCallbackContext>(SampleCallbackContext{
+            .sequence = &callback_context,
+            .request =
+                HardwareDecodeRequest{
+                    .source_path = request.source_path,
+                    .expected_profile = request.expected_profile,
+                    .source_frame_index = sample_descriptor.source_frame_index,
+                    .packet_timing = sample_descriptor.timing,
+                },
+            .lease_id = lease_id,
+        }));
+        VTDecodeInfoFlags info_flags = 0;
+        counter_state_->increment(&MediaPathCounters::compressed_samples_submitted);
+        status = VTDecompressionSessionDecodeFrame(session, sample_buffer,
+                                                   kVTDecodeFrame_EnableAsynchronousDecompression,
+                                                   sample_contexts.back().get(), &info_flags);
       }
-    } catch (const std::exception &error) {
-      callback_context.diagnostic = error.what();
-      status = kVTVideoDecoderBadDataErr;
+
+      if (sample_buffer != nullptr) {
+        CFRelease(sample_buffer);
+      }
+      if (block_buffer != nullptr) {
+        CFRelease(block_buffer);
+      }
+      if (status != noErr) {
+        break;
+      }
     }
 
-    if (status == noErr && sample_buffer != nullptr) {
-      VTDecodeInfoFlags info_flags = 0;
-      counter_state_->increment(&MediaPathCounters::compressed_samples_submitted);
-      status = VTDecompressionSessionDecodeFrame(session, sample_buffer,
-                                                 kVTDecodeFrame_EnableAsynchronousDecompression,
-                                                 nullptr, &info_flags);
-      if (status == noErr) {
-        status = VTDecompressionSessionWaitForAsynchronousFrames(session);
-      }
-    }
-
-    if (sample_buffer != nullptr) {
-      CFRelease(sample_buffer);
-    }
-    if (block_buffer != nullptr) {
-      CFRelease(block_buffer);
+    const auto wait_status = VTDecompressionSessionWaitForAsynchronousFrames(session);
+    if (wait_status == noErr) {
+      counter_state_->increment(&MediaPathCounters::hardware_decoder_flushes);
+    } else if (status == noErr) {
+      status = wait_status;
     }
     VTDecompressionSessionInvalidate(session);
     CFRelease(session);
     CFRelease(format_description);
 
-    std::shared_ptr<const NativeVideoSurfaceLease> surface;
+    std::vector<std::shared_ptr<const NativeVideoSurfaceLease>> surfaces;
     std::string callback_diagnostic;
     OSStatus callback_status = noErr;
     {
       std::scoped_lock callback_lock(callback_context.mutex);
-      surface = callback_context.surface;
+      surfaces = std::move(callback_context.surfaces);
       callback_diagnostic = callback_context.diagnostic;
       callback_status = callback_context.status;
     }
-    if (status != noErr || callback_status != noErr || !surface) {
-      return failure(DecodeState::decode_failed, "RFX-MEDIA-VT-DECODE",
-                     callback_diagnostic.empty()
-                         ? "VideoToolbox rejected the compressed H.264 sample"
-                         : std::move(callback_diagnostic));
+    if (status != noErr || callback_status != noErr || surfaces.size() != request.samples.size()) {
+      return sequence_failure(DecodeState::decode_failed, "RFX-MEDIA-VT-SEQUENCE-DECODE",
+                              callback_diagnostic.empty()
+                                  ? "VideoToolbox rejected or omitted a compressed H.264 sequence "
+                                    "sample"
+                                  : std::move(callback_diagnostic));
     }
 
-    return HardwareDecodeResult{
+    std::shared_ptr<const DecodedSurfaceQueue> queue;
+    try {
+      queue = DecodedSurfaceQueue::create(std::move(surfaces));
+    } catch (const std::exception &error) {
+      return sequence_failure(DecodeState::decode_failed, "RFX-MEDIA-SURFACE-QUEUE", error.what());
+    }
+    counter_state_->increment(&MediaPathCounters::surface_queues_published);
+    return HardwareDecodeSequenceResult{
         .state = DecodeState::decoded,
         .hardware_decoder = true,
-        .surface = std::move(surface),
+        .queue = std::move(queue),
         .counters = counter_state_->snapshot(),
-        .code = "RFX-MEDIA-H264-HARDWARE-DECODED",
-        .diagnostic = "VideoToolbox decoded H.264 to a same-device NV12 Metal "
-                      "surface lease",
+        .code = "RFX-MEDIA-H264-HARDWARE-SEQUENCE-DECODED",
+        .diagnostic = "One hardware VideoToolbox session published an immutable, exact "
+                      "PTS-indexed same-device NV12 surface queue",
     };
   }
 
   [[nodiscard]] MediaPathCounters counters() const override { return counter_state_->snapshot(); }
 
  private:
-  [[nodiscard]] HardwareDecodeResult failure(DecodeState state, std::string code,
-                                             std::string diagnostic) const {
-    return HardwareDecodeResult{
+  [[nodiscard]] HardwareDecodeSequenceResult sequence_failure(DecodeState state, std::string code,
+                                                              std::string diagnostic) const {
+    return HardwareDecodeSequenceResult{
         .state = state,
         .hardware_decoder = false,
-        .surface = nullptr,
+        .queue = nullptr,
         .counters = counter_state_->snapshot(),
         .code = std::move(code),
         .diagnostic = std::move(diagnostic),

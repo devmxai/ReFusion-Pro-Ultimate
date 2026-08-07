@@ -73,10 +73,12 @@ struct MediaPathCounters final {
   std::uint64_t hardware_decoder_sessions{0};
   std::uint64_t compressed_samples_submitted{0};
   std::uint64_t hardware_frames_decoded{0};
+  std::uint64_t hardware_decoder_flushes{0};
   std::uint64_t native_surface_allocations{0};
   std::uint64_t native_surface_plane_bindings{0};
   std::uint64_t native_surface_leases_issued{0};
   std::uint64_t native_surface_leases_released{0};
+  std::uint64_t surface_queues_published{0};
   std::uint64_t software_decoder_selections{0};
   std::uint64_t cpu_pixel_maps{0};
   std::uint64_t cpu_pixel_conversions{0};

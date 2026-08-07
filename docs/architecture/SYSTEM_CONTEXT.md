@@ -9,13 +9,14 @@ Codex/CLI/MCP --ChangeSets/files--/          |
                                                |
               +----------------+---------------+----------------+
               v                v               v                v
-          Evaluator      Live Authoring    Transport       Diagnostics
-              |                                |
-              v                                v
+          Evaluator      Live Authoring   Core ProjectClock  Diagnostics
+              |                           authority + epoch
+              |                                ^
+              v                                | correlated ticks only
         Backend-neutral execution plans + exact ProjectTime
               |
               v
-    Platform ports: GPU | Presenter | Video | Audio | Files | Clock
+    Runtime/platform ports: GPU | Presenter | Video | Audio | Files | ClockSource
               |
       +-------+----------+------------------+
       v                  v                  v
@@ -25,4 +26,3 @@ Codex/CLI/MCP --ChangeSets/files--/          |
 
 iOS and macOS share selected Apple implementation pieces but remain separate
 product adapters because lifecycle, sandbox, UI, signing, and store rules differ.
-
