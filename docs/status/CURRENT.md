@@ -8,8 +8,8 @@ gate_status: active
 active_work_packages:
   - G0-WP03
 baseline_commit: 1a70f5a
-last_green_commit: b6cf27c
-last_checkpoint: CP-G0-0002
+last_green_commit: dba78d8
+last_checkpoint: CP-G0-0003
 blocking_risks:
   - RISK-002
 last_updated: 2026-08-07
@@ -20,9 +20,9 @@ last_updated: 2026-08-07
 ## Exact resume point
 
 `G0-WP02` passed after the product owner selected Qt Commercial in ADR-0005.
-`G0-WP03` is active: strengthen the typed command/revision baseline, prove
-Last-Known-Good and concurrent expected-revision behavior, and add the portable
-macOS/Windows Core CI definition.
+`G0-WP03` code and CI definition are complete at checkpoint `CP-G0-0003`.
+macOS Debug, Release, sanitizer, Core and Studio evidence is green. The exact
+remaining item is a real Windows x64 execution of the committed CI workflow.
 
 ## Read next
 
@@ -32,10 +32,11 @@ macOS/Windows Core CI definition.
 
 ## Next actions
 
-1. Add typed command identity and idempotency envelopes to Core.
-2. Expand deterministic rejection, replay, Last-Known-Good and concurrency tests.
-3. Add pinned macOS/Windows portable-Core CI and record local macOS evidence.
-4. Keep Windows runtime evidence pending until an actual Windows runner reports.
+1. Connect a CI-capable Git remote or Windows x64 runner.
+2. Run `.github/workflows/portable-core.yml` and retain the Windows run URL,
+   runner image, MSVC/CMake versions, and test output.
+3. If green, mark G0-WP03 passed and activate G0-WP04.
+4. Do not confuse portable Windows compilation with G1 GPU/media qualification.
 
 
 ## Do not repeat
