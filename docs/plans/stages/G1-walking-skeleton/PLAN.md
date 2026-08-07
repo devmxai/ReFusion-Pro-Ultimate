@@ -19,10 +19,12 @@ proofs.
 ## Entry gate
 
 The normal exit remains cross-platform. By product-owner direction, the bounded
-G1-WP01 macOS runtime package may execute while G0 Windows evidence is pending,
-because no Windows device is currently available. This overlap cannot pass G0,
-G1, or any Windows criterion. Commercial SDK/entitlement verification is
-deferred and does not block technical work.
+G1-WP01 macOS runtime package and then the G1-WP03 Apple hardware-media proof
+may execute while G0 Windows evidence is pending, because no Windows device is
+currently available. Shared contracts and build lanes remain cross-platform
+from their first revision. This overlap cannot pass G0, G1, or any Windows
+criterion. Commercial SDK/entitlement verification is deferred and does not
+block technical work.
 
 ## Work packages
 

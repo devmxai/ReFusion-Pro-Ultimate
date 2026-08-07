@@ -38,11 +38,12 @@ macOS/Windows Core, Studio, or Graphics CMake lane.
 
 ## Current execution rule
 
-G1-WP01 may produce the first real visual experience on `MAC-LAB-001` because
-that is the available physical device. This is a runtime-evidence choice only.
-The presenter contract, fixture and acceptance criteria remain portable; Metal
-code stays in the Apple adapter and the matching D3D12/DXGI implementation stays
-tracked by G1-WP02 until a Windows device becomes available.
+G1-WP01 may produce the first real visual experience and G1-WP03 may execute the
+Apple hardware-media proof on `MAC-LAB-001` because that is the available
+physical device. This is a runtime-evidence choice only. Presenter/media
+contracts, fixtures, counters and failure semantics remain portable; Metal and
+VideoToolbox code stay in Apple adapters, while matching Windows lanes remain
+tracked by G1-WP02/G1-WP04 until a Windows device becomes available.
 
 No stage or feature may claim cross-platform qualification from macOS evidence
 alone. G1 cannot pass until the required Windows evidence exists.

@@ -9,10 +9,10 @@ active_work_packages:
   - G0-WP03
   - G0-WP04B
   - G0-WP05
-  - G1-WP01
+  - G1-WP03
 baseline_commit: 1a70f5a
-last_green_commit: 73d59a7960bae38ba7e2e9c41ae2df4898c8f565
-last_checkpoint: CP-G1-0003
+last_green_commit: ac8de22c329a64a9f351796ae5ded280e701984c
+last_checkpoint: CP-G1-0004
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -63,8 +63,26 @@ observes native system sleep/wake and window occlusion, presentation reports
 typed health/generation telemetry, loss advances the generation, and Runtime
 stops fail-closed on its first rejected frame. Physical full-window
 occlusion/resume and injected device-loss receipts pass with zero CPU pixel
-transfer. `G1-WP01` remains active only for the actual system sleep/wake receipt
-on `MAC-LAB-001`; simulated notifications do not close that physical criterion.
+transfer. The product owner then reported a successful manual sleep/wake test
+and explicitly made retention of the automated physical receipt non-blocking
+for current development. `G1-WP01` is therefore accepted for the bounded macOS
+walking runtime, while its automated sleep/wake receipt remains deferred and
+must not be represented as lab-qualified evidence.
+
+By the same cross-platform-first/macOS-runtime-only direction, `G1-WP03` is now
+active for the Apple H.264 hardware-media surface proof. Its semantic contracts,
+strict counters and failure model must remain portable and a matching Windows
+build lane must exist from the first slice. Windows runtime qualification and
+G1 exit remain blocked until a physical Windows device exists.
+
+Source commit `ac8de22c329a64a9f351796ae5ded280e701984c` delivered the
+first G1-WP03 slice. Portable Runtime now owns exact source-frame timing, the
+narrow H.264/NV12/SDR Rec.709 profile, typed capability outcomes and strict
+zero-CPU/fallback/cross-adapter counters. The Apple adapter proved that H.264
+hardware decode capability exists and that a two-plane NV12 native surface can
+bind to Metal textures on the engine-owned adapter/generation. The matching
+Windows media lane exists but deliberately returns not-qualified until G1-WP04
+runs on Windows. This slice does not yet decode a compressed H.264 sample.
 
 ## Read next
 
@@ -74,16 +92,19 @@ on `MAC-LAB-001`; simulated notifications do not close that physical criterion.
 
 ## Next actions
 
-1. Complete the remaining `G1-WP01` physical lifecycle receipt on
-   `MAC-LAB-001`: one actual system sleep/wake cycle with `GPU READY`, event
-   sequence `2`, resumed frame growth and zero device-loss rejection.
-2. Keep every new semantic/presenter contract portable and define the matching
-   Windows lane/fixture; platform code may enter Apple/Windows adapters only.
-3. When a Windows x64 runner/device becomes available, run G0-WP03, create the
+1. Continue `G1-WP03` with a repository-owned bounded H.264 sample corpus and a
+   hardware-required VideoToolbox decompression session. Prove output PTS/color,
+   engine surface lease/lifetime and two-plane same-device Metal binding without
+   CPU pixel mapping.
+2. Keep every new semantic/media contract portable and define the matching
+   Windows lane/fixture; native code may enter Apple/Windows adapters only.
+3. Retain an automated physical `G1-WP01` sleep/wake receipt when convenient;
+   it is deferred, not silently converted into lab-qualified evidence.
+4. When a Windows x64 runner/device becomes available, run G0-WP03, create the
    repository-local Windows Skia lock, then execute G1-WP02 D3D12/DXGI proof.
-4. Complete G0-WP05 and the G0/G1 cross-platform exit reviews only after the
+5. Complete G0-WP05 and the G0/G1 cross-platform exit reviews only after the
    missing Windows receipts exist.
-5. Keep the experimental project schema bounded until G2 formally decides
+6. Keep the experimental project schema bounded until G2 formally decides
    persistence, migrations, journals, ChangeSets and save/reopen semantics.
 
 
@@ -92,8 +113,8 @@ on `MAC-LAB-001`; simulated notifications do not close that physical criterion.
 - Do not turn the research draft into an implementation plan.
 - Do not reuse, search for, or copy any external Skia checkout or machine cache;
   only the ReFusion-local clean bootstrap path is admitted.
-- Do not expand beyond the bounded macOS `G1-WP01` presenter/fixture while G0
-  Windows evidence is pending.
+- Do not expand beyond the explicitly admitted macOS `G1-WP03` hardware-media
+  proof while G0 Windows evidence is pending.
 - Do not repeat Qt/Skia/media/font intake research; use ADR-0005 through ADR-0007.
 - Do not reopen the Qt licensing lane without a superseding ADR.
 - Do not request or claim Qt Commercial SDK/entitlement evidence during G0/G1;
@@ -104,3 +125,5 @@ on `MAC-LAB-001`; simulated notifications do not close that physical criterion.
   their state remains `not-run` until platform evidence exists.
 - Do not call the 30-second Shape/Text project a decoded video or stable project
   format; actual Video/Audio import and transport remain G4.
+- Do not call the G1-WP03 capability/native-surface probe an actual decoded
+  frame; no compressed sample has entered VideoToolbox yet.

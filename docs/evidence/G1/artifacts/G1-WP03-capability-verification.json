@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP03",
+  "source_commit": "ac8de22c329a64a9f351796ae5ded280e701984c",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "chip": "Apple M1",
+    "gpu_cores": 7,
+    "metal_support": "Metal 4"
+  },
+  "profile": {
+    "codec": "h264-avc",
+    "pixel_format": "nv12-8bit-video-range",
+    "color": "sdr-bt709",
+    "coded_extent": "1920x1080"
+  },
+  "result": {
+    "hardware_decoder_capability": "passed",
+    "same_device_native_surface_interop": "passed",
+    "native_plane_count": 2,
+    "suspended_gpu_fail_closed": "passed",
+    "actual_compressed_sample_decode": "not-implemented"
+  },
+  "counters": {
+    "hardware_decoder_admissions": 1,
+    "native_surface_allocations": 1,
+    "native_surface_plane_bindings": 2,
+    "software_decoder_selections": 0,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_conversions": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "cross_adapter_events": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "workflows": {
+    "macos_media": {"passed": 9, "failed": 0},
+    "macos_core": {"passed": 6, "failed": 0},
+    "macos_core_sanitized": {"passed": 6, "failed": 0},
+    "macos_visual": {"passed": 13, "failed": 0},
+    "architecture_check_problems": 0
+  },
+  "platform_state": {
+    "macos": "capability-and-interop-passed",
+    "windows": "lane-defined-not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_wp03": "active"
+  }
+}

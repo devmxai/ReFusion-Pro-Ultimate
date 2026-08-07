@@ -1,7 +1,7 @@
 ---
 id: G1-WP01
 kind: work-package
-status: active
+status: macos-accepted-automated-sleep-receipt-deferred
 gate: G1
 owner_role: apple-gpu
 evidence: docs/evidence/G1/G1-WP01.md
@@ -62,5 +62,7 @@ portable GPU `ready/suspended/lost` lifecycle contract, generation invalidation,
 native macOS sleep/wake and occlusion observation, equivalent D3D12 contract
 implementation, fail-closed presenter behavior and lifecycle telemetry. A
 physical full-window occlusion/resume receipt and injected stale-generation
-device-loss proof pass. Keep this package `active` until an actual system
-sleep/wake cycle is observed on `MAC-LAB-001`.
+device-loss proof pass. The product owner subsequently reported a successful
+manual sleep/wake test and explicitly deferred the automated retained receipt.
+The bounded macOS runtime is accepted for continued engineering, but the
+deferred receipt is not lab-qualified evidence and Windows remains `not-run`.

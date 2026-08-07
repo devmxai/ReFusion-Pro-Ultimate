@@ -18,7 +18,7 @@
     "physical_test_visibility_resumes": 1,
     "injected_device_loss_generation_delta": 1,
     "stale_generation_acceptances": 0,
-    "physical_sleep_wake": "pending"
+    "physical_sleep_wake": "owner-reported-pass-automated-receipt-deferred"
   },
   "presenter_soak": {
     "requested_frames": 10000,
@@ -35,11 +35,11 @@
   "claim_boundary": {
     "macos_physical_occlusion": "passed",
     "macos_native_sleep_wake_notification_path": "passed",
-    "macos_physical_sleep_wake": "pending",
+    "macos_physical_sleep_wake": "owner-reported-not-lab-retained",
     "device_loss_fail_closed": "passed-injected",
     "windows": "not-run",
     "ios": "not-run",
     "android": "not-run",
-    "g1_wp01": "active"
+    "g1_wp01": "macos-accepted-automated-sleep-receipt-deferred"
   }
 }
