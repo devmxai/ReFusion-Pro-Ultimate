@@ -117,7 +117,11 @@ def command_architecture_check() -> int:
         "Metal/", "VideoToolbox/", "CoreVideo/", "d3d11.h", "d3d12.h",
         "dxgi", "mfapi.h", "vulkan/", "media/NdkMediaCodec.h",
     )
-    roots = [ROOT / "src" / "core", ROOT / "src" / "application"]
+    roots = [
+        ROOT / "src" / "core",
+        ROOT / "src" / "application",
+        ROOT / "src" / "runtime",
+    ]
     problems: list[str] = []
     checked = 0
     for base in roots:
@@ -131,6 +135,23 @@ def command_architecture_check() -> int:
             for token in forbidden_headers:
                 if token in text:
                     problems.append(f"{path.relative_to(ROOT)} contains forbidden boundary token {token}")
+
+    for base, boundary_tokens in (
+        (ROOT / "src" / "platform", ("include/core/Sk", "include/gpu/", "Qt6::")),
+        (ROOT / "src" / "adapters" / "skia", ("QtCore/", "QtGui/", "QtQuick/")),
+    ):
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if path.suffix not in {".h", ".hpp", ".c", ".cc", ".cpp", ".m", ".mm", ".ixx"}:
+                continue
+            checked += 1
+            text = path.read_text(encoding="utf-8")
+            for token in boundary_tokens:
+                if token in text:
+                    problems.append(
+                        f"{path.relative_to(ROOT)} crosses its boundary with token {token}"
+                    )
 
     studio_forbidden_apis = (
         "QImage", "QPixmap", "QPainter", "QPrinter", "QVideoFrame",

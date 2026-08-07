@@ -36,6 +36,17 @@
       }
     },
     {
+      "name": "macos-graphics",
+      "inherits": "macos-core",
+      "displayName": "macOS engine-owned Metal and Skia foundation",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
+        "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/macos-arm64-metal"
+      }
+    },
+    {
       "name": "windows-core",
       "inherits": "base",
       "displayName": "Windows portable core",
@@ -52,13 +63,26 @@
       "cacheVariables": {
         "REFUSION_BUILD_STUDIO": "ON"
       }
+    },
+    {
+      "name": "windows-graphics",
+      "inherits": "windows-core",
+      "displayName": "Windows engine-owned D3D12 and Skia foundation",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
+        "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/windows-x64-d3d12"
+      }
     }
   ],
   "buildPresets": [
     { "name": "macos-core", "configurePreset": "macos-core" },
     { "name": "macos-studio", "configurePreset": "macos-studio" },
+    { "name": "macos-graphics", "configurePreset": "macos-graphics" },
     { "name": "windows-core", "configurePreset": "windows-core" },
-    { "name": "windows-studio", "configurePreset": "windows-studio" }
+    { "name": "windows-studio", "configurePreset": "windows-studio" },
+    { "name": "windows-graphics", "configurePreset": "windows-graphics" }
   ],
   "testPresets": [
     {
@@ -72,6 +96,11 @@
       "output": { "outputOnFailure": true }
     },
     {
+      "name": "macos-graphics",
+      "configurePreset": "macos-graphics",
+      "output": { "outputOnFailure": true }
+    },
+    {
       "name": "windows-core",
       "configurePreset": "windows-core",
       "output": { "outputOnFailure": true }
@@ -79,6 +108,11 @@
     {
       "name": "windows-studio",
       "configurePreset": "windows-studio",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-graphics",
+      "configurePreset": "windows-graphics",
       "output": { "outputOnFailure": true }
     }
   ],
@@ -100,6 +134,14 @@
       ]
     },
     {
+      "name": "macos-graphics",
+      "steps": [
+        { "type": "configure", "name": "macos-graphics" },
+        { "type": "build", "name": "macos-graphics" },
+        { "type": "test", "name": "macos-graphics" }
+      ]
+    },
+    {
       "name": "windows-core",
       "steps": [
         { "type": "configure", "name": "windows-core" },
@@ -114,7 +156,14 @@
         { "type": "build", "name": "windows-studio" },
         { "type": "test", "name": "windows-studio" }
       ]
+    },
+    {
+      "name": "windows-graphics",
+      "steps": [
+        { "type": "configure", "name": "windows-graphics" },
+        { "type": "build", "name": "windows-graphics" },
+        { "type": "test", "name": "windows-graphics" }
+      ]
     }
   ]
 }
-

@@ -35,3 +35,19 @@ cmake --workflow --preset macos-core
 Build output and fetched dependency sources belong under `out/` and never in
 Git. Release builds must use the pinned dependency manifest.
 
+## Clean Skia materialization
+
+Skia is never copied from another checkout. The only admitted source flow is:
+
+```bash
+python3 tools/bootstrap.py sync depot_tools --fresh
+python3 tools/bootstrap.py sync skia --fresh
+python3 tools/bootstrap.py hydrate-skia
+python3 tools/bootstrap.py build-skia --profile macos-arm64-metal
+cmake --workflow --preset macos-graphics
+```
+
+The first two commands clone exact revisions from their official origins into
+the ignored `out/deps-src`. Hydration follows Skia's pinned `DEPS` graph and
+records the resolved dependency inventory. Normal CMake builds remain offline
+and fail closed if origin, source revision, build record, or artifact differs.

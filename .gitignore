@@ -4,10 +4,11 @@ out/
 CMakeUserPresets.json
 compile_commands.json
 .DS_Store
+__pycache__/
+*.pyc
 *.user
 *.swp
 *.tmp
 *.log
 .idea/
 .vscode/
-

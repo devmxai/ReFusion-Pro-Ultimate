@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "macos-arm64-metal": {
+      "host": "macos-arm64",
+      "gn_args": "macos-arm64-metal.gn",
+      "targets": ["skia"],
+      "bundle_artifact": "librefusion_skia_bundle.a",
+      "qualification": "local-build-required"
+    },
+    "windows-x64-d3d12": {
+      "host": "windows-x64",
+      "gn_args": "windows-x64-d3d12.gn",
+      "targets": ["skia"],
+      "bundle_artifact": "refusion_skia_bundle.lib",
+      "qualification": "windows-runner-required"
+    }
+  }
+}

@@ -31,7 +31,7 @@
     "skia": {
       "kind": "git",
       "official_origin": "https://skia.googlesource.com/skia.git",
-      "revision": "76941bbcaf48f2927878038412a6a69db0f45449",
+      "revision": "294d31e0b1aa295d585836ab41bd2fba170e0c5d",
       "license": "BSD-3-Clause plus third-party notices",
       "status": "candidate-pending-ADR-0003-and-G1-qualification",
       "profile": "graphics-spike"
@@ -39,7 +39,7 @@
     "depot_tools": {
       "kind": "git",
       "official_origin": "https://chromium.googlesource.com/chromium/tools/depot_tools.git",
-      "revision": "1e85b18d8037bca45f9a9891ae9325729f3ebcd4",
+      "revision": "fa1fac8477c70532274e7244777a846537004750",
       "license": "Chromium depot_tools licenses",
       "status": "candidate-paired-with-skia",
       "profile": "graphics-spike"
