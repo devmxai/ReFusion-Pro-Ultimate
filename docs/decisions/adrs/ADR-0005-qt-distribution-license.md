@@ -1,11 +1,11 @@
 ---
 id: ADR-0005
 kind: adr
-status: owner-decision-required
+status: accepted
 title: Qt distribution license and release line
 owner_role: product-owner
 decision_due: G0-WP02
-blocking: true
+blocking: false
 last_verified: 2026-08-07
 ---
 
@@ -21,14 +21,19 @@ Qt 6.11.1 is installed and supported through 2027-03-17. Qt 6.8 LTS commercial
 updates are listed through 2029-10-08. The release line and legal lane are related
 but distinct decisions.
 
-# Recommended decision
+# Decision
 
-Choose **Qt Commercial** for proprietary Desktop+iOS+Android distribution, then
-compare the supported LTS line with the current feature line at the G1 release
-toolchain freeze. Continue local G0 development on exact Qt 6.11.1 without
-claiming redistribution rights.
+The product owner selected **Qt Commercial** on 2026-08-07 for proprietary
+Desktop+iOS+Android distribution. Compare the supported LTS line with the
+current feature line at the G1 release toolchain freeze. Continue local G0
+development on exact Qt 6.11.1 without claiming redistribution rights.
 
-# Alternative: LGPLv3 compliance program
+Selection of the commercial lane is not proof that a commercial subscription,
+the required developer seats, CI rights, or product/store coverage have been
+purchased. Release packaging remains fail-closed until that entitlement evidence
+is attached to the release gate.
+
+# Rejected alternative: LGPLv3 compliance program
 
 LGPL is technically possible only if the owner accepts and implements all legal
 obligations, including dynamic linking where applicable, controlled Qt source
@@ -41,10 +46,9 @@ the proprietary product. This requires legal counsel and continuous compliance.
 Do not mix open-source and commercial Qt artifacts in one application/device,
 and do not ship while the lane is `unselected`.
 
-# Owner decision
+# Consequences
 
-Select exactly one:
-
-- `commercial` — recommended for the intended proprietary multi-store product;
-- `lgplv3-compliance` — only with explicit acceptance of the compliance program.
-
+- The Qt module allowlist remains narrow and independently enforced.
+- No open-source Qt artifact may be mixed into the commercial release lineage.
+- A later version-line decision does not reopen the licensing lane; changing the
+  lane requires a superseding ADR and a new compliance review.

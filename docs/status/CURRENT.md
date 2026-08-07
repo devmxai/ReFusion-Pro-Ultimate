@@ -6,12 +6,11 @@ master_plan_status: active
 current_gate: G0
 gate_status: active
 active_work_packages:
-  - G0-WP02
+  - G0-WP03
 baseline_commit: 1a70f5a
 last_green_commit: b6cf27c
 last_checkpoint: CP-G0-0002
 blocking_risks:
-  - RISK-001
   - RISK-002
 last_updated: 2026-08-07
 ---
@@ -20,10 +19,10 @@ last_updated: 2026-08-07
 
 ## Exact resume point
 
-`G0-WP02` is active at checkpoint `CP-G0-0002`. MP-001 and the Product Contract are activated. Engineering
-ADRs 0001–0004 are accepted; OS/media and font profiles are proposed. The only
-owner-blocking choice is ADR-0005: Qt Commercial versus an explicit LGPLv3
-compliance program.
+`G0-WP02` passed after the product owner selected Qt Commercial in ADR-0005.
+`G0-WP03` is active: strengthen the typed command/revision baseline, prove
+Last-Known-Good and concurrent expected-revision behavior, and add the portable
+macOS/Windows Core CI definition.
 
 ## Read next
 
@@ -33,10 +32,10 @@ compliance program.
 
 ## Next actions
 
-1. Product owner selects the Qt distribution lane in ADR-0005.
-2. Freeze the selected lane in `deps/policies/qt-modules.json`.
-3. Review the deliberately narrow ADR-0006 Media/OS target and ADR-0007 fonts.
-4. Close G0-WP02 evidence, then activate G0-WP03 and Windows x64 CI.
+1. Add typed command identity and idempotency envelopes to Core.
+2. Expand deterministic rejection, replay, Last-Known-Good and concurrency tests.
+3. Add pinned macOS/Windows portable-Core CI and record local macOS evidence.
+4. Keep Windows runtime evidence pending until an actual Windows runner reports.
 
 
 ## Do not repeat
@@ -46,3 +45,4 @@ compliance program.
   decides whether to reuse a local cache or fetch the pinned revision.
 - Do not start renderer/media feature work before G1 entry criteria.
 - Do not repeat Qt/Skia/media/font intake research; use ADR-0005 through ADR-0007.
+- Do not reopen the Qt licensing lane without a superseding ADR.

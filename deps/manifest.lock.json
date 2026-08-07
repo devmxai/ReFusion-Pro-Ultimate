@@ -24,8 +24,8 @@
       "kind": "sdk",
       "version": "6.11.1",
       "official_origin": "https://download.qt.io/official_releases/qt/6.11/6.11.1/",
-      "license": "Commercial OR LGPL-3.0/GPL-3.0 by module",
-      "status": "candidate-pending-ADR-0002-and-license-review",
+      "license": "Qt Commercial selected; entitlement evidence required before distribution",
+      "status": "development-pinned-release-not-yet-qualified",
       "auto_sync": false
     },
     "skia": {
@@ -46,4 +46,3 @@
     }
   }
 }
-

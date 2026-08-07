@@ -1,7 +1,7 @@
 ---
 id: LEGAL-QT-001
 kind: legal-gate
-status: blocked-owner-selection
+status: selected-commercial
 owner_role: product-owner
 canonical_for: qt-license-lane
 last_verified: 2026-08-07
@@ -11,14 +11,19 @@ last_verified: 2026-08-07
 
 This is an engineering compliance record, not legal advice.
 
-## Recommended lane: Commercial
+## Selected lane: Commercial
 
-Recommended for the intended proprietary Desktop+iOS+Android product because it
+Selected by the product owner on 2026-08-07 for the intended proprietary
+Desktop+iOS+Android product because it
 avoids relying on LGPL relinking/store compatibility and provides access to
 commercial LTS updates. Purchase terms, developer seats, product coverage,
 mobile/store rights, CI usage and renewal remain owner/vendor matters.
 
-## Alternative lane: LGPLv3 compliance
+No redistributable artifact may pass the release gate until commercial
+entitlement evidence covers the exact Qt version, developers, CI, target
+products and stores used by that artifact.
+
+## Rejected alternative: LGPLv3 compliance
 
 Before any distribution, all of the following must have named evidence:
 
@@ -45,4 +50,3 @@ Before any distribution, all of the following must have named evidence:
 - https://www.qt.io/development/open-source-lgpl-obligations
 - https://doc.qt.io/qt-6/qt-releases.html
 - https://doc.qt.io/qt-6/supported-platforms.html
-

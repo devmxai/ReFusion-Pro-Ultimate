@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "development_qt_version": "6.11.1",
-  "distribution_license_lane": "unselected",
+  "distribution_license_lane": "commercial",
   "allowed_studio_runtime_targets": [
     "Qt6::Core",
     "Qt6::Gui",
@@ -31,4 +31,3 @@
     "Qt Multimedia cannot implement ReFusion media, preview, canvas, transport, or export."
   ]
 }
-
