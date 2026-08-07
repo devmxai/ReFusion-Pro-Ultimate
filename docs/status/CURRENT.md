@@ -11,8 +11,8 @@ active_work_packages:
   - G0-WP05
   - G1-WP01
 baseline_commit: 1a70f5a
-last_green_commit: 7a0124ad3b8102ce00d8bfed0d685cd3d9bac88e
-last_checkpoint: CP-G0-0007
+last_green_commit: 4c91df7f6abf0734a47cfb549a726d15ef35281e
+last_checkpoint: CP-G1-0001
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -40,6 +40,14 @@ while no Windows device is available. `G1-WP01` is active for the first real
 visual experience on macOS; Windows remains `not-run`, and neither G0 nor G1 may
 pass from the macOS evidence alone.
 
+Source commit `4c91df7f6abf0734a47cfb549a726d15ef35281e`
+delivered the first real visual application experience: the Qt shell embeds an
+engine-owned CAMetalLayer, Skia renders a GPU-backed Arabic/Latin Text/Shape
+fixture on the same Metal device/queue, and a 10,000-frame presenter soak
+retained zero CPU pixel maps, uploads, readbacks, or unattributed GPU copies.
+`G1-WP01` remains active for physical sleep/wake, occlusion and device-loss
+qualification; this visual slice does not pass Windows or G1.
+
 ## Read next
 
 1. `docs/plans/stages/G0-foundation/PLAN.md`
@@ -48,8 +56,8 @@ pass from the macOS evidence alone.
 
 ## Next actions
 
-1. Execute `G1-WP01` on `MAC-LAB-001`: engine-owned CAMetalLayer presenter,
-   GPU-backed Skia Text/Shape fixture, counters and lifecycle diagnostics.
+1. Complete the remaining `G1-WP01` physical lifecycle receipts on
+   `MAC-LAB-001`: occlusion, sleep/wake and fail-closed device-loss behavior.
 2. Keep every new semantic/presenter contract portable and define the matching
    Windows lane/fixture; platform code may enter Apple/Windows adapters only.
 3. When a Windows x64 runner/device becomes available, run G0-WP03, create the

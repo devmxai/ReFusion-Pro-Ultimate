@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP01",
+  "source_commit": "4c91df7f6abf0734a47cfb549a726d15ef35281e",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "gpu": "Apple M1 7-core GPU",
+    "memory_gb": 16
+  },
+  "skia": {
+    "revision": "294d31e0b1aa295d585836ab41bd2fba170e0c5d",
+    "targets": ["skia", "modules/skshaper"],
+    "bundle_sha256": "c432832b55ce7120916bf1eef17a5fb81b948a45ed11ac9c57e0130067fc73c9"
+  },
+  "workflows": {
+    "macos_visual": {"passed": 9, "failed": 0},
+    "macos_studio": {"passed": 5, "failed": 0},
+    "macos_core_sanitized": {"passed": 4, "failed": 0}
+  },
+  "presenter_soak": {
+    "requested_frames": 10000,
+    "present_submissions": 10000,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "visual_artifact": {
+    "path": "docs/evidence/G1/artifacts/G1-WP01-macos-visual.png",
+    "sha256": "a2642e2c08d06d8d916a6fad0fcbedd48d6d6f5b0655cd88dcdf1db7b945d0d7"
+  },
+  "claim_boundary": {
+    "macos_visual_slice": "passed",
+    "macos_full_lifecycle": "active",
+    "windows": "not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_exit": "not-passed"
+  }
+}

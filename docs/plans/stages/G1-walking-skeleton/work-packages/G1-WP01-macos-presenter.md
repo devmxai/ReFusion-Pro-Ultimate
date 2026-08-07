@@ -38,3 +38,13 @@ project state. Windows remains `not-run`, not waived.
 
 Reject any permanent CPU project-pixel bridge, UI-owned project frame, ambiguous
 fence/lifetime, uninstrumented copy, or hidden fallback.
+
+# Current delivery
+
+The first visual slice is code-complete at
+`4c91df7f6abf0734a47cfb549a726d15ef35281e`: portable presentation/session
+contracts, engine composition authority, CAMetalLayer presenter, Skia
+HarfBuzz/ICU Arabic+Latin fixture, Qt native host, resize/visibility checks and
+the 10,000-frame zero-CPU-transfer soak all passed. Keep this package `active`
+until the remaining physical occlusion, sleep/wake and device-loss receipts are
+retained.
