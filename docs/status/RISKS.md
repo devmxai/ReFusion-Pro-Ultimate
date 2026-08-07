@@ -8,3 +8,6 @@
 | RISK-004 | P1 | Strict hardware-only policy narrows usable media/device matrix | Publish matrix and fail closed; never hide software fallback | G1/G4 |
 | RISK-005 | P1 | Mobile lifecycle/store rules conflict with desktop native extensions | Keep mobile declarative/packaged; separate product gate | G9 |
 | RISK-006 | P1 | Early breadth delays install/export creator loop | Freeze Not-v1 and enforce gate outcomes | all |
+| RISK-007 | closed | Qt/CLI adapters could own mutable project authority and diverge from the accepted revision | Application Host boundary and negative architecture policy passed at `24d5946e442de09ac9ccc798f9e7aeedeee04502` | G0 |
+| RISK-008 | P0 | Qt Commercial entitlement, clean Windows build/runtime, SBOM/notices and signing evidence are not locally available | Fail release configuration closed and retain external receipts before G0/G4 exit | G0/G4 |
+| RISK-009 | P1 | Local dependency/build materialization can exhaust the development disk | Keep sources/builds repository-local, measure before hydration, and prune only reproducible ignored outputs | all |

@@ -7,14 +7,15 @@ current_gate: G0
 gate_status: active
 active_work_packages:
   - G0-WP03
-  - G0-WP04A
   - G0-WP04B
+  - G0-WP05
 baseline_commit: 1a70f5a
-last_green_commit: 075be91
-last_checkpoint: CP-G0-0004
+last_green_commit: 24d5946e442de09ac9ccc798f9e7aeedeee04502
+last_checkpoint: CP-G0-0005
 blocking_risks:
   - RISK-002
   - RISK-003
+  - RISK-008
 last_updated: 2026-08-07
 ---
 
@@ -27,9 +28,13 @@ last_updated: 2026-08-07
 Windows x64 run. By explicit owner direction, checkpoint `CP-G0-0004` also
 materialized a fresh official Skia dependency graph inside ReFusion and proved
 the engine-owned Metal plus same-device Ganesh/Graphite contract on macOS.
-The 2026-08-07 independent audit activated `G0-WP04A` and `G0-WP04B` to correct
-authority ownership and dependency/toolchain admission. G1 itself remains gated
-and is not activated by this preflight or correction work.
+Checkpoint `CP-G0-0005` passed `G0-WP04A`: one private Application Host now
+owns mutable project authority, while Studio and CLI submit commands through the
+same service. The local controls in `G0-WP04B` are code complete and fail closed,
+but Qt Commercial entitlement, an independent release rebuild, Windows
+materialization/build/runtime, SBOM/notices and signing still require external
+evidence. `G0-WP05` is active only to close that readiness record; G1 remains
+gated and is not activated by this correction work.
 
 ## Read next
 
@@ -39,10 +44,14 @@ and is not activated by this preflight or correction work.
 
 ## Next actions
 
-1. Complete and prove `G0-WP04A` authority/boundary correction locally.
-2. Complete the local `G0-WP04B` provenance and release-admission controls.
-3. Connect a CI-capable Git remote or Windows x64 runner; run portable Core and
+1. Connect a CI-capable Git remote or Windows x64 runner; run portable Core and
    retain the run URL, image and compiler evidence.
+2. Materialize the repository-local Windows Skia graph and lock on that clean
+   runner; implement and prove the D3D/Dawn same-device context before accepting
+   `windows-graphics`.
+3. Admit the Qt Commercial 6.11.1 SDK and private entitlement receipt through
+   the release gate; name the signing/notarization owners without committing
+   private credentials.
 4. Do not run or accept `windows-graphics` as same-device proof until G0-WP05
    defines and G1 implements the missing D3D/Dawn context, link and runtime test.
 5. Complete G0-WP05 and perform the criterion-by-criterion G0 exit review.
@@ -56,3 +65,5 @@ and is not activated by this preflight or correction work.
 - Do not start renderer/media feature work before G1 entry criteria.
 - Do not repeat Qt/Skia/media/font intake research; use ADR-0005 through ADR-0007.
 - Do not reopen the Qt licensing lane without a superseding ADR.
+- Do not re-implement the Application Host boundary or the macOS Skia lock; use
+  source commit `24d5946e442de09ac9ccc798f9e7aeedeee04502`.

@@ -36,11 +36,11 @@ Each package is a machine-checkable authority file under `work-packages/`:
 3. [`G0-WP03`](work-packages/G0-WP03-portable-core.md) — Portable command and
    revision baseline — code complete, awaiting Windows.
 4. [`G0-WP04A`](work-packages/G0-WP04A-authority-integrity.md) — Authority and
-   boundary integrity — active.
+   boundary integrity — passed.
 5. [`G0-WP04B`](work-packages/G0-WP04B-supply-chain.md) — Dependency/toolchain
-   integrity — active.
+   integrity — code complete, awaiting external gates.
 6. [`G0-WP05`](work-packages/G0-WP05-g1-readiness.md) — G1 experiment readiness
-   review — planned.
+   review — active.
 
 ## Platform matrix
 

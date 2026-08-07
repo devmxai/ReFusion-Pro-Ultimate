@@ -4,7 +4,7 @@ kind: evidence-record
 gate: G0
 work_package: G0-WP04A
 status: local-passed
-source_commit: pending-implementation-commit
+source_commit: 24d5946e442de09ac9ccc798f9e7aeedeee04502
 date: 2026-08-07
 ---
 
@@ -30,8 +30,8 @@ date: 2026-08-07
 - `macos-core-sanitized`: 3/3 tests passed under ASan+UBSan.
 - Clean combined Studio+Metal+Skia build: 6/6 tests passed.
 - Studio launch smoke remained alive without stderr until deliberately stopped.
-- Architecture Check: 17 owned files, zero problems before the final bridge test
-  source was added; the final checkpoint reruns and records the updated count.
+- Architecture Check: 17 owned files, zero problems after the final bridge test
+  source and policy rules were committed.
 
 ## Failure behavior
 

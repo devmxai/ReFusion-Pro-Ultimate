@@ -1,7 +1,7 @@
 ---
 id: G0-WP04A
 kind: work-package
-status: active
+status: passed
 gate: G0
 owner_role: foundation-architecture
 evidence: docs/evidence/G0/G0-WP04A.md
@@ -54,3 +54,8 @@ architecture gate. Last-Known-Good semantics must remain unchanged.
 
 All local checks are green and immutable evidence identifies the remaining
 external Windows gate.
+
+# Closure
+
+Passed by source commit `24d5946e442de09ac9ccc798f9e7aeedeee04502` and
+evidence `EV-G0-WP04A`. No external gate remains for this package.

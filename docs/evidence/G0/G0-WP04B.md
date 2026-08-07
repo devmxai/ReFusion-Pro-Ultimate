@@ -4,7 +4,7 @@ kind: evidence-record
 gate: G0
 work_package: G0-WP04B
 status: local-controls-passed-external-gates-pending
-source_commit: pending-implementation-commit
+source_commit: 24d5946e442de09ac9ccc798f9e7aeedeee04502
 date: 2026-08-07
 ---
 
