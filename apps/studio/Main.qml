@@ -9,7 +9,7 @@ ApplicationWindow {
     minimumWidth: 1100
     minimumHeight: 680
     visible: true
-    title: "ReFusion Studio — G1 macOS Visual Proof"
+    title: "ReFusion Studio — Open Project"
     color: "#0b0d12"
 
     readonly property color panel: "#12151c"
@@ -18,6 +18,14 @@ ApplicationWindow {
     readonly property color textMain: "#f2f4f8"
     readonly property color textMuted: "#8891a4"
     readonly property color accent: "#7c5cff"
+
+    function playbackTime(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000)
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+        return String(minutes).padStart(2, "0") + ":"
+                + String(seconds).padStart(2, "0")
+    }
 
     header: Rectangle {
         height: 52
@@ -88,8 +96,14 @@ ApplicationWindow {
                 Rectangle {
                     id: viewportFrame
                     anchors.centerIn: parent
-                    width: Math.min(parent.width * 0.72, 820)
-                    height: width * 0.5625
+                    readonly property real compositionAspect:
+                        engineViewportWindow
+                        ? engineViewportWindow.compositionWidth
+                          / engineViewportWindow.compositionHeight
+                        : 16 / 9
+                    width: Math.min(parent.width * 0.78,
+                                    parent.height * 0.80 * compositionAspect)
+                    height: width / compositionAspect
                     color: "#05060a"
                     border.color: "#343b4d"
                     border.width: 1
@@ -138,6 +152,9 @@ ApplicationWindow {
                                   ? engineViewportWindow.adapterName
                                     + "  •  GPU frames "
                                     + engineViewportWindow.presentedFrames
+                                    + "  •  "
+                                    + (engineViewportWindow.playbackRunning
+                                       ? "PLAYING" : "STOPPED")
                                   : "GPU viewport unavailable"
                             color: engineViewportWindow && engineViewportWindow.zeroCopy
                                    ? "#7ee787" : "#ff6f7d"
@@ -174,18 +191,74 @@ ApplicationWindow {
                     spacing: 8
                     RowLayout {
                         Label { text: "TIMELINE"; color: root.textMuted; font.bold: true }
+                        Label {
+                            text: engineViewportWindow
+                                  ? engineViewportWindow.compositionName
+                                    + "  •  "
+                                    + engineViewportWindow.compositionWidth
+                                    + "×" + engineViewportWindow.compositionHeight
+                                  : "No composition"
+                            color: root.textMuted
+                        }
                         Rectangle { Layout.fillWidth: true; color: "transparent" }
-                        Label { text: "00:00:00:00"; color: root.textMuted }
+                        Label {
+                            text: engineViewportWindow
+                                  ? root.playbackTime(engineViewportWindow.playbackPositionMs)
+                                    + " / "
+                                    + root.playbackTime(engineViewportWindow.playbackDurationMs)
+                                    + "  •  Loop "
+                                    + (engineViewportWindow.playbackLoop + 1)
+                                  : "00:00 / 00:00"
+                            color: engineViewportWindow
+                                   && engineViewportWindow.playbackRunning
+                                   ? "#7ee787" : root.textMuted
+                        }
                     }
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: root.panelRaised
                         border.color: root.border
-                        Label {
-                            anchors.centerIn: parent
-                            text: "Accepted-revision snapshots only"
-                            color: root.textMuted
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 3
+
+                            Repeater {
+                                model: engineViewportWindow
+                                       ? engineViewportWindow.layerNames : []
+                                delegate: Rectangle {
+                                    required property string modelData
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 20
+                                    color: "#202532"
+                                    border.color: root.border
+                                    radius: 3
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        Label {
+                                            text: modelData
+                                            color: root.textMain
+                                            font.pixelSize: 10
+                                        }
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 4
+                                            radius: 2
+                                            color: root.accent
+                                        }
+                                        Label {
+                                            text: "30s"
+                                            color: root.textMuted
+                                            font.pixelSize: 9
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -237,14 +310,19 @@ ApplicationWindow {
                 Rectangle { Layout.fillHeight: true; color: "transparent" }
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 90
+                    Layout.preferredHeight: 128
                     color: root.panelRaised
                     border.color: root.border
                     Label {
                         anchors.fill: parent
                         anchors.margins: 10
-                        text: "CONSOLE\nExternal Agent via files / CLI / MCP\nNo in-app Agent button by design"
+                        text: engineViewportWindow
+                              ? "PROJECT OPEN\n"
+                                + engineViewportWindow.projectPath
+                                + "\n\nExternal Agent: files / CLI / MCP"
+                              : "PROJECT NOT OPEN"
                         color: root.textMuted
+                        font.pixelSize: 10
                         wrapMode: Text.Wrap
                     }
                 }

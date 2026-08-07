@@ -1,10 +1,13 @@
 #pragma once
 
+#include "refusion/core/ProjectDocument.hpp"
 #include "refusion/runtime/presentation/ViewportPresentation.hpp"
 
 #include <QString>
+#include <QStringList>
 #include <QWindow>
 
+#include <atomic>
 #include <cstdint>
 
 class EngineViewportWindow final : public QWindow {
@@ -13,10 +16,21 @@ class EngineViewportWindow final : public QWindow {
   Q_PROPERTY(QString diagnostic READ diagnostic NOTIFY diagnosticChanged)
   Q_PROPERTY(qulonglong presentedFrames READ presentedFrames NOTIFY telemetryChanged)
   Q_PROPERTY(bool zeroCopy READ zeroCopy NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong playbackPositionMs READ playbackPositionMs NOTIFY telemetryChanged)
+  Q_PROPERTY(qulonglong playbackDurationMs READ playbackDurationMs CONSTANT)
+  Q_PROPERTY(qulonglong playbackLoop READ playbackLoop NOTIFY telemetryChanged)
+  Q_PROPERTY(bool playbackRunning READ playbackRunning NOTIFY telemetryChanged)
+  Q_PROPERTY(uint compositionWidth READ compositionWidth CONSTANT)
+  Q_PROPERTY(uint compositionHeight READ compositionHeight CONSTANT)
+  Q_PROPERTY(QString compositionName READ compositionName CONSTANT)
+  Q_PROPERTY(QString projectPath READ projectPath CONSTANT)
+  Q_PROPERTY(QStringList layerNames READ layerNames CONSTANT)
 
  public:
   EngineViewportWindow(
       QString adapter_name,
+      QString project_path,
+      refusion::core::CompositionSnapshot composition,
       refusion::runtime::presentation::ViewportRenderSession& render_session);
   ~EngineViewportWindow() override;
 
@@ -24,6 +38,15 @@ class EngineViewportWindow final : public QWindow {
   [[nodiscard]] QString diagnostic() const;
   [[nodiscard]] qulonglong presentedFrames() const noexcept;
   [[nodiscard]] bool zeroCopy() const noexcept;
+  [[nodiscard]] qulonglong playbackPositionMs() const noexcept;
+  [[nodiscard]] qulonglong playbackDurationMs() const noexcept;
+  [[nodiscard]] qulonglong playbackLoop() const noexcept;
+  [[nodiscard]] bool playbackRunning() const noexcept;
+  [[nodiscard]] uint compositionWidth() const noexcept;
+  [[nodiscard]] uint compositionHeight() const noexcept;
+  [[nodiscard]] QString compositionName() const;
+  [[nodiscard]] QString projectPath() const;
+  [[nodiscard]] QStringList layerNames() const;
 
  signals:
   void diagnosticChanged();
@@ -37,11 +60,15 @@ class EngineViewportWindow final : public QWindow {
  private:
   void ensure_attached();
   void update_extent();
-  void render_frame();
+  void queue_telemetry_update();
   void set_diagnostic(QString diagnostic);
 
   QString adapter_name_;
+  QString project_path_;
+  refusion::core::CompositionSnapshot composition_;
   refusion::runtime::presentation::ViewportRenderSession& render_session_;
   QString diagnostic_;
   bool attached_{false};
+  bool playback_started_{false};
+  std::atomic_bool telemetry_update_pending_{false};
 };

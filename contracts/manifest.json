@@ -1,6 +1,12 @@
 {
   "schema_version": 1,
-  "contracts": [],
-  "note": "G0 establishes governance; typed project contracts begin in G2."
+  "contracts": [
+    {
+      "id": "RFX-PROJECT-SCHEMA-1-SEED",
+      "path": "project/refusion-project-v1.schema.json",
+      "status": "experimental",
+      "owner": "core-project"
+    }
+  ],
+  "note": "The project schema is an experimental G1/G2 seed and is not a stable shipping-format claim."
 }
-

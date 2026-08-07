@@ -1,5 +1,6 @@
 #pragma once
 
+#include "refusion/core/ProjectDocument.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
 #include "refusion/runtime/presentation/ViewportPresentation.hpp"
 
@@ -17,7 +18,8 @@ class SkiaGpuContexts final : public runtime::presentation::ViewportFrameRendere
   SkiaGpuContexts& operator=(SkiaGpuContexts&&) = delete;
 
   [[nodiscard]] static std::unique_ptr<SkiaGpuContexts> create(
-      runtime::gpu::DeviceLease lease);
+      runtime::gpu::DeviceLease lease,
+      core::CompositionSnapshot composition);
 
   [[nodiscard]] bool ganesh_ready() const noexcept;
   [[nodiscard]] bool graphite_ready() const noexcept;

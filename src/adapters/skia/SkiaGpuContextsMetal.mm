@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -40,6 +41,7 @@ struct SkiaGpuContexts::Implementation final {
   std::unique_ptr<skgpu::graphite::Context> graphite;
   sk_sp<SkFontMgr> font_manager;
   std::unique_ptr<SkShaper> shaper;
+  core::CompositionSnapshot composition;
 };
 
 namespace {
@@ -71,93 +73,85 @@ void draw_shaped_line(SkCanvas& canvas,
   }
 }
 
-void draw_fixture(SkCanvas& canvas,
+[[nodiscard]] SkColor to_sk_color(const core::ColorRgba8& color,
+                                  const double opacity) {
+  const auto alpha = static_cast<std::uint8_t>(std::clamp(
+      static_cast<double>(color.alpha) * opacity, 0.0, 255.0));
+  return SkColorSetARGB(alpha, color.red, color.green, color.blue);
+}
+
+void draw_project(SkCanvas& canvas,
                   SkShaper& shaper,
                   SkFontMgr& font_manager,
+                  const core::CompositionSnapshot& composition,
                   const FixtureFrame& frame,
-                  const float width,
-                  const float height) {
-  canvas.clear(SkColorSetARGB(255, 5, 6, 10));
+                  const float target_width,
+                  const float target_height) {
+  canvas.clear(SK_ColorBLACK);
+  const float scale_x =
+      target_width / static_cast<float>(composition.canvas.width_pixels);
+  const float scale_y =
+      target_height / static_cast<float>(composition.canvas.height_pixels);
+  canvas.save();
+  canvas.scale(scale_x, scale_y);
 
-  SkPaint panel;
-  panel.setAntiAlias(true);
-  panel.setColor(SkColorSetARGB(255, 17, 20, 29));
-  const float margin = std::max(24.0F, width * 0.055F);
-  const SkRect panel_rect = SkRect::MakeLTRB(
-      margin, margin, width - margin, height - margin);
-  canvas.drawRRect(SkRRect::MakeRectXY(panel_rect, 28.0F, 28.0F), panel);
+  for (const auto& layer : composition.layers) {
+    if (!layer.active_range.contains(frame.presentation_time_ns)) {
+      continue;
+    }
+    const double position_x = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::position_x, frame.presentation_time_ns);
+    const double position_y = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::position_y, frame.presentation_time_ns);
+    const double layer_scale_x = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::scale_x, frame.presentation_time_ns);
+    const double layer_scale_y = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::scale_y, frame.presentation_time_ns);
+    const double rotation = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::rotation_degrees,
+        frame.presentation_time_ns);
+    const double opacity = core::evaluate_animated_property(
+        layer, core::AnimatedProperty::opacity, frame.presentation_time_ns);
 
-  SkPaint accent;
-  accent.setAntiAlias(true);
-  accent.setColor(SkColorSetARGB(255, 124, 92, 255));
-  const float seconds = static_cast<float>(frame.presentation_time_ns) / 1'000'000'000.0F;
-  const float motion = 0.5F + 0.5F * std::sin(seconds * 1.5F);
-  const float shape_size = std::clamp(width * 0.12F, 72.0F, 150.0F);
-  const float shape_x = margin + 42.0F + motion * std::max(0.0F, width * 0.12F);
-  const float shape_y = height * 0.5F - shape_size * 0.5F;
-  canvas.drawRRect(
-      SkRRect::MakeRectXY(
-          SkRect::MakeXYWH(shape_x, shape_y, shape_size, shape_size),
-          shape_size * 0.24F,
-          shape_size * 0.24F),
-      accent);
+    canvas.save();
+    canvas.translate(static_cast<float>(position_x), static_cast<float>(position_y));
+    canvas.rotate(static_cast<float>(rotation));
+    canvas.scale(static_cast<float>(layer_scale_x),
+                 static_cast<float>(layer_scale_y));
 
-  SkPaint glow;
-  glow.setAntiAlias(true);
-  glow.setColor(SkColorSetARGB(80, 72, 211, 255));
-  canvas.drawCircle(shape_x + shape_size * 0.72F,
-                    shape_y + shape_size * 0.28F,
-                    shape_size * 0.18F,
-                    glow);
-
-  auto typeface = font_manager.matchFamilyStyle(
-      "Arial", SkFontStyle::Normal());
-  SkFont title_font(typeface, std::clamp(width * 0.052F, 34.0F, 62.0F));
-  title_font.setEdging(SkFont::Edging::kAntiAlias);
-  SkFont arabic_font(typeface, std::clamp(width * 0.036F, 28.0F, 46.0F));
-  arabic_font.setEdging(SkFont::Edging::kAntiAlias);
-
-  SkPaint title_paint;
-  title_paint.setAntiAlias(true);
-  title_paint.setColor(SkColorSetARGB(255, 242, 244, 248));
-  const float text_x = std::max(width * 0.42F, shape_x + shape_size + 42.0F);
-  draw_shaped_line(canvas,
-                   shaper,
-                   "ReFusion",
-                   title_font,
-                   true,
-                   SkPoint::Make(text_x, height * 0.45F),
-                   width - text_x - margin,
-                   title_paint);
-
-  SkPaint arabic_paint;
-  arabic_paint.setAntiAlias(true);
-  arabic_paint.setColor(SkColorSetARGB(255, 159, 168, 190));
-  draw_shaped_line(canvas,
-                   shaper,
-                   "استوديو فيديو يعمل بالمحرك",
-                   arabic_font,
-                   false,
-                   SkPoint::Make(text_x, height * 0.55F),
-                   width - text_x - margin,
-                   arabic_paint);
-
-  SkPaint rail;
-  rail.setAntiAlias(true);
-  rail.setColor(SkColorSetARGB(255, 42, 48, 64));
-  const SkRect rail_rect = SkRect::MakeXYWH(
-      margin + 36.0F, height - margin - 42.0F, width - (margin + 36.0F) * 2.0F, 6.0F);
-  canvas.drawRRect(SkRRect::MakeRectXY(rail_rect, 3.0F, 3.0F), rail);
-
-  SkPaint progress;
-  progress.setAntiAlias(true);
-  progress.setColor(SkColorSetARGB(255, 72, 211, 255));
-  canvas.drawRRect(
-      SkRRect::MakeRectXY(
-          SkRect::MakeXYWH(rail_rect.x(), rail_rect.y(), rail_rect.width() * motion, 6.0F),
-          3.0F,
-          3.0F),
-      progress);
+    SkPaint paint;
+    paint.setAntiAlias(true);
+    if (const auto* shape = std::get_if<core::ShapeLayerContent>(&layer.content)) {
+      paint.setColor(to_sk_color(shape->fill, opacity));
+      const auto rect = SkRect::MakeXYWH(
+          static_cast<float>(-shape->width * 0.5),
+          static_cast<float>(-shape->height * 0.5),
+          static_cast<float>(shape->width),
+          static_cast<float>(shape->height));
+      canvas.drawRRect(
+          SkRRect::MakeRectXY(rect,
+                             static_cast<float>(shape->corner_radius),
+                             static_cast<float>(shape->corner_radius)),
+          paint);
+    } else if (const auto* text = std::get_if<core::TextLayerContent>(&layer.content)) {
+      paint.setColor(to_sk_color(text->fill, opacity));
+      auto typeface = font_manager.matchFamilyStyle(
+          text->font_family.c_str(), SkFontStyle::Normal());
+      SkFont font(typeface, static_cast<float>(text->font_size));
+      font.setEdging(SkFont::Edging::kAntiAlias);
+      draw_shaped_line(canvas,
+                       shaper,
+                       text->text.c_str(),
+                       font,
+                       text->left_to_right,
+                       SkPoint::Make(static_cast<float>(-text->layout_width * 0.5),
+                                     0.0F),
+                       static_cast<float>(text->layout_width),
+                       paint);
+    }
+    canvas.restore();
+  }
+  canvas.restore();
 }
 
 }  // namespace
@@ -168,9 +162,14 @@ SkiaGpuContexts::SkiaGpuContexts(std::unique_ptr<Implementation> implementation)
 SkiaGpuContexts::~SkiaGpuContexts() = default;
 
 std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
-    runtime::gpu::DeviceLease lease) {
+    runtime::gpu::DeviceLease lease,
+    core::CompositionSnapshot composition) {
   if (!lease.valid() || lease.identity().backend != runtime::gpu::Backend::metal) {
     throw std::invalid_argument("Skia Metal contexts require a valid Metal device lease");
+  }
+  const auto validation = core::validate_composition(composition);
+  if (!validation.valid) {
+    throw std::invalid_argument(validation.code + ": " + validation.message);
   }
 
   const auto handles = lease.native_handles();
@@ -211,6 +210,7 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
           .graphite = std::move(graphite),
           .font_manager = std::move(font_manager),
           .shaper = std::move(shaper),
+          .composition = std::move(composition),
       })));
 }
 
@@ -272,9 +272,10 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     };
   }
 
-  draw_fixture(*surface->getCanvas(),
+  draw_project(*surface->getCanvas(),
                *implementation_->shaper,
                *implementation_->font_manager,
+               implementation_->composition,
                frame,
                static_cast<float>(target.width_pixels),
                static_cast<float>(target.height_pixels));

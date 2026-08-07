@@ -79,10 +79,21 @@ int main() {
   require(!FrameResult{.status = FrameStatus::skipped}.succeeded());
   require(!FrameResult{.status = FrameStatus::rejected}.succeeded());
 
+  const PlaybackSpec playback{
+      .duration_ns = 30'000'000'000,
+      .frame_rate_numerator = 30,
+      .frame_rate_denominator = 1,
+      .loop = true,
+  };
+  require(playback.valid());
+  require(playback.frame_interval().count() == 33'333'333);
+  require(!PlaybackSpec{.duration_ns = 0}.valid());
+
   FakePresenter fake_presenter;
-  ViewportRenderSession session(fake_presenter);
+  ViewportRenderSession session(fake_presenter, playback);
   require(session.render_once().succeeded());
   require(session.render_once().succeeded());
   require(fake_presenter.last_frame.frame_index == 1);
+  require(fake_presenter.last_frame.duration_ns == 30'000'000'000);
   require(session.telemetry().present_submissions == 2);
 }

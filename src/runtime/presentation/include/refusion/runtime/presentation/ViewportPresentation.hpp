@@ -2,9 +2,13 @@
 
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
 
-#include <cstdint>
 #include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 
 namespace refusion::runtime::presentation {
 
@@ -57,6 +61,27 @@ struct NativeFrameTarget final {
 struct FixtureFrame final {
   std::uint64_t frame_index{0};
   std::uint64_t presentation_time_ns{0};
+  std::uint64_t duration_ns{0};
+  std::uint64_t loop_index{0};
+};
+
+struct PlaybackSpec final {
+  std::uint64_t duration_ns{30'000'000'000};
+  std::uint32_t frame_rate_numerator{30};
+  std::uint32_t frame_rate_denominator{1};
+  bool loop{true};
+
+  [[nodiscard]] bool valid() const noexcept;
+  [[nodiscard]] std::chrono::nanoseconds frame_interval() const noexcept;
+};
+
+struct PlaybackState final {
+  bool running{false};
+  std::uint64_t position_ns{0};
+  std::uint64_t duration_ns{0};
+  std::uint64_t loop_index{0};
+  FrameStatus last_frame_status{FrameStatus::skipped};
+  std::string diagnostic;
 };
 
 struct FrameResult final {
@@ -105,19 +130,49 @@ class ViewportPresenter {
 
 class ViewportRenderSession final {
  public:
-  explicit ViewportRenderSession(ViewportPresenter& presenter) noexcept;
+  using FrameObserver = std::function<void()>;
+
+  explicit ViewportRenderSession(ViewportPresenter& presenter,
+                                 PlaybackSpec playback_spec = {});
+  ~ViewportRenderSession();
+
+  ViewportRenderSession(const ViewportRenderSession&) = delete;
+  ViewportRenderSession& operator=(const ViewportRenderSession&) = delete;
 
   [[nodiscard]] FrameResult attach(NativeViewportHost host);
   void detach() noexcept;
   [[nodiscard]] FrameResult resize(ViewportExtent extent);
   void set_visible(bool visible) noexcept;
+  void start_playback();
+  void stop_playback() noexcept;
   [[nodiscard]] FrameResult render_once();
   [[nodiscard]] PresentationTelemetry telemetry() const noexcept;
+  [[nodiscard]] PlaybackState playback_state() const;
+  void set_frame_observer(FrameObserver observer);
 
  private:
+  [[nodiscard]] FixtureFrame next_frame_locked(
+      std::chrono::steady_clock::time_point now) noexcept;
+  void render_loop(std::stop_token stop_token);
+  void notify_frame_observer();
+
   ViewportPresenter& presenter_;
+  PlaybackSpec playback_spec_;
+  mutable std::mutex mutex_;
+  std::condition_variable_any wake_;
   std::chrono::steady_clock::time_point epoch_;
   std::uint64_t next_frame_index_{0};
+  std::uint64_t position_ns_{0};
+  std::uint64_t loop_index_{0};
+  FrameStatus last_frame_status_{FrameStatus::skipped};
+  std::string diagnostic_;
+  bool attached_{false};
+  bool visible_{false};
+  bool running_{false};
+
+  std::mutex observer_mutex_;
+  FrameObserver frame_observer_;
+  std::jthread render_thread_;
 };
 
 }  // namespace refusion::runtime::presentation

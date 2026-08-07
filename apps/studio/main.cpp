@@ -1,5 +1,6 @@
 #include "StudioBridge.hpp"
 #include "StudioRuntimeComposition.hpp"
+#include "adapters/QtJsonProjectFileAdapter.hpp"
 
 #include "refusion/application/ProjectCommandService.hpp"
 
@@ -11,24 +12,32 @@
 
 #include <exception>
 #include <memory>
+#include <utility>
 
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
   QGuiApplication::setApplicationName(QStringLiteral("ReFusion Studio"));
   QGuiApplication::setOrganizationName(QStringLiteral("ReFusion"));
 
-  auto commands = refusion::application::create_application_host(
-      refusion::core::ProjectSnapshot{
-          .project_id = refusion::core::ProjectId{"prj_refusion_foundation"},
-          .revision_id = refusion::core::RevisionId{1},
-          .display_name = "ReFusion Foundation",
-      });
+  const QString project_path = argc > 1
+                                   ? QString::fromLocal8Bit(argv[1])
+                                   : QString::fromUtf8(REFUSION_DEFAULT_PROJECT_PATH);
+  auto open_result = open_refusion_project(project_path);
+  if (!open_result.succeeded()) {
+    qWarning().noquote() << "Project open failed:" << open_result.diagnostic;
+    return 2;
+  }
+  auto opened_project = std::move(*open_result.project);
+
+  auto commands =
+      refusion::application::create_application_host(opened_project.snapshot);
   StudioBridge bridge(*commands);
   std::unique_ptr<StudioRuntimeComposition> runtime_composition;
   QWindow* viewport_window = nullptr;
   QString viewport_diagnostic;
   try {
-    runtime_composition = create_studio_runtime_composition();
+    runtime_composition = create_studio_runtime_composition(
+        opened_project.snapshot, opened_project.canonical_path);
     viewport_window = runtime_composition->viewport_window();
   } catch (const std::exception& error) {
     viewport_diagnostic = QString::fromUtf8(error.what());

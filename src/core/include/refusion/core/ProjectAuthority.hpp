@@ -1,23 +1,13 @@
 #pragma once
 
+#include "refusion/core/ProjectDocument.hpp"
+
 #include <cstdint>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 
 namespace refusion::core {
-
-struct ProjectId final {
-  std::string value;
-
-  friend bool operator==(const ProjectId&, const ProjectId&) = default;
-};
-
-struct RevisionId final {
-  std::uint64_t value{0};
-
-  friend bool operator==(const RevisionId&, const RevisionId&) = default;
-};
 
 struct CommandId final {
   std::string value;
@@ -29,12 +19,6 @@ struct IdempotencyKey final {
   std::string value;
 
   friend bool operator==(const IdempotencyKey&, const IdempotencyKey&) = default;
-};
-
-struct ProjectSnapshot final {
-  ProjectId project_id;
-  RevisionId revision_id;
-  std::string display_name;
 };
 
 struct CommandEnvelope final {

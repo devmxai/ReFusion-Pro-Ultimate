@@ -1,6 +1,7 @@
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
 #include "refusion/platform/PlatformViewportPresenter.hpp"
+#include "TestComposition.hpp"
 
 #import <AppKit/AppKit.h>
 
@@ -43,7 +44,7 @@ int main() {
 
   auto device_service = refusion::platform::create_platform_gpu_device_service();
   auto renderer = refusion::adapters::skia::SkiaGpuContexts::create(
-      device_service->borrow());
+      device_service->borrow(), test_composition());
   auto presenter = refusion::platform::create_platform_viewport_presenter(
       *device_service, *renderer);
 
@@ -77,6 +78,7 @@ int main() {
     const auto result = presenter->present(FixtureFrame{
         .frame_index = frame_index,
         .presentation_time_ns = frame_index * 16'666'667,
+        .duration_ns = 30'000'000'000,
     });
     require(result.succeeded());
   }

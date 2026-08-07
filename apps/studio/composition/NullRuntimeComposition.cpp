@@ -11,6 +11,8 @@ class NullRuntimeComposition final : public StudioRuntimeComposition {
 
 }  // namespace
 
-std::unique_ptr<StudioRuntimeComposition> create_studio_runtime_composition() {
+std::unique_ptr<StudioRuntimeComposition> create_studio_runtime_composition(
+    const refusion::core::ProjectSnapshot&,
+    const QString&) {
   return std::make_unique<NullRuntimeComposition>();
 }

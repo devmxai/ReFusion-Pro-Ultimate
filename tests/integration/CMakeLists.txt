@@ -49,3 +49,15 @@ if(TARGET ReFusion::StudioBridge)
   refusion_enable_warnings(refusion-studio-bridge-tests)
   add_test(NAME refusion.studio_bridge COMMAND refusion-studio-bridge-tests)
 endif()
+
+if(TARGET ReFusion::ProjectFileAdapter)
+  add_executable(refusion-project-file-adapter-tests
+    project_file_adapter_test.cpp)
+  target_link_libraries(refusion-project-file-adapter-tests
+    PRIVATE ReFusion::ProjectFileAdapter)
+  target_compile_definitions(refusion-project-file-adapter-tests PRIVATE
+    REFUSION_TEST_PROJECT_PATH="${CMAKE_SOURCE_DIR}/examples/projects/reels-demo-30s/ReFusionDemoReel.refusion.json")
+  refusion_enable_warnings(refusion-project-file-adapter-tests)
+  add_test(NAME refusion.project_file_adapter
+    COMMAND refusion-project-file-adapter-tests)
+endif()

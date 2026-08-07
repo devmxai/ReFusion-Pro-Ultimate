@@ -1,5 +1,6 @@
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
+#include "TestComposition.hpp"
 
 #import <Metal/Metal.h>
 
@@ -27,7 +28,7 @@ int main() {
   require(device != nil);
 
   auto contexts = refusion::adapters::skia::SkiaGpuContexts::create(
-      device_service->borrow());
+      device_service->borrow(), test_composition());
   MTLTextureDescriptor* descriptor = [MTLTextureDescriptor
       texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                 width:640
@@ -51,6 +52,7 @@ int main() {
       FixtureFrame{
           .frame_index = 1,
           .presentation_time_ns = 500'000'000,
+          .duration_ns = 30'000'000'000,
       });
   require(rendered.succeeded());
 

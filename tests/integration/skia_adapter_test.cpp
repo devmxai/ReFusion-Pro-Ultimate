@@ -1,6 +1,7 @@
 #include "refusion/adapters/skia/SkiaRuntime.hpp"
 
 #if defined(REFUSION_TEST_SKIA_GPU_CONTEXTS)
+#include "TestComposition.hpp"
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
 #endif
@@ -37,7 +38,7 @@ int main() {
 #if defined(REFUSION_TEST_SKIA_GPU_CONTEXTS)
   auto device_service = refusion::platform::create_platform_gpu_device_service();
   auto contexts = refusion::adapters::skia::SkiaGpuContexts::create(
-      device_service->borrow());
+      device_service->borrow(), test_composition());
   require(contexts->ganesh_ready());
   require(contexts->graphite_ready());
 #endif

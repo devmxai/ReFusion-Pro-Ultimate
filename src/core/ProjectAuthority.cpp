@@ -29,6 +29,12 @@ ProjectAuthority::ProjectAuthority(ProjectSnapshot initial_snapshot)
   if (is_blank(active_.display_name)) {
     throw std::invalid_argument("project name must not be empty");
   }
+  if (active_.composition) {
+    const auto validation = validate_composition(*active_.composition);
+    if (!validation.valid) {
+      throw std::invalid_argument(validation.code + ": " + validation.message);
+    }
+  }
 }
 
 ProjectSnapshot ProjectAuthority::active_snapshot() const {
@@ -106,6 +112,7 @@ ApplyResult ProjectAuthority::apply(const RenameProjectCommand& command) {
       .project_id = active_.project_id,
       .revision_id = RevisionId{active_.revision_id.value + 1},
       .display_name = command.requested_name,
+      .composition = active_.composition,
   };
 
   ApplyResult result{

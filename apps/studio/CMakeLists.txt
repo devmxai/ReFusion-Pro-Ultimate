@@ -63,6 +63,26 @@ target_link_libraries(refusion_studio_bridge
 
 refusion_enable_warnings(refusion_studio_bridge)
 
+add_library(refusion_project_file_adapter STATIC
+  adapters/QtJsonProjectFileAdapter.cpp
+  adapters/QtJsonProjectFileAdapter.hpp
+)
+
+add_library(ReFusion::ProjectFileAdapter ALIAS refusion_project_file_adapter)
+
+target_include_directories(refusion_project_file_adapter
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_link_libraries(refusion_project_file_adapter
+  PUBLIC
+    ReFusion::Application
+    Qt6::Core
+)
+
+refusion_enable_warnings(refusion_project_file_adapter)
+
 set(refusion_studio_sources
   main.cpp
   StudioRuntimeComposition.hpp
@@ -82,6 +102,10 @@ endif()
 
 qt_add_executable(refusion-studio ${refusion_studio_sources})
 
+target_compile_definitions(refusion-studio PRIVATE
+  REFUSION_DEFAULT_PROJECT_PATH="${CMAKE_SOURCE_DIR}/examples/projects/reels-demo-30s/ReFusionDemoReel.refusion.json"
+)
+
 target_include_directories(refusion-studio
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -95,6 +119,7 @@ qt_add_qml_module(refusion-studio
 target_link_libraries(refusion-studio
   PRIVATE
     ReFusion::StudioBridge
+    ReFusion::ProjectFileAdapter
     Qt6::Core
     Qt6::Gui
     Qt6::Qml

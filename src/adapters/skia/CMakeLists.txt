@@ -20,6 +20,7 @@ target_include_directories(refusion_skia_adapter
 
 target_link_libraries(refusion_skia_adapter
   PUBLIC
+    ReFusion::Core
     ReFusion::RuntimeGpu
     ReFusion::RuntimePresentation
   PRIVATE Skia::Skia

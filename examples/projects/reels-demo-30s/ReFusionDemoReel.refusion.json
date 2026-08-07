@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "project": {
+    "id": "prj_refusion_demo_reel_30s",
+    "revision": 1,
+    "name": "ReFusion Demo Reel — 30s"
+  },
+  "composition": {
+    "id": "cmp_reels_main",
+    "name": "Main Reels Composition",
+    "canvas": {
+      "width_pixels": 1080,
+      "height_pixels": 1920
+    },
+    "frame_rate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "duration_ns": 30000000000,
+    "layers": [
+      {
+        "id": "lyr_background",
+        "name": "Background",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 540,
+          "position_y": 960,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [],
+        "content": {
+          "type": "shape",
+          "width": 1080,
+          "height": 1920,
+          "corner_radius": 0,
+          "fill": "#05060AFF"
+        }
+      },
+      {
+        "id": "lyr_panel",
+        "name": "Main Card",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 540,
+          "position_y": 960,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [],
+        "content": {
+          "type": "shape",
+          "width": 900,
+          "height": 1120,
+          "corner_radius": 52,
+          "fill": "#11141DFF"
+        }
+      },
+      {
+        "id": "lyr_motion_shape",
+        "name": "Animated Shape",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 230,
+          "position_y": 820,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [
+          {
+            "property": "transform.position.x",
+            "keyframes": [
+              {"time_ns": 0, "value": 230},
+              {"time_ns": 15000000000, "value": 850},
+              {"time_ns": 30000000000, "value": 230}
+            ]
+          },
+          {
+            "property": "transform.rotation",
+            "keyframes": [
+              {"time_ns": 0, "value": 0},
+              {"time_ns": 15000000000, "value": 180},
+              {"time_ns": 30000000000, "value": 360}
+            ]
+          }
+        ],
+        "content": {
+          "type": "shape",
+          "width": 210,
+          "height": 210,
+          "corner_radius": 48,
+          "fill": "#7C5CFFFF"
+        }
+      },
+      {
+        "id": "lyr_title",
+        "name": "Title",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 540,
+          "position_y": 1060,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [],
+        "content": {
+          "type": "text",
+          "text": "ReFusion",
+          "font_family": "Arial",
+          "font_size": 92,
+          "layout_width": 760,
+          "left_to_right": true,
+          "fill": "#F2F4F8FF"
+        }
+      },
+      {
+        "id": "lyr_arabic_subtitle",
+        "name": "Arabic Subtitle",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 540,
+          "position_y": 1180,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [],
+        "content": {
+          "type": "text",
+          "text": "مشروع ريلز حقيقي يعمل بالمحرك",
+          "font_family": "Arial",
+          "font_size": 52,
+          "layout_width": 760,
+          "left_to_right": false,
+          "fill": "#9FA8BEFF"
+        }
+      },
+      {
+        "id": "lyr_progress_rail",
+        "name": "Progress Rail",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 540,
+          "position_y": 1390,
+          "scale_x": 1,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [],
+        "content": {
+          "type": "shape",
+          "width": 800,
+          "height": 12,
+          "corner_radius": 6,
+          "fill": "#2A3040FF"
+        }
+      },
+      {
+        "id": "lyr_progress",
+        "name": "30 Second Progress",
+        "active_range": {"start_ns": 0, "duration_ns": 30000000000},
+        "transform": {
+          "position_x": 140,
+          "position_y": 1390,
+          "scale_x": 0.001,
+          "scale_y": 1,
+          "rotation_degrees": 0,
+          "opacity": 1
+        },
+        "animations": [
+          {
+            "property": "transform.position.x",
+            "keyframes": [
+              {"time_ns": 0, "value": 140},
+              {"time_ns": 30000000000, "value": 540}
+            ]
+          },
+          {
+            "property": "transform.scale.x",
+            "keyframes": [
+              {"time_ns": 0, "value": 0.001},
+              {"time_ns": 30000000000, "value": 1}
+            ]
+          }
+        ],
+        "content": {
+          "type": "shape",
+          "width": 800,
+          "height": 12,
+          "corner_radius": 6,
+          "fill": "#48D3FFFF"
+        }
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@
 
 #include <QEvent>
 #include <QExposeEvent>
+#include <QMetaObject>
 #include <QPlatformSurfaceEvent>
 #include <QResizeEvent>
 #include <QSurface>
@@ -12,14 +13,22 @@
 
 EngineViewportWindow::EngineViewportWindow(
     QString adapter_name,
+    QString project_path,
+    refusion::core::CompositionSnapshot composition,
     refusion::runtime::presentation::ViewportRenderSession& render_session)
-    : adapter_name_(std::move(adapter_name)), render_session_(render_session) {
+    : adapter_name_(std::move(adapter_name)),
+      project_path_(std::move(project_path)),
+      composition_(std::move(composition)),
+      render_session_(render_session) {
   setTitle(QStringLiteral("ReFusion Engine Viewport"));
   setSurfaceType(QSurface::RasterSurface);
   setFlags(Qt::FramelessWindowHint);
+  render_session_.set_frame_observer([this] { queue_telemetry_update(); });
 }
 
 EngineViewportWindow::~EngineViewportWindow() {
+  render_session_.stop_playback();
+  render_session_.set_frame_observer({});
   render_session_.detach();
 }
 
@@ -33,6 +42,46 @@ qulonglong EngineViewportWindow::presentedFrames() const noexcept {
 
 bool EngineViewportWindow::zeroCopy() const noexcept {
   return render_session_.telemetry().zero_cpu_pixel_transfer();
+}
+
+qulonglong EngineViewportWindow::playbackPositionMs() const noexcept {
+  return render_session_.playback_state().position_ns / 1'000'000;
+}
+
+qulonglong EngineViewportWindow::playbackDurationMs() const noexcept {
+  return render_session_.playback_state().duration_ns / 1'000'000;
+}
+
+qulonglong EngineViewportWindow::playbackLoop() const noexcept {
+  return render_session_.playback_state().loop_index;
+}
+
+bool EngineViewportWindow::playbackRunning() const noexcept {
+  return render_session_.playback_state().running;
+}
+
+uint EngineViewportWindow::compositionWidth() const noexcept {
+  return composition_.canvas.width_pixels;
+}
+
+uint EngineViewportWindow::compositionHeight() const noexcept {
+  return composition_.canvas.height_pixels;
+}
+
+QString EngineViewportWindow::compositionName() const {
+  return QString::fromStdString(composition_.display_name);
+}
+
+QString EngineViewportWindow::projectPath() const { return project_path_; }
+
+QStringList EngineViewportWindow::layerNames() const {
+  QStringList names;
+  names.reserve(static_cast<qsizetype>(composition_.layers.size()));
+  for (auto layer = composition_.layers.rbegin();
+       layer != composition_.layers.rend(); ++layer) {
+    names.push_back(QString::fromStdString(layer->display_name));
+  }
+  return names;
 }
 
 bool EngineViewportWindow::event(QEvent* event) {
@@ -53,16 +102,16 @@ void EngineViewportWindow::exposeEvent(QExposeEvent* event) {
   render_session_.set_visible(isExposed());
   if (isExposed() && attached_) {
     update_extent();
-    render_frame();
+    if (!playback_started_) {
+      render_session_.start_playback();
+      playback_started_ = true;
+    }
   }
 }
 
 void EngineViewportWindow::resizeEvent(QResizeEvent* event) {
   QWindow::resizeEvent(event);
   update_extent();
-  if (isExposed()) {
-    render_frame();
-  }
 }
 
 void EngineViewportWindow::ensure_attached() {
@@ -93,21 +142,24 @@ void EngineViewportWindow::update_extent() {
   }
 }
 
-void EngineViewportWindow::render_frame() {
-  if (!attached_ || !isExposed()) {
+void EngineViewportWindow::queue_telemetry_update() {
+  if (telemetry_update_pending_.exchange(true)) {
     return;
   }
-  const auto result = render_session_.render_once();
-  if (result.status == refusion::runtime::presentation::FrameStatus::rejected) {
-    set_diagnostic(QString::fromStdString(result.diagnostic));
-    return;
-  }
-  if (result.succeeded()) {
-    if (!diagnostic_.isEmpty()) {
-      set_diagnostic({});
-    }
-    emit telemetryChanged();
-  }
+  QMetaObject::invokeMethod(
+      this,
+      [this] {
+        telemetry_update_pending_.store(false);
+        const auto playback = render_session_.playback_state();
+        if (playback.last_frame_status ==
+            refusion::runtime::presentation::FrameStatus::rejected) {
+          set_diagnostic(QString::fromStdString(playback.diagnostic));
+        } else if (!diagnostic_.isEmpty()) {
+          set_diagnostic({});
+        }
+        emit telemetryChanged();
+      },
+      Qt::QueuedConnection);
 }
 
 void EngineViewportWindow::set_diagnostic(QString diagnostic) {

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "refusion/core/ProjectDocument.hpp"
+
+#include <QString>
+
 #include <memory>
 
 class QWindow;
@@ -12,4 +16,5 @@ class StudioRuntimeComposition {
 };
 
 [[nodiscard]] std::unique_ptr<StudioRuntimeComposition>
-create_studio_runtime_composition();
+create_studio_runtime_composition(const refusion::core::ProjectSnapshot& project,
+                                  const QString& project_path);
