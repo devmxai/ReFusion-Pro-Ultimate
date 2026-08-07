@@ -8,8 +8,8 @@ gate_status: active
 active_work_packages:
   - G0-WP02
 baseline_commit: 1a70f5a
-last_green_commit: 1a70f5a
-last_checkpoint: CP-G0-0001
+last_green_commit: b6cf27c
+last_checkpoint: CP-G0-0002
 blocking_risks:
   - RISK-001
   - RISK-002
@@ -20,7 +20,7 @@ last_updated: 2026-08-07
 
 ## Exact resume point
 
-`G0-WP02` is active. MP-001 and the Product Contract are activated. Engineering
+`G0-WP02` is active at checkpoint `CP-G0-0002`. MP-001 and the Product Contract are activated. Engineering
 ADRs 0001–0004 are accepted; OS/media and font profiles are proposed. The only
 owner-blocking choice is ADR-0005: Qt Commercial versus an explicit LGPLv3
 compliance program.
@@ -45,3 +45,4 @@ compliance program.
 - Do not duplicate the existing official Skia checkout until dependency intake
   decides whether to reuse a local cache or fetch the pinned revision.
 - Do not start renderer/media feature work before G1 entry criteria.
+- Do not repeat Qt/Skia/media/font intake research; use ADR-0005 through ADR-0007.
