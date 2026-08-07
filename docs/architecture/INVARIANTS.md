@@ -27,6 +27,9 @@ accepted_by: product-owner-user-instruction-2026-08-07
 - Platform implementations may differ for window/surface, GPU, media, audio,
   filesystem portal, lifecycle, signing, and store integration only; they may
   not redefine project meaning.
+- Every shared contract is designed for macOS, Windows, iOS, and Android from
+  its first revision. Absence of a device may change the evidence state to
+  `not-run`; it may never authorize a one-platform semantic shortcut.
 
 ## UI boundary
 

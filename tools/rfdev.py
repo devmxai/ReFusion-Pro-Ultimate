@@ -25,6 +25,7 @@ REQUIRED = [
     "docs/status/CURRENT.md",
     "docs/product/PRODUCT_CONTRACT.md",
     "docs/architecture/INVARIANTS.md",
+    "docs/architecture/CROSS_PLATFORM_POLICY.md",
     "deps/manifest.lock.json",
     "deps/policies/qt-modules.json",
     "docs/legal/QT_DISTRIBUTION_GATE.md",
@@ -136,6 +137,7 @@ def command_context() -> int:
         ROOT / "docs" / "plans" / "MASTER_PLAN.md",
         stage_path(gate),
         ROOT / "docs" / "architecture" / "INVARIANTS.md",
+        ROOT / "docs" / "architecture" / "CROSS_PLATFORM_POLICY.md",
         ROOT / "docs" / "product" / "PRODUCT_CONTRACT.md",
         ROOT / "docs" / "status" / "RISKS.md",
         checkpoint_path(str(state["last_checkpoint"])),
@@ -301,6 +303,54 @@ def studio_authority_problems(root: pathlib.Path) -> list[str]:
     return problems
 
 
+def cross_platform_contract_problems(root: pathlib.Path) -> list[str]:
+    problems: list[str] = []
+    platform_directive = re.compile(
+        r"^\s*#\s*(?:if|ifdef|ifndef)\b[^\n]*"
+        r"(?:_WIN32|\bWIN32\b|__APPLE__|__ANDROID__|\bANDROID\b|Q_OS_[A-Z0-9_]+)",
+        re.MULTILINE,
+    )
+    common_roots = (
+        root / "src" / "core",
+        root / "src" / "application",
+        root / "src" / "runtime",
+        root / "apps" / "studio",
+        root / "apps" / "cli",
+    )
+    for base in common_roots:
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if path.suffix not in {".h", ".hpp", ".c", ".cc", ".cpp", ".ixx"}:
+                continue
+            text = path.read_text(encoding="utf-8")
+            if platform_directive.search(text):
+                problems.append(
+                    f"{path.relative_to(root)} contains a platform conditional outside an adapter"
+                )
+
+    presets_path = root / "CMakePresets.json"
+    if not presets_path.is_file():
+        problems.append("CMakePresets.json is missing the cross-platform build contract")
+        return problems
+    presets = json.loads(presets_path.read_text(encoding="utf-8"))
+    configure_names = {
+        value.get("name") for value in presets.get("configurePresets", [])
+    }
+    workflow_names = {
+        value.get("name") for value in presets.get("workflowPresets", [])
+    }
+    required_lanes = {
+        "macos-core", "macos-studio", "macos-graphics",
+        "windows-core", "windows-studio", "windows-graphics",
+    }
+    for name in sorted(required_lanes - configure_names):
+        problems.append(f"CMakePresets.json is missing configure lane {name}")
+    for name in sorted(required_lanes - workflow_names):
+        problems.append(f"CMakePresets.json is missing workflow lane {name}")
+    return problems
+
+
 def command_architecture_check() -> int:
     forbidden_headers = (
         "QtCore/", "QtGui/", "QtQuick/", "QtMultimedia/", "QImage", "QPainter",
@@ -315,6 +365,7 @@ def command_architecture_check() -> int:
     ]
     problems: list[str] = []
     problems.extend(studio_authority_problems(ROOT))
+    problems.extend(cross_platform_contract_problems(ROOT))
     checked = 0
     for base in roots:
         if not base.exists():

@@ -49,6 +49,36 @@ def main() -> None:
         "the real repository violates the Studio authority boundary",
     )
 
+    with tempfile.TemporaryDirectory(prefix="refusion-cross-platform-") as temporary:
+        root = pathlib.Path(temporary)
+        core = root / "src" / "core"
+        core.mkdir(parents=True)
+        (core / "PlatformLeak.cpp").write_text(
+            "#ifdef _WIN32\nint platform_meaning = 1;\n#endif\n",
+            encoding="utf-8",
+        )
+        (root / "CMakePresets.json").write_text(
+            json.dumps({
+                "configurePresets": [{"name": "macos-core"}],
+                "workflowPresets": [{"name": "macos-core"}],
+            }),
+            encoding="utf-8",
+        )
+        problems = RFDEV.cross_platform_contract_problems(root)
+        require(
+            any("platform conditional outside an adapter" in value for value in problems),
+            f"common platform conditional was accepted: {problems}",
+        )
+        require(
+            any("windows-core" in value for value in problems),
+            f"missing Windows lane was accepted: {problems}",
+        )
+
+    require(
+        not RFDEV.cross_platform_contract_problems(ROOT),
+        "the real repository violates the cross-platform build contract",
+    )
+
     with tempfile.TemporaryDirectory(prefix="refusion-release-gate-") as temporary:
         completed = subprocess.run(
             [
