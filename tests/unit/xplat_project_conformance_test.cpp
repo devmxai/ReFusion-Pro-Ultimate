@@ -5,6 +5,8 @@
 #include "refusion/core/VisualContributionRegistry.hpp"
 #include "refusion/core/VisualPropertyRegistry.hpp"
 
+#include "../support/TestEnvironment.hpp"
+
 #include <cstdlib>
 #include <fstream>
 #include <locale>
@@ -74,10 +76,10 @@ int main() {
   const auto canonical_bytes = std::span<const std::uint8_t>(
       reinterpret_cast<const std::uint8_t*>(canonical.data()),
       canonical.size());
-  if (const char* receipt_path =
-          std::getenv("REFUSION_XPLAT_PROJECT_RECEIPT_OUTPUT");
-      receipt_path != nullptr && receipt_path[0] != '\0') {
-    std::ofstream output(receipt_path, std::ios::trunc);
+  if (const auto receipt_path = refusion::tests::environment_variable(
+          "REFUSION_XPLAT_PROJECT_RECEIPT_OUTPUT");
+      receipt_path && !receipt_path->empty()) {
+    std::ofstream output(*receipt_path, std::ios::trunc);
     require(static_cast<bool>(output));
     output << "schema=refusion.xplat-project-conformance.v2\n"
            << "snapshot_digest="
@@ -92,10 +94,11 @@ int main() {
            << canonical_uint64(compiled.project->revision_id.value) << "\n";
     require(static_cast<bool>(output));
   }
-  if (const char* canonical_path =
-          std::getenv("REFUSION_XPLAT_CANONICAL_PROJECT_OUTPUT");
-      canonical_path != nullptr && canonical_path[0] != '\0') {
-    std::ofstream output(canonical_path, std::ios::binary | std::ios::trunc);
+  if (const auto canonical_path = refusion::tests::environment_variable(
+          "REFUSION_XPLAT_CANONICAL_PROJECT_OUTPUT");
+      canonical_path && !canonical_path->empty()) {
+    std::ofstream output(*canonical_path,
+                         std::ios::binary | std::ios::trunc);
     require(static_cast<bool>(output));
     output.write(canonical.data(),
                  static_cast<std::streamsize>(canonical.size()));

@@ -5,6 +5,8 @@
 #include "refusion/core/ProjectClock.hpp"
 #include "refusion/core/ProjectRfx.hpp"
 
+#include "../support/TestEnvironment.hpp"
+
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
@@ -146,10 +148,10 @@ int main() {
           "accepted command output escaped the authored subpixel grid");
 
   const auto canonical = serialize_project_rfx(final);
-  if (const char* receipt_path =
-          std::getenv("REFUSION_XPLAT_COMMAND_RECEIPT_OUTPUT");
-      receipt_path != nullptr && receipt_path[0] != '\0') {
-    std::ofstream output(receipt_path, std::ios::trunc);
+  if (const auto receipt_path = refusion::tests::environment_variable(
+          "REFUSION_XPLAT_COMMAND_RECEIPT_OUTPUT");
+      receipt_path && !receipt_path->empty()) {
+    std::ofstream output(*receipt_path, std::ios::trunc);
     require(static_cast<bool>(output),
             "cannot open requested xplat command receipt");
     output << "schema=refusion.xplat-command-conformance.v1\n"

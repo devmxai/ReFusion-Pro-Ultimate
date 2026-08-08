@@ -12,6 +12,8 @@
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
 #include "refusion/runtime/render/RenderPlanCompiler.hpp"
 
+#include "../support/TestEnvironment.hpp"
+
 #include <d3d12.h>
 #include <windows.h>
 #include <wrl/client.h>
@@ -325,9 +327,9 @@ int main() {
   require(offline_pixels == preview_pixels,
           "D3D12 Preview and Offline qualification pixels differ");
 
-  if (const char* capture_path =
-          std::getenv("REFUSION_XPLAT_CAPTURE_PPM");
-      capture_path != nullptr && capture_path[0] != '\0') {
-    write_reference_ppm(capture_path, preview_pixels, width, height);
+  if (const auto capture_path = refusion::tests::environment_variable(
+          "REFUSION_XPLAT_CAPTURE_PPM");
+      capture_path && !capture_path->empty()) {
+    write_reference_ppm(*capture_path, preview_pixels, width, height);
   }
 }

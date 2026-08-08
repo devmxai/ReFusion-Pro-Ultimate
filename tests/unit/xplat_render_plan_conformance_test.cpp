@@ -2,6 +2,8 @@
 #include "refusion/core/ProjectRfx.hpp"
 #include "refusion/runtime/render/RenderPlanCompiler.hpp"
 
+#include "../support/TestEnvironment.hpp"
+
 #include <array>
 #include <cstdlib>
 #include <fstream>
@@ -135,10 +137,10 @@ int main() {
     plans.push_back(std::move(plan));
   }
 
-  if (const char* receipt_path =
-          std::getenv("REFUSION_XPLAT_RENDER_RECEIPT_OUTPUT");
-      receipt_path != nullptr && receipt_path[0] != '\0') {
-    std::ofstream output(receipt_path, std::ios::trunc);
+  if (const auto receipt_path = refusion::tests::environment_variable(
+          "REFUSION_XPLAT_RENDER_RECEIPT_OUTPUT");
+      receipt_path && !receipt_path->empty()) {
+    std::ofstream output(*receipt_path, std::ios::trunc);
     require(static_cast<bool>(output),
             "cannot open requested xplat RenderPlan receipt");
     output << "# schema=refusion.xplat-render-plan-conformance.v2\n"
