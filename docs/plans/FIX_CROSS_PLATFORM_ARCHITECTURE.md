@@ -2,7 +2,7 @@
 id: PLAN-XPLAT-FIX-001
 kind: cross-cutting-remediation-plan
 status: active
-version: 21
+version: 22
 master_plan: MP-001
 policy: ARCH-XPLAT-001
 owner_role: principal-cross-platform-architecture
@@ -1660,8 +1660,8 @@ host produces their receipts.
 
 | Lane | Present state | Still required before this plan can close |
 |---|---|---|
-| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. ADR-0010 and its paired visual bounds are accepted. | The commit-bound Pre-Windows qualification receipt and review record. |
-| macOS Metal | The application physically renders through the common route; Core 30/30, sanitized Core 30/30 and Visual 51/51 pass; the bounded 10,000-frame Preview receipt and committed 640x360 Desktop-v1 reference capture exist. | Bind the final capture/test/toolchain receipt to the immutable implementation commit and issue the named Pre-Windows readiness review. |
+| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. ADR-0010 and its paired visual bounds are accepted; `XPF-PRE-WINDOWS-READY` binds the immutable source. | No additional Phase-A work. Any shared-source change invalidates the receipt and must rerun the affected gates. |
+| macOS Metal | The application physically renders through the common route; Core 30/30, sanitized Core 30/30 and Visual 51/51 pass; the bounded 10,000-frame Preview receipt and committed 640x360 Desktop-v1 reference capture exist. The commit-bound machine receipt is issued. | Retain this profile as the Windows comparison reference and rerun it only if an affected shared contract/source changes. |
 | Windows D3D12 | The hardware-only device, Skia binding, DXGI presenter, Windows Studio route, bounded/typed fence failures and same-program offscreen capture executable are source-defined without a semantic renderer fork. | On Windows, first generate/review/commit the host-specific Skia transitive lock; then compile/link with MSVC, exercise a named non-WARP device, open/resave the same projects, run the semantic/pixel/performance corpus and retain receipts. |
 | iOS Metal canary | The Core and shared Graphics closures compile and the product presenter fails closed by design. | No Desktop-v1 product runtime is required here; retain the compile canary and honest non-runtime matrix state. |
 | Android Vulkan canary | The source/profile/official-NDK CI route is defined and fails closed as a product presenter. | Obtain the official-NDK Core/Graphics compile receipt. Full Android product runtime remains G9. |
@@ -1710,11 +1710,12 @@ source commit, dependency/profile digests, toolchain, exact test results,
 macOS reference artifact digests and the honest matrix state. Windows and
 Android remain explicitly `not-run` where no external receipt exists.
 
-**Phase A implementation state (2026-08-09):** the shared source work is now
-implemented in immutable candidate checkpoint
-`a23a0d41c67c8fde1fe7093364810af1927a2e7b`, but the named exit receipt is not
-yet issued. Core binds the
-candidate `refusion.color.desktop-v1-sdr.v1` descriptor and SHA-256 into every
+**Phase A closure state (2026-08-09): closed.** The shared source work is bound
+to accepted implementation commit
+`57d000fc51b7156e08c362f8b04979b4aee5b3fe`, and
+[`XPF-PRE-WINDOWS-READY`](../evidence/reviews/XPF-PRE-WINDOWS-READY.md) is the
+named exit record. Core binds the accepted
+`refusion.color.desktop-v1-sdr.v1` descriptor and SHA-256 into every
 program/RenderPlan and the common compositor rejects drift. Presentation
 requests carry a validated output-consumer identity; Preview and Offline render
 independent GPU targets through the same exact-time common executor, and the
@@ -1743,19 +1744,17 @@ macos-core-sanitized   30/30 passed under ASan/UBSan
 macos-visual           51/51 passed
 ios-core-canary        BUILD SUCCEEDED (iPhoneOS arm64)
 ios-graphics-canary    BUILD SUCCEEDED (iPhoneOS arm64 + common Skia)
-docs-doctor            106 documents, 0 problems
+docs-doctor            107 documents, 0 problems
 architecture-check     112 source files, 0 problems, 0 boundary debt
 ```
 
 The product owner accepted ADR-0010 after the physical macOS visual review on
-2026-08-09. The remaining Phase A closure actions are intentionally narrow and
-auditable:
-
-1. generate the macOS qualification receipt against the accepted implementation
-   commit ID, then add the immutable
-   `XPF-PRE-WINDOWS-READY` review record in an evidence-only descendant commit;
-2. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
-   execution states `not-run` until their external receipts exist.
+2026-08-09. The machine receipt binds the accepted commit, toolchain, GPU,
+dependency/font/color/RenderPlan identities, 51/51 Visual suite and immutable
+reference capture. Phase A has no remaining action. Windows MSVC/build/device/
+pixel/performance and Android official-NDK execution states remain `not-run`
+until their external receipts exist; this is the honest Phase-B/C boundary, not
+unfinished local source closure.
 
 ### Phase B — Reproducible GitHub handoff
 
@@ -2084,3 +2083,10 @@ ADR-0010 and the paired Desktop-v1 pixel bounds. This advances the candidate
 contracts from `proposed` to `accepted` without promoting Windows, Android,
 performance or Media Foundation evidence. The next operation is strictly the
 commit-bound macOS qualification receipt and `XPF-PRE-WINDOWS-READY` review.
+
+Version 22 closes the named Pre-Windows Source Closure. The accepted source
+commit, machine-readable macOS qualification receipt, immutable Metal reference
+and `XPF-PRE-WINDOWS-READY` review are now linked. The plan remains active only
+for its truthfully external Windows/Android and full-profile qualification
+inputs; the exact resume point moves to Phase B GitHub handoff and Phase C
+Windows lock/build/device evidence.

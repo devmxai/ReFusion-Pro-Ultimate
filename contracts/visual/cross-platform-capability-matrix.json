@@ -42,10 +42,10 @@
           "compiled": true,
           "physically_run": true,
           "semantically_matched": true,
-          "visual_tolerance_passed": false,
+          "visual_tolerance_passed": true,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["refusion.visual_property_registry", "refusion.exp006g_authoring_parity"]
+          "evidence": ["refusion.visual_property_registry", "refusion.exp006g_authoring_parity", "XPF-PRE-WINDOWS-READY"]
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
@@ -88,10 +88,10 @@
           "compiled": true,
           "physically_run": true,
           "semantically_matched": true,
-          "visual_tolerance_passed": false,
+          "visual_tolerance_passed": true,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer", "XPF-PRE-WINDOWS-READY"]
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
@@ -134,10 +134,10 @@
           "compiled": true,
           "physically_run": true,
           "semantically_matched": true,
-          "visual_tolerance_passed": false,
+          "visual_tolerance_passed": true,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer", "XPF-PRE-WINDOWS-READY"]
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
@@ -180,10 +180,10 @@
           "compiled": true,
           "physically_run": true,
           "semantically_matched": true,
-          "visual_tolerance_passed": false,
+          "visual_tolerance_passed": true,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer", "XPF-PRE-WINDOWS-READY"]
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
@@ -226,10 +226,10 @@
           "compiled": true,
           "physically_run": true,
           "semantically_matched": true,
-          "visual_tolerance_passed": false,
+          "visual_tolerance_passed": true,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer", "XPF-PRE-WINDOWS-READY"]
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,

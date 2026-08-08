@@ -1,0 +1,65 @@
+{
+  "capture": {
+    "artifact": "docs/evidence/reviews/artifacts/xplat-visual-v1-macos-metal-640x360.ppm",
+    "comparison_policy": "refusion.xplat-pixel-tolerance.desktop-v1.v1",
+    "height": 360,
+    "preview_offscreen_exact": true,
+    "project_time_ns": 1000000000,
+    "sha256": "042200df6dee015c4065a1556049bf8a52798a8f78e9a617e47111bc38bc8d8b",
+    "width": 640
+  },
+  "claim_boundary": {
+    "compiled": true,
+    "performance_qualified": false,
+    "physically_run": true,
+    "qualified": false,
+    "semantic_match": true,
+    "visual_tolerance": true
+  },
+  "conformance": {
+    "canonical_project_sha256": "d0181f7a9a3399dbf7827942de6d52f7d2f5a7da213a26959b8a0e37202e575b",
+    "command_receipt_sha256": "42627f982c8cd6134c6c220abe2d1591fe919801625e6237aa7438d2874ebfaf",
+    "contribution_registry_digest": "rfx-vc-fnv1a64:67e38c18c14ab42b",
+    "font_layout_receipt_sha256": "67111cab682923064f4550fca1020af003bf3522e29bc3fcd059717033767060",
+    "project_semantic_digest": "rfx-project-fnv1a64:1c857e5f5e6d8a04",
+    "property_registry_digest": "rfx-vp-fnv1a64:f6f8d1b88fe2d101",
+    "render_plan_digests": [
+      "rfx-render-plan-v2-fnv1a64:7e35bba138440e05",
+      "rfx-render-plan-v2-fnv1a64:445accf806d297f1",
+      "rfx-render-plan-v2-fnv1a64:8448b6351adb9e68",
+      "rfx-render-plan-v2-fnv1a64:2198204046988c36"
+    ]
+  },
+  "contracts": {
+    "color_id": "refusion.color.desktop-v1-sdr.v1",
+    "color_sha256": "50a4acc6cc8d7092b5aa10d4f70bc24aa93aaf4e71413617c5ec297e5547af78",
+    "font_layout_digest": "skia-harfbuzz-icu-freetype-text-layout-v2:294d31e0b1aa295d585836ab41bd2fba170e0c5d:linebreak=icu:spacing=cluster:hinting=none"
+  },
+  "host": {
+    "architecture": "arm64",
+    "driver": "Apple Metal 4 / macOS build 25F80",
+    "gpu": "Apple M1 7-core GPU / Metal 4",
+    "os": "macOS 26.5.1 build 25F80"
+  },
+  "profile": "macos-metal-desktop-v1",
+  "schema": "refusion.xplat-visual-qualification-receipt.v1",
+  "source_commit": "57d000fc51b7156e08c362f8b04979b4aee5b3fe",
+  "tests": {
+    "failed": 0,
+    "not_run": [
+      "windows-msvc-build",
+      "windows-d3d12-physical",
+      "windows-cross-backend-performance",
+      "android-official-ndk",
+      "production-offline-export"
+    ],
+    "passed": 51,
+    "suite": "macos-visual"
+  },
+  "toolchain": {
+    "cmake": "cmake 4.3.3",
+    "compiler": "Apple clang 21.0.0 (clang-2100.1.1.101)",
+    "ninja": "ninja 1.13.2",
+    "skia_revision": "294d31e0b1aa295d585836ab41bd2fba170e0c5d"
+  }
+}

@@ -31,19 +31,20 @@ Metal `XPF-WP04A`, Windows-source `XPF-WP05A`, local `XPF-WP06A` and iOS
 `XPF-WP07A` slices, plus the local `XPF-WP08A` Preview/Export semantic contract,
 now pass their available checks; formal Windows and Android receipts remain
 `not-run`. D3D12 context/target and DXGI swapchain/fence mechanics are defined
-and Windows Studio selects the common visual runtime. The exact resume point is
-now the final evidence edge of `Pre-Windows Source Closure` in
+and Windows Studio selects the common visual runtime. `Pre-Windows Source
+Closure` is now closed by
+[`XPF-PRE-WINDOWS-READY`](../evidence/reviews/XPF-PRE-WINDOWS-READY.md). The
+exact resume point is Phase B GitHub handoff followed by Phase C Windows
+dependency-lock/build/device evidence in
 [`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md). The color
 descriptor, common Preview/Offline GPU route, packaged-font corpus, D3D12
 offscreen/capture test, bounded/typed DXGI behavior, Windows compile-only versus
 physical bring-up split, calibrated comparison contract, receipt generator and
 mobile automation are source-implemented. The product owner accepted ADR-0010
 and the paired Desktop-v1 visual bounds after the physical macOS review on
-2026-08-09. The immediate
-candidate-implementation checkpoint is
-`a23a0d41c67c8fde1fe7093364810af1927a2e7b`; generate the receipt bound to the
-accepted implementation commit and issue
-`XPF-PRE-WINDOWS-READY`. The final local source tree already
+2026-08-09. Accepted implementation commit
+`57d000fc51b7156e08c362f8b04979b4aee5b3fe` now has a machine receipt and
+immutable Metal reference. The final local source tree
 passes macOS Core 30/30, sanitized Core 30/30, Visual 51/51, both iPhoneOS arm64
 build canaries, docs-doctor and architecture-check. This work is qualification
 infrastructure, not G4 production Export.
