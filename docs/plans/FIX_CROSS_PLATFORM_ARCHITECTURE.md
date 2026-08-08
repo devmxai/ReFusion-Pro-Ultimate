@@ -1711,7 +1711,9 @@ macOS reference artifact digests and the honest matrix state. Windows and
 Android remain explicitly `not-run` where no external receipt exists.
 
 **Phase A implementation state (2026-08-09):** the shared source work is now
-implemented but the named exit receipt is not yet issued. Core binds the
+implemented in immutable candidate checkpoint
+`a23a0d41c67c8fde1fe7093364810af1927a2e7b`, but the named exit receipt is not
+yet issued. Core binds the
 candidate `refusion.color.desktop-v1-sdr.v1` descriptor and SHA-256 into every
 program/RenderPlan and the common compositor rejects drift. Presentation
 requests carry a validated output-consumer identity; Preview and Offline render
@@ -1747,16 +1749,13 @@ architecture-check     112 source files, 0 problems, 0 boundary debt
 
 The remaining Phase A closure actions are intentionally narrow and auditable:
 
-1. create the immutable implementation checkpoint from this reviewed source
-   tree; this freezes the candidate bytes without pretending that its proposed
-   product decision has already been accepted;
-2. the product owner must explicitly accept or reject ADR-0010; an agent cannot
+1. the product owner must explicitly accept or reject ADR-0010; an agent cannot
    silently promote either the color profile or pixel thresholds from
    `proposed` to `accepted`;
-3. generate the macOS qualification receipt against the accepted implementation
+2. generate the macOS qualification receipt against the accepted implementation
    commit ID, then add the immutable
    `XPF-PRE-WINDOWS-READY` review record in an evidence-only descendant commit;
-4. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
+3. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
    execution states `not-run` until their external receipts exist.
 
 ### Phase B — Reproducible GitHub handoff

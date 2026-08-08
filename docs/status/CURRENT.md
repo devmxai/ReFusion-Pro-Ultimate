@@ -12,7 +12,7 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: a697c6a873760366bb957590038cbf3416e644d0
+last_green_commit: a23a0d41c67c8fde1fe7093364810af1927a2e7b
 last_checkpoint: CP-G1-0009
 blocking_risks:
   - RISK-002
@@ -39,9 +39,10 @@ offscreen/capture test, bounded/typed DXGI behavior, Windows compile-only versus
 physical bring-up split, calibrated comparison contract, receipt generator and
 mobile automation are source-implemented. ADR-0010 remains `proposed` because
 only its owner may accept the Desktop color/tolerance decision. The immediate
-step is an immutable candidate-implementation checkpoint; after the explicit
-decision, generate the receipt bound to that accepted implementation commit and
-issue `XPF-PRE-WINDOWS-READY`. The final local source tree already
+candidate-implementation checkpoint is
+`a23a0d41c67c8fde1fe7093364810af1927a2e7b`; after the explicit decision,
+generate the receipt bound to that accepted implementation commit and issue
+`XPF-PRE-WINDOWS-READY`. The final local source tree already
 passes macOS Core 30/30, sanitized Core 30/30, Visual 51/51, both iPhoneOS arm64
 build canaries, docs-doctor and architecture-check. This work is qualification
 infrastructure, not G4 production Export.
