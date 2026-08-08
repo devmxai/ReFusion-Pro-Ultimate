@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract_id": "refusion.color.desktop-v1-sdr.v1",
-  "status": "proposed",
+  "status": "accepted",
   "decision": "ADR-0010",
   "canonical_sha256": "50a4acc6cc8d7092b5aa10d4f70bc24aa93aaf4e71413617c5ec297e5547af78",
   "authored_encoding": "srgb-unorm8",

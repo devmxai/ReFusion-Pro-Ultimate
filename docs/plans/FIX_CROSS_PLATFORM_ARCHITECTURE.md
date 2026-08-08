@@ -2,7 +2,7 @@
 id: PLAN-XPLAT-FIX-001
 kind: cross-cutting-remediation-plan
 status: active
-version: 20
+version: 21
 master_plan: MP-001
 policy: ARCH-XPLAT-001
 owner_role: principal-cross-platform-architecture
@@ -1660,7 +1660,7 @@ host produces their receipts.
 
 | Lane | Present state | Still required before this plan can close |
 |---|---|---|
-| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. | Product-owner acceptance of ADR-0010, an immutable implementation checkpoint and its commit-bound Pre-Windows review receipt. |
+| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. ADR-0010 and its paired visual bounds are accepted. | The commit-bound Pre-Windows qualification receipt and review record. |
 | macOS Metal | The application physically renders through the common route; Core 30/30, sanitized Core 30/30 and Visual 51/51 pass; the bounded 10,000-frame Preview receipt and committed 640x360 Desktop-v1 reference capture exist. | Bind the final capture/test/toolchain receipt to the immutable implementation commit and issue the named Pre-Windows readiness review. |
 | Windows D3D12 | The hardware-only device, Skia binding, DXGI presenter, Windows Studio route, bounded/typed fence failures and same-program offscreen capture executable are source-defined without a semantic renderer fork. | On Windows, first generate/review/commit the host-specific Skia transitive lock; then compile/link with MSVC, exercise a named non-WARP device, open/resave the same projects, run the semantic/pixel/performance corpus and retain receipts. |
 | iOS Metal canary | The Core and shared Graphics closures compile and the product presenter fails closed by design. | No Desktop-v1 product runtime is required here; retain the compile canary and honest non-runtime matrix state. |
@@ -1731,7 +1731,7 @@ run may generate the Windows transitive Skia lock, but physical qualification
 fails closed until that lock has been reviewed, committed and checked out from
 a clean source revision. Generated dependency state can therefore never be
 silently attributed to an older commit. The repository
-also contains one P6 capture comparator, proposed calibrated Desktop bounds,
+also contains one P6 capture comparator, accepted calibrated Desktop bounds,
 canonical RFX/command/Registry/font/color/RenderPlan receipts and the iOS/
 Android compile-canary automation.
 
@@ -1747,15 +1747,14 @@ docs-doctor            106 documents, 0 problems
 architecture-check     112 source files, 0 problems, 0 boundary debt
 ```
 
-The remaining Phase A closure actions are intentionally narrow and auditable:
+The product owner accepted ADR-0010 after the physical macOS visual review on
+2026-08-09. The remaining Phase A closure actions are intentionally narrow and
+auditable:
 
-1. the product owner must explicitly accept or reject ADR-0010; an agent cannot
-   silently promote either the color profile or pixel thresholds from
-   `proposed` to `accepted`;
-2. generate the macOS qualification receipt against the accepted implementation
+1. generate the macOS qualification receipt against the accepted implementation
    commit ID, then add the immutable
    `XPF-PRE-WINDOWS-READY` review record in an evidence-only descendant commit;
-3. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
+2. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
    execution states `not-run` until their external receipts exist.
 
 ### Phase B — Reproducible GitHub handoff
@@ -2079,3 +2078,9 @@ proposed calibrated Metal/D3D12 policy and receipt schema are guarded by Repo
 OS. ADR-0010 owner acceptance and final macOS/iPhoneOS gates still precede the
 `XPF-PRE-WINDOWS-READY` evidence checkpoint; MSVC, Windows GPU and Android NDK
 execution remain truthfully `not-run`.
+
+Version 21 records the product owner's physical macOS visual acceptance of
+ADR-0010 and the paired Desktop-v1 pixel bounds. This advances the candidate
+contracts from `proposed` to `accepted` without promoting Windows, Android,
+performance or Media Foundation evidence. The next operation is strictly the
+commit-bound macOS qualification receipt and `XPF-PRE-WINDOWS-READY` review.

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy_id": "refusion.xplat-pixel-tolerance.desktop-v1.v1",
-  "status": "proposed",
+  "status": "accepted",
   "decision": "ADR-0010",
   "reference_profile": "macos-metal-desktop-v1",
   "candidate_profile": "windows-d3d12-desktop-v1",

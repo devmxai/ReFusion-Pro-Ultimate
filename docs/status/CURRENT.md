@@ -37,11 +37,12 @@ now the final evidence edge of `Pre-Windows Source Closure` in
 descriptor, common Preview/Offline GPU route, packaged-font corpus, D3D12
 offscreen/capture test, bounded/typed DXGI behavior, Windows compile-only versus
 physical bring-up split, calibrated comparison contract, receipt generator and
-mobile automation are source-implemented. ADR-0010 remains `proposed` because
-only its owner may accept the Desktop color/tolerance decision. The immediate
+mobile automation are source-implemented. The product owner accepted ADR-0010
+and the paired Desktop-v1 visual bounds after the physical macOS review on
+2026-08-09. The immediate
 candidate-implementation checkpoint is
-`a23a0d41c67c8fde1fe7093364810af1927a2e7b`; after the explicit decision,
-generate the receipt bound to that accepted implementation commit and issue
+`a23a0d41c67c8fde1fe7093364810af1927a2e7b`; generate the receipt bound to the
+accepted implementation commit and issue
 `XPF-PRE-WINDOWS-READY`. The final local source tree already
 passes macOS Core 30/30, sanitized Core 30/30, Visual 51/51, both iPhoneOS arm64
 build canaries, docs-doctor and architecture-check. This work is qualification

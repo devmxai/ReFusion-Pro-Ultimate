@@ -1,7 +1,7 @@
 ---
 id: ADR-0010
 kind: adr
-status: proposed
+status: accepted
 title: Desktop v1 SDR color and compositing contract
 owner_role: principal-cross-platform-architecture
 decision_due: XPF-PRE-WINDOWS-READY
@@ -20,7 +20,7 @@ Desktop v1 needs one explicit bounded SDR profile before macOS reference
 captures can qualify Windows. HDR, wide gamut and linear-light authoring remain
 later versioned profiles rather than implicit changes to existing projects.
 
-# Proposed decision
+# Decision
 
 Adopt `refusion.color.desktop-v1-sdr.v1` with these exact semantics:
 
@@ -65,9 +65,9 @@ the common Skia compositor rejects an unknown or changed contract.
 
 # Consequences
 
-The profile intentionally preserves the current bounded SDR appearance rather
+The product owner accepted this profile after the physical macOS visual review
+on 2026-08-09. The profile intentionally preserves the current bounded SDR appearance rather
 than silently switching existing content to linear-light blending. Professional
-linear/HDR work can be added later as a distinct capability. Until this ADR is
-accepted by the product owner, the implementation is a source-complete
-candidate and cannot close `XPF-PRE-WINDOWS-READY` or advance either Desktop
-profile to color-qualified.
+linear/HDR work can be added later as a distinct capability. This acceptance
+authorizes the commit-bound macOS readiness receipt; it does not constitute
+Windows visual evidence or qualify either Desktop profile by itself.

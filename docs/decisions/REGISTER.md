@@ -12,6 +12,6 @@
 | [ADR-0007](adrs/ADR-0007-portable-font-baseline.md) | adr | proposed | Packaged portable font baseline | text-rendering | G1 | `adrs/ADR-0007-portable-font-baseline.md` |
 | [ADR-0008](adrs/ADR-0008-project-document-seed.md) | adr | proposed | Versioned JSON project-document seed | core-project | G2-entry | `adrs/ADR-0008-project-document-seed.md` |
 | [ADR-0009](adrs/ADR-0009-core-project-clock-authority.md) | adr | accepted | Core-owned canonical Project Clock authority | core-transport | G1-WP03 | `adrs/ADR-0009-core-project-clock-authority.md` |
-| [ADR-0010](adrs/ADR-0010-desktop-v1-sdr-color-contract.md) | adr | proposed | Desktop v1 SDR color and compositing contract | principal-cross-platform-architecture | XPF-PRE-WINDOWS-READY | `adrs/ADR-0010-desktop-v1-sdr-color-contract.md` |
+| [ADR-0010](adrs/ADR-0010-desktop-v1-sdr-color-contract.md) | adr | accepted | Desktop v1 SDR color and compositing contract | principal-cross-platform-architecture | XPF-PRE-WINDOWS-READY | `adrs/ADR-0010-desktop-v1-sdr-color-contract.md` |
 | [RFC-0001](rfcs/RFC-0001-project-rfx-authoring-experiment.md) | rfc | experimenting | Typed single-file Project.rfx authoring experiment | product-owner | G2-entry | `rfcs/RFC-0001-project-rfx-authoring-experiment.md` |
 | [RFC-0002](rfcs/RFC-0002-visual-authoring-hierarchy.md) | rfc | proposed | Unified visual authoring hierarchy and compositing semantics | product-owner | G2-entry | `rfcs/RFC-0002-visual-authoring-hierarchy.md` |
