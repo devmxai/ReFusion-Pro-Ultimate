@@ -12,6 +12,8 @@ import platform
 import shutil
 import subprocess
 import sys
+import urllib.request
+import zipfile
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -204,6 +206,79 @@ def sync_git(name: str, cache: pathlib.Path, fresh: bool) -> int:
     run(["git", "fetch", "--depth", "1", "origin", spec["revision"]], cwd=destination)
     run(["git", "checkout", "--detach", spec["revision"]], cwd=destination)
     return verify_git(name, destination)
+
+
+def verify_font_archive(name: str, cache: pathlib.Path) -> int:
+    spec = component(name)
+    if spec.get("kind") != "font-archive":
+        raise RuntimeError(f"{name} is not a font archive")
+    destination = controlled_destination(name, cache.resolve())
+    actual_members: dict[str, dict[str, str]] = {}
+    ok = destination.is_dir()
+    for relative_name, member in spec["members"].items():
+        path = destination / relative_name
+        if path.parent != destination or pathlib.PurePosixPath(relative_name).name != relative_name:
+            raise RuntimeError(f"unsafe admitted font member name: {relative_name}")
+        actual_sha = sha256_file(path) if path.is_file() else "MISSING"
+        actual_members[relative_name] = {
+            "sha256": actual_sha,
+            "expected_sha256": member["sha256"],
+        }
+        ok = ok and actual_sha == member["sha256"]
+    print(json.dumps({
+        "component": name,
+        "source": str(destination),
+        "official_origin": spec["official_origin"],
+        "release_tag": spec["release_tag"],
+        "members": actual_members,
+        "verified": ok,
+    }, indent=2))
+    return 0 if ok else 2
+
+
+def sync_font_archive(name: str, cache: pathlib.Path, fresh: bool) -> int:
+    spec = component(name)
+    if spec.get("kind") != "font-archive":
+        raise RuntimeError(f"{name} cannot be synced as a font archive")
+    cache = cache.resolve()
+    cache.mkdir(parents=True, exist_ok=True)
+    destination = controlled_destination(name, cache)
+    if fresh and destination.exists():
+        shutil.rmtree(destination)
+    if destination.exists():
+        return verify_font_archive(name, cache)
+
+    temporary = cache / f".{name}.download"
+    if temporary.exists():
+        temporary.unlink()
+    try:
+        with urllib.request.urlopen(spec["archive_url"]) as response, temporary.open("wb") as output:
+            shutil.copyfileobj(response, output)
+        if sha256_file(temporary) != spec["archive_sha256"]:
+            raise RuntimeError(f"downloaded archive digest mismatch for {name}")
+        destination.mkdir()
+        with zipfile.ZipFile(temporary) as archive:
+            names = set(archive.namelist())
+            for relative_name, member in spec["members"].items():
+                archive_path = member["archive_path"]
+                if archive_path not in names:
+                    raise RuntimeError(
+                        f"admitted member is missing from {name}: {archive_path}"
+                    )
+                payload = archive.read(archive_path)
+                if hashlib.sha256(payload).hexdigest() != member["sha256"]:
+                    raise RuntimeError(
+                        f"admitted member digest mismatch for {name}: {archive_path}"
+                    )
+                (destination / relative_name).write_bytes(payload)
+    except Exception:
+        if destination.exists():
+            shutil.rmtree(destination)
+        raise
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return verify_font_archive(name, cache)
 
 
 def git_dependency_inventory(root: pathlib.Path) -> list[dict[str, str]]:
@@ -479,6 +554,11 @@ def main() -> int:
     sync = sub.add_parser("sync")
     sync.add_argument("component")
     sync.add_argument("--fresh", action="store_true")
+    sync_fonts = sub.add_parser("sync-font")
+    sync_fonts.add_argument("component")
+    sync_fonts.add_argument("--fresh", action="store_true")
+    verify_fonts = sub.add_parser("verify-font")
+    verify_fonts.add_argument("component")
     sub.add_parser("hydrate-skia")
     sub.add_parser("verify-skia-materialization")
     sub.add_parser("lock-skia-materialization")
@@ -492,6 +572,10 @@ def main() -> int:
             return verify_git(args.component, args.source.resolve())
         if args.command == "sync":
             return sync_git(args.component, SOURCE_CACHE, args.fresh)
+        if args.command == "sync-font":
+            return sync_font_archive(args.component, SOURCE_CACHE, args.fresh)
+        if args.command == "verify-font":
+            return verify_font_archive(args.component, SOURCE_CACHE)
         if args.command == "hydrate-skia":
             return hydrate_skia(SOURCE_CACHE)
         if args.command == "verify-skia-materialization":

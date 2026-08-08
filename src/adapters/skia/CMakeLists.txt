@@ -1,41 +1,72 @@
 include(Skia)
 refusion_import_skia()
 
-set(refusion_skia_adapter_sources SkiaRuntime.cpp)
 if(APPLE)
-  list(APPEND refusion_skia_adapter_sources SkiaGpuContextsMetal.mm)
+  set(refusion_skia_system_font_source
+    system_fonts/SkiaSystemFontProviderApple.mm)
 elseif(WIN32)
-  message(FATAL_ERROR
-    "Windows Skia GPU contexts are not implemented; windows-graphics is intentionally fail-closed")
+  set(refusion_skia_system_font_source
+    system_fonts/SkiaSystemFontProviderWindows.cpp)
+elseif(ANDROID)
+  set(refusion_skia_system_font_source
+    system_fonts/SkiaSystemFontProviderAndroid.cpp)
+else()
+  set(refusion_skia_system_font_source
+    system_fonts/SkiaSystemFontProviderUnsupported.cpp)
 endif()
 
-add_library(refusion_skia_adapter STATIC ${refusion_skia_adapter_sources})
+add_library(refusion_skia_system_fonts STATIC
+  ${refusion_skia_system_font_source})
+add_library(ReFusion::SkiaSystemFonts ALIAS refusion_skia_system_fonts)
+target_include_directories(refusion_skia_system_fonts
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(refusion_skia_system_fonts PRIVATE Skia::Skia)
+target_compile_features(refusion_skia_system_fonts PUBLIC cxx_std_20)
+refusion_enable_warnings(refusion_skia_system_fonts)
 
-add_library(ReFusion::SkiaAdapter ALIAS refusion_skia_adapter)
+set(refusion_skia_common_sources
+  SkiaRuntime.cpp
+  SkiaGpuComposition.cpp
+  SkiaSceneCompositor.cpp
+  SkiaTextLayout.cpp
+  SkiaVisualProgramExecutor.cpp
+)
 
-target_include_directories(refusion_skia_adapter
+add_library(refusion_skia_common STATIC ${refusion_skia_common_sources})
+add_library(ReFusion::SkiaCommon ALIAS refusion_skia_common)
+
+target_include_directories(refusion_skia_common
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-target_link_libraries(refusion_skia_adapter
+target_link_libraries(refusion_skia_common
   PUBLIC
     ReFusion::Core
     ReFusion::RuntimeGpu
     ReFusion::RuntimeMedia
     ReFusion::RuntimePresentation
-  PRIVATE Skia::Skia
+    ReFusion::RuntimeRender
+  PRIVATE Skia::Skia ReFusion::SkiaSystemFonts
 )
 
-if(APPLE AND TARGET ReFusion::PlatformMedia)
-  target_link_libraries(refusion_skia_adapter PRIVATE ReFusion::PlatformMedia)
-  target_compile_definitions(refusion_skia_adapter PRIVATE
-    REFUSION_SKIA_APPLE_MEDIA=1)
-endif()
+target_compile_features(refusion_skia_common PUBLIC cxx_std_20)
+refusion_enable_warnings(refusion_skia_common)
 
-target_compile_features(refusion_skia_adapter PUBLIC cxx_std_20)
+add_library(refusion_skia_adapter INTERFACE)
+add_library(ReFusion::SkiaAdapter ALIAS refusion_skia_adapter)
+target_link_libraries(refusion_skia_adapter INTERFACE ReFusion::SkiaCommon)
+
 if(APPLE)
-  target_compile_options(refusion_skia_adapter PRIVATE
-    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+  add_subdirectory(backends/metal)
+  target_link_libraries(refusion_skia_adapter
+    INTERFACE ReFusion::SkiaMetalBackend)
+elseif(WIN32)
+  add_subdirectory(backends/d3d12)
+  target_link_libraries(refusion_skia_adapter
+    INTERFACE ReFusion::SkiaD3D12Backend)
+elseif(ANDROID)
+  add_subdirectory(backends/vulkan)
+  target_link_libraries(refusion_skia_adapter
+    INTERFACE ReFusion::SkiaVulkanContractCanary)
 endif()
-refusion_enable_warnings(refusion_skia_adapter)

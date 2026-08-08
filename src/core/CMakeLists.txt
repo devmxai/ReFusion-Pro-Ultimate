@@ -1,7 +1,18 @@
 add_library(refusion_core STATIC
+  AgentIntrospection.cpp
+  CanonicalCoordinates.cpp
+  CanonicalText.cpp
+  ContentDigest.cpp
+  ProjectCreation.cpp
   ProjectDocument.cpp
+  ProjectRfx.cpp
   ProjectAuthority.cpp
   ProjectClock.cpp
+  SemanticAuthoring.cpp
+  TextLayout.cpp
+  VisualMeasurement.cpp
+  VisualPropertyRegistry.cpp
+  VisualContributionRegistry.cpp
 )
 
 add_library(ReFusion::Core ALIAS refusion_core)

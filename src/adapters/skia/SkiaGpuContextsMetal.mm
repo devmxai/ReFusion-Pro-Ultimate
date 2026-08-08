@@ -1,5 +1,8 @@
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 
+#include "SkiaTextLayoutInternal.hpp"
+#include "SkiaVisualProgramExecutor.hpp"
+
 #if defined(REFUSION_SKIA_APPLE_MEDIA)
 #include "refusion/platform/apple/AppleMediaSurface.hpp"
 #endif
@@ -8,13 +11,8 @@
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
-#include "include/core/SkFont.h"
-#include "include/core/SkFontMgr.h"
-#include "include/core/SkFontStyle.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkImageInfo.h"
-#include "include/core/SkPaint.h"
-#include "include/core/SkRRect.h"
 #include "include/core/SkSamplingOptions.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkYUVAInfo.h"
@@ -26,19 +24,11 @@
 #include "include/gpu/ganesh/mtl/GrMtlBackendContext.h"
 #include "include/gpu/ganesh/mtl/GrMtlBackendSurface.h"
 #include "include/gpu/ganesh/mtl/GrMtlDirectContext.h"
-#include "include/gpu/graphite/Context.h"
-#include "include/gpu/graphite/ContextOptions.h"
-#include "include/gpu/graphite/mtl/MtlBackendContext.h"
-#include "include/ports/SkFontMgr_mac_ct.h"
-#include "modules/skshaper/include/SkShaper.h"
-#include "modules/skshaper/include/SkShaper_harfbuzz.h"
-#include "modules/skunicode/include/SkUnicode_icu.h"
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <cstring>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -55,97 +45,24 @@ struct SkiaGpuContexts::Implementation final {
     sk_sp<SkImage> image;
   };
 
-  runtime::gpu::DeviceLease lease;
+  runtime::gpu::BackendDeviceLease lease;
   sk_sp<GrDirectContext> ganesh;
-  std::unique_ptr<skgpu::graphite::Context> graphite;
-  sk_sp<SkFontMgr> font_manager;
-  std::unique_ptr<SkShaper> shaper;
-  core::CompositionSnapshot composition;
+  std::unique_ptr<SkiaTextLayoutEngine> text_layout_engine;
   std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue;
   std::vector<DecodedVideoFrame> decoded_video_frames;
+  std::shared_ptr<runtime::gpu::GpuObservabilityService> observability;
+  std::unique_ptr<runtime::gpu::GpuObservedResourceLease> observed_context;
   std::unique_ptr<std::atomic_uint64_t> selected_video_source_frame_index{
       std::make_unique<std::atomic_uint64_t>(std::numeric_limits<std::uint64_t>::max())};
 };
 
 namespace {
 
-using runtime::presentation::FixtureFrame;
+using runtime::presentation::PresentationFrameRequest;
 using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
-using runtime::presentation::NativeFrameTarget;
+using runtime::presentation::BackendFrameTargetLease;
 using runtime::presentation::PixelFormat;
-
-void draw_shaped_line(SkCanvas &canvas, SkShaper &shaper, const char *text, const SkFont &font,
-                      const bool left_to_right, const SkPoint origin, const float width,
-                      const SkPaint &paint) {
-  SkTextBlobBuilderRunHandler handler(text, origin);
-  shaper.shape(text, std::strlen(text), font, left_to_right, width, &handler);
-  auto blob = handler.makeBlob();
-  if (blob) {
-    canvas.drawTextBlob(blob, 0.0F, 0.0F, paint);
-  }
-}
-
-[[nodiscard]] SkColor to_sk_color(const core::ColorRgba8 &color, const double opacity) {
-  const auto alpha =
-      static_cast<std::uint8_t>(std::clamp(static_cast<double>(color.alpha) * opacity, 0.0, 255.0));
-  return SkColorSetARGB(alpha, color.red, color.green, color.blue);
-}
-
-void draw_project(SkCanvas &canvas, SkShaper &shaper, SkFontMgr &font_manager,
-                  const core::CompositionSnapshot &composition, const FixtureFrame &frame,
-                  const float target_width, const float target_height) {
-  const float scale_x = target_width / static_cast<float>(composition.canvas.width_pixels);
-  const float scale_y = target_height / static_cast<float>(composition.canvas.height_pixels);
-  canvas.save();
-  canvas.scale(scale_x, scale_y);
-
-  for (const auto &layer : composition.layers) {
-    if (!layer.active_range.contains(frame.presentation_time_ns)) {
-      continue;
-    }
-    const double position_x = core::evaluate_animated_property(
-        layer, core::AnimatedProperty::position_x, frame.presentation_time_ns);
-    const double position_y = core::evaluate_animated_property(
-        layer, core::AnimatedProperty::position_y, frame.presentation_time_ns);
-    const double layer_scale_x = core::evaluate_animated_property(
-        layer, core::AnimatedProperty::scale_x, frame.presentation_time_ns);
-    const double layer_scale_y = core::evaluate_animated_property(
-        layer, core::AnimatedProperty::scale_y, frame.presentation_time_ns);
-    const double rotation = core::evaluate_animated_property(
-        layer, core::AnimatedProperty::rotation_degrees, frame.presentation_time_ns);
-    const double opacity = core::evaluate_animated_property(layer, core::AnimatedProperty::opacity,
-                                                            frame.presentation_time_ns);
-
-    canvas.save();
-    canvas.translate(static_cast<float>(position_x), static_cast<float>(position_y));
-    canvas.rotate(static_cast<float>(rotation));
-    canvas.scale(static_cast<float>(layer_scale_x), static_cast<float>(layer_scale_y));
-
-    SkPaint paint;
-    paint.setAntiAlias(true);
-    if (const auto *shape = std::get_if<core::ShapeLayerContent>(&layer.content)) {
-      paint.setColor(to_sk_color(shape->fill, opacity));
-      const auto rect = SkRect::MakeXYWH(
-          static_cast<float>(-shape->width * 0.5), static_cast<float>(-shape->height * 0.5),
-          static_cast<float>(shape->width), static_cast<float>(shape->height));
-      canvas.drawRRect(SkRRect::MakeRectXY(rect, static_cast<float>(shape->corner_radius),
-                                           static_cast<float>(shape->corner_radius)),
-                       paint);
-    } else if (const auto *text = std::get_if<core::TextLayerContent>(&layer.content)) {
-      paint.setColor(to_sk_color(text->fill, opacity));
-      auto typeface =
-          font_manager.matchFamilyStyle(text->font_family.c_str(), SkFontStyle::Normal());
-      SkFont font(typeface, static_cast<float>(text->font_size));
-      font.setEdging(SkFont::Edging::kAntiAlias);
-      draw_shaped_line(canvas, shaper, text->text.c_str(), font, text->left_to_right,
-                       SkPoint::Make(static_cast<float>(-text->layout_width * 0.5), 0.0F),
-                       static_cast<float>(text->layout_width), paint);
-    }
-    canvas.restore();
-  }
-  canvas.restore();
-}
 
 void draw_decoded_video_fixture(SkCanvas &canvas, const SkImage &image, const float target_width,
                                 const float target_height) {
@@ -222,20 +139,31 @@ SkiaGpuContexts::SkiaGpuContexts(std::unique_ptr<Implementation> implementation)
 SkiaGpuContexts::~SkiaGpuContexts() = default;
 
 std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
-    runtime::gpu::DeviceLease lease, core::CompositionSnapshot composition,
-    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue) {
+    runtime::gpu::BackendDeviceLease lease,
+    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue,
+    std::shared_ptr<runtime::gpu::GpuObservabilityService> observability) {
+  return create(std::move(lease), std::move(decoded_video_queue),
+                std::move(observability),
+                std::make_unique<SkiaTextLayoutEngine>());
+}
+
+std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
+    runtime::gpu::BackendDeviceLease lease,
+    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue,
+    std::shared_ptr<runtime::gpu::GpuObservabilityService> observability,
+    std::unique_ptr<SkiaTextLayoutEngine> text_layout_engine) {
   if (!lease.valid() || lease.identity().backend != runtime::gpu::Backend::metal) {
     throw std::invalid_argument("Skia Metal contexts require a valid Metal device lease");
   }
-  const auto validation = core::validate_composition(composition);
-  if (!validation.valid) {
-    throw std::invalid_argument(validation.code + ": " + validation.message);
+  if (observability && !observability->observes(lease.identity())) {
+    throw std::invalid_argument(
+        "GPU observability and Skia must share one device identity");
   }
-
-  const auto handles = lease.native_handles();
-  id<MTLDevice> device = (__bridge id<MTLDevice>)(reinterpret_cast<void *>(handles.device));
+  id<MTLDevice> device = (__bridge id<MTLDevice>)(
+      const_cast<void *>(lease.backend_private_device()));
   id<MTLCommandQueue> command_queue =
-      (__bridge id<MTLCommandQueue>)(reinterpret_cast<void *>(handles.command_queue));
+      (__bridge id<MTLCommandQueue>)(const_cast<void *>(
+          lease.backend_private_submission_queue()));
 
   GrMtlBackendContext ganesh_backend;
   ganesh_backend.fDevice.retain((__bridge GrMTLHandle)device);
@@ -245,20 +173,17 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
     throw std::runtime_error("Skia Ganesh rejected the engine-owned Metal device");
   }
 
-  skgpu::graphite::MtlBackendContext graphite_backend;
-  graphite_backend.fDevice.retain((__bridge CFTypeRef)device);
-  graphite_backend.fQueue.retain((__bridge CFTypeRef)command_queue);
-  skgpu::graphite::ContextOptions graphite_options;
-  auto graphite = skgpu::graphite::ContextFactory::MakeMetal(graphite_backend, graphite_options);
-  if (!graphite) {
-    throw std::runtime_error("Skia Graphite rejected the engine-owned Metal device");
+  if (!text_layout_engine) {
+    text_layout_engine = std::make_unique<SkiaTextLayoutEngine>();
   }
 
-  auto font_manager = SkFontMgr_New_CoreText(nullptr);
-  auto unicode = SkUnicodes::ICU::Make();
-  auto shaper = SkShapers::HB::ShaperDrivenWrapper(unicode, font_manager);
-  if (!font_manager || !unicode || !shaper) {
-    throw std::runtime_error("Skia failed to create the portable text shaping stack");
+  std::unique_ptr<runtime::gpu::GpuObservedResourceLease> observed_context;
+  if (observability) {
+    observed_context =
+        std::make_unique<runtime::gpu::GpuObservedResourceLease>(
+            observability, runtime::gpu::GpuSubsystem::skia,
+            runtime::gpu::GpuResourceKind::render_context,
+            lease.identity().generation, 0);
   }
 
   std::vector<Implementation::DecodedVideoFrame> decoded_video_frames;
@@ -288,12 +213,11 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
       new SkiaGpuContexts(std::make_unique<Implementation>(Implementation{
           .lease = std::move(lease),
           .ganesh = std::move(ganesh),
-          .graphite = std::move(graphite),
-          .font_manager = std::move(font_manager),
-          .shaper = std::move(shaper),
-          .composition = std::move(composition),
+          .text_layout_engine = std::move(text_layout_engine),
           .decoded_video_queue = std::move(decoded_video_queue),
           .decoded_video_frames = std::move(decoded_video_frames),
+          .observability = std::move(observability),
+          .observed_context = std::move(observed_context),
       })));
 }
 
@@ -302,7 +226,17 @@ bool SkiaGpuContexts::ganesh_ready() const noexcept {
 }
 
 bool SkiaGpuContexts::graphite_ready() const noexcept {
-  return implementation_ && static_cast<bool>(implementation_->graphite);
+  // Graphite is deliberately not created in the product rendering path.
+  // A future Graphite experiment must own an independent probe target and
+  // evidence; the qualified preview path has exactly one Ganesh context.
+  return false;
+}
+
+std::string SkiaGpuContexts::text_layout_engine_digest() const {
+  if (!implementation_ || !implementation_->text_layout_engine) {
+    return {};
+  }
+  return implementation_->text_layout_engine->layout_engine_digest();
 }
 
 std::optional<std::uint64_t> SkiaGpuContexts::selected_video_source_frame_index() const noexcept {
@@ -321,21 +255,24 @@ const runtime::gpu::DeviceIdentity &SkiaGpuContexts::device_identity() const noe
 }
 
 runtime::presentation::FrameResult SkiaGpuContexts::render(
-    const runtime::presentation::NativeFrameTarget &target,
-    const runtime::presentation::FixtureFrame &frame) {
-  if (!implementation_ || !target.valid() || target.backend != runtime::gpu::Backend::metal ||
+    const runtime::presentation::BackendFrameTargetLease &target,
+    const runtime::presentation::PresentationFrameRequest &frame) {
+  if (!implementation_ || !target.valid() ||
+      target.device.backend != runtime::gpu::Backend::metal ||
       target.pixel_format != PixelFormat::bgra8_unorm ||
-      target.device_generation != implementation_->lease.identity().generation) {
+      target.device != implementation_->lease.identity() || !frame.valid() ||
+      frame.device != target.device) {
     return FrameResult{
         .status = FrameStatus::rejected,
         .diagnostic = "Skia rejected an incompatible viewport render target",
     };
   }
 
-  id<MTLTexture> texture = (__bridge id<MTLTexture>)(reinterpret_cast<void *>(target.texture));
-  const auto handles = implementation_->lease.native_handles();
+  id<MTLTexture> texture = (__bridge id<MTLTexture>)(
+      const_cast<void *>(target.backend_private_target()));
   id<MTLDevice> expected_device =
-      (__bridge id<MTLDevice>)(reinterpret_cast<void *>(handles.device));
+      (__bridge id<MTLDevice>)(const_cast<void *>(
+          implementation_->lease.backend_private_device()));
   if (texture == nil || texture.device != expected_device ||
       texture.pixelFormat != MTLPixelFormatBGRA8Unorm) {
     return FrameResult{
@@ -359,12 +296,20 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   }
 
   auto &canvas = *surface->getCanvas();
-  canvas.clear(SK_ColorBLACK);
-  draw_project(canvas, *implementation_->shaper, *implementation_->font_manager,
-               implementation_->composition, frame, static_cast<float>(target.width_pixels),
-               static_cast<float>(target.height_pixels));
+  try {
+    execute_visual_render_program(
+        canvas, *implementation_->text_layout_engine, *frame.render_program,
+        frame.project_time_ns, frame.transport_epoch_id,
+        static_cast<float>(target.width_pixels),
+        static_cast<float>(target.height_pixels));
+  } catch (const std::exception &error) {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic = error.what(),
+    };
+  }
   if (implementation_->decoded_video_queue) {
-    if (frame.presentation_time_ns >
+    if (frame.project_time_ns >
         static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
       return FrameResult{
           .status = FrameStatus::rejected,
@@ -372,7 +317,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
       };
     }
     const auto selected_surface = implementation_->decoded_video_queue->select_at({
-        .value = static_cast<std::int64_t>(frame.presentation_time_ns),
+        .value = static_cast<std::int64_t>(frame.project_time_ns),
         .timescale = 1'000'000'000,
     });
     if (selected_surface) {
@@ -394,6 +339,18 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     } else {
       implementation_->selected_video_source_frame_index->store(
           std::numeric_limits<std::uint64_t>::max());
+    }
+  }
+  if (implementation_->observability) {
+    const auto observation = implementation_->observability->record_submission(
+        runtime::gpu::GpuSubsystem::skia,
+        implementation_->observability->issue_object_id(),
+        implementation_->lease.identity().generation);
+    if (!observation.accepted) {
+      return FrameResult{
+          .status = FrameStatus::rejected,
+          .diagnostic = observation.code + ": " + observation.diagnostic,
+      };
     }
   }
   implementation_->ganesh->flushAndSubmit(surface.get(), GrSyncCpu::kNo);

@@ -20,6 +20,16 @@
       "official_origin": "https://github.com/ninja-build/ninja",
       "status": "foundation-required"
     },
+    "android_ndk": {
+      "kind": "sdk",
+      "version": "28.2.13676358",
+      "api_level": 28,
+      "abi": "arm64-v8a",
+      "official_origin": "https://developer.android.com/ndk/downloads",
+      "license": "Android SDK/NDK terms plus bundled third-party notices",
+      "status": "mobile-contract-canary-pinned-runtime-not-qualified",
+      "auto_sync": false
+    },
     "qt": {
       "kind": "sdk",
       "version": "6.11.1",
@@ -44,6 +54,48 @@
       "license": "Chromium depot_tools licenses",
       "status": "official-pinned-and-hydrated-inside-refusion",
       "profile": "graphics-spike"
+    },
+    "noto_sans_latin_baseline": {
+      "kind": "font-archive",
+      "family": "Noto Sans",
+      "version": "2.015",
+      "official_origin": "https://github.com/notofonts/latin-greek-cyrillic",
+      "release_tag": "NotoSans-v2.015",
+      "archive_url": "https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip",
+      "archive_sha256": "0c34df072a3fa7efbb7cbf34950e1f971a4447cffe365d3a359e2d4089b958f5",
+      "license": "OFL-1.1",
+      "status": "official-pinned-baseline",
+      "members": {
+        "font.ttf": {
+          "archive_path": "NotoSans/full/ttf/NotoSans-Regular.ttf",
+          "sha256": "f5f552c8c5edb61fe6efb824baf4d4de47b1a8689ab4925ff43f7bd6a4ebece5"
+        },
+        "OFL.txt": {
+          "archive_path": "OFL.txt",
+          "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
+        }
+      }
+    },
+    "noto_sans_arabic_baseline": {
+      "kind": "font-archive",
+      "family": "Noto Sans Arabic",
+      "version": "2.013",
+      "official_origin": "https://github.com/notofonts/arabic",
+      "release_tag": "NotoSansArabic-v2.013",
+      "archive_url": "https://github.com/notofonts/arabic/releases/download/NotoSansArabic-v2.013/NotoSansArabic-v2.013.zip",
+      "archive_sha256": "1301aceaea84c501cf2e6dcfb3182e2328c8eae5725817fcb239672bda7154f1",
+      "license": "OFL-1.1",
+      "status": "official-pinned-baseline",
+      "members": {
+        "font.ttf": {
+          "archive_path": "NotoSansArabic/full/ttf/NotoSansArabic-Regular.ttf",
+          "sha256": "7ed3fe069312aceac454f17cf613a30f95271d6ed7ce58005ed4d016bd3823d7"
+        },
+        "OFL.txt": {
+          "archive_path": "OFL.txt",
+          "sha256": "a7a5a25eb188bf1cd96982030d53e23c33485c69b1044a562254226857ee13af"
+        }
+      }
     }
   }
 }

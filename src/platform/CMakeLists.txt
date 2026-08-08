@@ -1,8 +1,12 @@
 if(REFUSION_BUILD_PLATFORM_GPU)
-  if(APPLE AND NOT IOS)
+  if(IOS)
+    add_subdirectory(apple/metal_ios)
+  elseif(APPLE)
     add_subdirectory(apple/metal)
   elseif(WIN32)
     add_subdirectory(windows/d3d12)
+  elseif(ANDROID)
+    add_subdirectory(android/vulkan)
   else()
     message(FATAL_ERROR
       "REFUSION_BUILD_PLATFORM_GPU is enabled, but this platform has no admitted GPU implementation")

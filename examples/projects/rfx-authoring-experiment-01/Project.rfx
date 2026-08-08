@@ -1,0 +1,175 @@
+rfx 2;
+
+project id("prj_rfx_authoring_exp_01") revision(1)
+  name("ReFusion RFX Authoring Experiment 01");
+
+composition id("cmp_reels_main") name("Main Reels Composition") {
+  canvas px(1080, 1920);
+  frame_rate rational(30, 1);
+  duration frames(900);
+
+  layer shape id("lyr_background") name("Background") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 960);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content shape {
+      size px(1080, 1920);
+      corner_radius px(0);
+      fill rgba8("#05060AFF");
+    }
+  }
+
+  layer shape id("lyr_panel") name("Main Card") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 960);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content shape {
+      size px(900, 1120);
+      corner_radius px(52);
+      fill rgba8("#11141DFF");
+    }
+  }
+
+  layer shape id("lyr_motion_shape") name("Animated Shape") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(230, 820);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content shape {
+      size px(210, 210);
+      corner_radius px(48);
+      fill rgba8("#7C5CFFFF");
+    }
+    animate transform.position.x {
+      key frame(0) value(230);
+      key frame(450) value(850);
+      key frame(900) value(230);
+    }
+    animate transform.rotation {
+      key frame(0) value(0);
+      key frame(450) value(180);
+      key frame(900) value(360);
+    }
+  }
+
+  layer text id("lyr_title") name("Title") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 1060);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content text {
+      value("ReFusion");
+      font_family("Arial");
+      font_size px(92);
+      layout_width px(760);
+      direction(ltr);
+      fill rgba8("#F2F4F8FF");
+    }
+  }
+
+  layer text id("lyr_arabic_subtitle") name("Arabic Subtitle") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 1180);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content text {
+      value("مشروع حقيقي مكتوب بصيغة Project.rfx");
+      font_family("Arial");
+      font_size px(52);
+      layout_width px(760);
+      direction(rtl);
+      fill rgba8("#9FA8BEFF");
+    }
+  }
+
+  layer shape id("lyr_progress_rail") name("Progress Rail") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 1390);
+      anchor canvas_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content shape {
+      size px(800, 12);
+      corner_radius px(6);
+      fill rgba8("#2A3040FF");
+    }
+  }
+
+  layer shape id("lyr_progress") name("30 Second Progress") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(140, 1390);
+      anchor canvas_px(0, 0);
+      scale ratio(0.001, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    content shape {
+      size px(800, 12);
+      corner_radius px(6);
+      fill rgba8("#48D3FFFF");
+    }
+    animate transform.position.x {
+      key frame(0) value(140);
+      key frame(900) value(540);
+    }
+    animate transform.scale.x {
+      key frame(0) value(0.001);
+      key frame(900) value(1);
+    }
+  }
+
+  group id("grp_hero") name("Hero Motion Group") {
+    range frames(0, 900);
+    transform {
+      position canvas_px(540, 960);
+      anchor canvas_px(540, 960);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    children {
+      layer("lyr_panel");
+      layer("lyr_motion_shape");
+      layer("lyr_title");
+      layer("lyr_arabic_subtitle");
+      layer("lyr_progress_rail");
+      layer("lyr_progress");
+    }
+    animate transform.rotation {
+      key frame(0) value(-1.5);
+      key frame(450) value(1.5);
+      key frame(900) value(-1.5);
+    }
+  }
+
+  root {
+    layer("lyr_background");
+    group("grp_hero");
+  }
+}

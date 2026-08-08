@@ -4,7 +4,7 @@ kind: stage-plan
 status: active-macos-runtime-only
 master_plan: MP-001
 owner_role: gpu-release-lead
-last_verified: 2026-08-07
+last_verified: 2026-08-08
 ---
 
 # G1 — Development walking skeleton and kill-risk proofs

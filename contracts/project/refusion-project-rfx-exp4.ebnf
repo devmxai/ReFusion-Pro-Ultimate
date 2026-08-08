@@ -1,0 +1,119 @@
+document          = "rfx", "4", ";", registry_decl,
+                    project_decl, composition_decl, end_of_file ;
+registry_decl     = "registry", "digest", call_string, ";" ;
+
+project_decl      = "project", "id", call_string,
+                    "revision", call_integer,
+                    "name", call_string, ";" ;
+composition_decl  = "composition", "id", call_string, "name", call_string, "{",
+                    canvas_decl, frame_rate_decl, duration_decl,
+                    { layer_decl | group_decl }, root_decl, "}" ;
+canvas_decl       = "canvas", "px", call_integer_pair, ";" ;
+frame_rate_decl   = "frame_rate", "rational", call_integer_pair, ";" ;
+duration_decl     = "duration", "frames", call_integer, ";" ;
+
+layer_decl        = "layer", ( "shape" | "text" ), "id", call_string,
+                    "name", call_string, "{", range_decl, transform_decl,
+                    [ blend_decl ], content_decl, { mask_decl },
+                    { effect_decl }, { animation_decl }, "}" ;
+group_decl        = "group", "id", call_string, "name", call_string, "{",
+                    range_decl, transform_decl, children_decl,
+                    { animation_decl }, "}" ;
+children_decl     = "children", "{", visual_ref, { visual_ref }, "}" ;
+root_decl         = "root", "{", { visual_ref }, "}" ;
+visual_ref        = ( "layer" | "group" ), call_string, ";" ;
+
+range_decl        = "range", "frames", call_integer_pair, ";" ;
+transform_decl    = "transform", "{",
+                    "position", "parent_px", call_number_pair, ";",
+                    "anchor", "local_px", call_number_pair, ";",
+                    "scale", "ratio", call_number_pair, ";",
+                    "rotation", "degrees", call_number, ";",
+                    "opacity", "ratio", call_number, ";", "}" ;
+blend_decl        = "blend", "(",
+                    ( "normal" | "multiply" | "screen" | "overlay" ),
+                    ")", ";" ;
+
+content_decl      = shape_content | text_content ;
+shape_content     = "content", "shape", "{",
+                    "size", "px", call_number_pair, ";",
+                    "corner_radius", "px", call_number, ";",
+                    fill_decl, [ stroke_decl ], "}" ;
+fill_decl         = "fill", (
+                      "rgba8", call_string |
+                      "linear_gradient", "{",
+                        "start", "local_px", call_number_pair, ";",
+                        "end", "local_px", call_number_pair, ";",
+                        gradient_stop, gradient_stop, { gradient_stop }, "}" |
+                      "radial_gradient", "{",
+                        "center", "local_px", call_number_pair, ";",
+                        "radius", "px", call_number, ";",
+                        gradient_stop, gradient_stop, { gradient_stop }, "}"
+                    ), ";" ;
+gradient_stop     = "stop", "ratio", call_number,
+                    "color", "rgba8", call_string, ";" ;
+stroke_decl       = "stroke", "width", "px", call_number,
+                    "color", "rgba8", call_string, ";" ;
+
+text_content      = "content", "text", "{",
+                    "value", call_string, ";", font_decl,
+                    "font_size", "local_px", call_number, ";",
+                    "box", "local_px", call_number_pair,
+                      "padding", "local_px", call_number_quad, ";",
+                    "direction", "(", ( "ltr" | "rtl" ), ")", ";",
+                    "horizontal_align", "(",
+                      ( "start" | "center" | "end" | "left" | "right" ),
+                      ")", ";",
+                    "vertical_align", "(",
+                      ( "top" | "center" | "bottom" ), ")", ";",
+                    "wrap", "(", ( "no_wrap" | "word" ), ")", ";",
+                    "overflow", "(", ( "clip" | "visible" ), ")", ";",
+                    "line_height", "ratio", call_number, ";",
+                    "letter_spacing", "local_px", call_number, ";",
+                    "fill", "rgba8", call_string, ";", "}" ;
+font_decl         = "font", (
+                      "system_family", call_string |
+                      "packaged_asset", "id", call_string,
+                        "family", call_string, "digest", call_string
+                    ), ";" ;
+
+mask_decl         = "mask", "rounded_rect", "id", call_string,
+                    "enabled", call_boolean, "inverted", call_boolean, "{",
+                    "position", "local_px", call_number_pair, ";",
+                    "size", "px", call_number_pair, ";",
+                    "corner_radius", "px", call_number, ";", "}" ;
+effect_decl       = blur_effect | shadow_effect | glow_effect ;
+blur_effect       = "effect", "gaussian_blur", "id", call_string,
+                    "enabled", call_boolean, "{",
+                    "sigma", "px", call_number_pair, ";", "}" ;
+shadow_effect     = "effect", "drop_shadow", "id", call_string,
+                    "enabled", call_boolean, "{",
+                    "offset", "px", call_number_pair, ";",
+                    "sigma", "px", call_number_pair, ";",
+                    "color", "rgba8", call_string, ";", "}" ;
+glow_effect       = "effect", "glow", "id", call_string,
+                    "enabled", call_boolean, "{",
+                    "sigma", "px", call_number, ";",
+                    "color", "rgba8", call_string, ";", "}" ;
+
+animation_decl    = "animate", property_path, "{",
+                    key_decl, { key_decl }, "}" ;
+key_decl          = "key", "frame", call_integer,
+                    "value", call_number, ";" ;
+property_path     = "transform.position.x" | "transform.position.y" |
+                    "transform.scale.x" | "transform.scale.y" |
+                    "transform.rotation" | "transform.opacity" ;
+
+call_boolean      = "(", ( "true" | "false" ), ")" ;
+call_string       = "(", string, ")" ;
+call_integer      = "(", integer, ")" ;
+call_number       = "(", number, ")" ;
+call_integer_pair = "(", integer, ",", integer, ")" ;
+call_number_pair  = "(", number, ",", number, ")" ;
+call_number_quad  = "(", number, ",", number, ",", number, ",", number, ")" ;
+integer           = digit, { digit } ;
+number            = [ "-" ], digit, { digit }, [ ".", digit, { digit } ] ;
+string            = '"', { utf8_character | escape }, '"' ;
+escape            = "\\\"" | "\\\\" | "\\n" | "\\r" | "\\t" ;
+digit             = "0" | "1" | "2" | "3" | "4" |
+                    "5" | "6" | "7" | "8" | "9" ;

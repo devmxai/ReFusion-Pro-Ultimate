@@ -7,7 +7,8 @@
     "Qt6::Gui",
     "Qt6::Qml",
     "Qt6::Quick",
-    "Qt6::QuickControls2"
+    "Qt6::QuickControls2",
+    "Qt6::QuickDialogs2"
   ],
   "conditional_targets": {
     "Qt6::Svg": "Studio icon decoding only; project SVG uses the engine path",
@@ -27,6 +28,7 @@
   ],
   "notes": [
     "Build tools invoked by qt_add_qml_module are audited separately from linked runtime modules.",
+    "Qt Quick Dialogs is admitted only for native project-folder and Project.rfx selection; it owns no project or media semantics.",
     "No Qt target is permitted in core, application, runtime, platform ports, or project contracts.",
     "Qt Multimedia cannot implement ReFusion media, preview, canvas, transport, or export."
   ]

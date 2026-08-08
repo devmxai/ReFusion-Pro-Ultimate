@@ -12,7 +12,7 @@ target_include_directories(refusion_runtime_presentation
 )
 
 target_link_libraries(refusion_runtime_presentation
-  PUBLIC ReFusion::Core ReFusion::RuntimeGpu
+  PUBLIC ReFusion::Core ReFusion::RuntimeGpu ReFusion::RuntimeRender
   PRIVATE Threads::Threads
 )
 

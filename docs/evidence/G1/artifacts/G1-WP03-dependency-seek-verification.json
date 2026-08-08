@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP03",
+  "source_commit": "working-tree-pending-checkpoint",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "chip": "Apple M1",
+    "gpu_cores": 7,
+    "backend": "Metal"
+  },
+  "fixture": {
+    "id": "RFX-H264-VFR-320X180-LONG-GOP-BFRAMES-001",
+    "path": "tests/fixtures/media/h264-vfr-320x180-long-gop-bframes/video.h264",
+    "sha256": "d73c301a64661a181a8dbd852a342a1c4526f880882664b8b0171d13dbec0e28",
+    "frame_count": 16,
+    "timing": "exact DTS/PTS/duration at timescale 30000; source origin 90000",
+    "features": ["B-frames", "VFR durations", "two GOP roots", "non-zero timestamp"]
+  },
+  "hardware_decode": {
+    "hardware_required_sessions": 3,
+    "compressed_samples_submitted": 19,
+    "hardware_frames_decoded": 19,
+    "hardware_decoder_flushes": 3,
+    "surface_queues_published": 3,
+    "native_surface_plane_bindings": 38,
+    "native_surface_leases_issued": 19,
+    "native_surface_leases_released": 19
+  },
+  "dependency_seek": {
+    "long_gop_dependency_samples": 11,
+    "peak_surface_residency": 11,
+    "bounded_surface_residency": 2,
+    "surfaces_evicted_before_publication": 9,
+    "queue_order": "exact-presentation-time",
+    "stale_epoch_rejections": 1,
+    "stale_device_generation_rejections": 1
+  },
+  "core_transport_to_skia": {
+    "clock_owner": "refusion::core::ProjectClock",
+    "seek_frames": [99, 100, 99],
+    "selected_source_frames": [9, 10, 9],
+    "skia_yuva_gpu_composite": "passed"
+  },
+  "forbidden_counters": {
+    "software_decoder_selections": 0,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_conversions": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "cross_adapter_events": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "workflows": {
+    "macos_core": {"passed": 18, "failed": 0},
+    "macos_core_sanitized": {"passed": 18, "failed": 0},
+    "macos_media": {"passed": 24, "failed": 0},
+    "macos_visual": {"passed": 38, "failed": 0},
+    "architecture_checked_source_files": 73,
+    "architecture_check_problems": 0,
+    "docs_doctor_checked_documents": 87,
+    "docs_doctor_problems": 0
+  },
+  "platform_state": {
+    "macos": "bounded-apple-hardware-decode-and-dependency-seek-passed",
+    "windows": "portable-contract-and-fail-closed-lane-defined-not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_wp03": "passed-bounded-macos"
+  },
+  "not_qualified": [
+    "MP4/MOV demux and import",
+    "production Timeline Video Layer playback",
+    "audio ClockSource and drift",
+    "export",
+    "general product codec support"
+  ]
+}

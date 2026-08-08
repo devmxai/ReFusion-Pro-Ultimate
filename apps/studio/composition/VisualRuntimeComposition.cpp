@@ -4,10 +4,13 @@
 #include "StudioTransportBridge.hpp"
 
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
+#include "refusion/adapters/skia/SkiaGpuComposition.hpp"
+#include "refusion/adapters/skia/SkiaTextLayout.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
 #include "refusion/platform/PlatformViewportPresenter.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
 #include "refusion/runtime/presentation/ViewportPresentation.hpp"
+#include "refusion/runtime/render/RenderPlanCompiler.hpp"
 
 #include <QWindow>
 #include <QString>
@@ -21,22 +24,36 @@ namespace {
 class VisualRuntimeComposition final : public StudioRuntimeComposition {
  public:
   VisualRuntimeComposition(const refusion::core::ProjectSnapshot& project,
-                           QString project_path)
-      : device_service_(refusion::platform::create_platform_gpu_device_service()),
-        renderer_(refusion::adapters::skia::SkiaGpuContexts::create(
-            device_service_->borrow(), require_composition(project))),
+                           QString project_path,
+                           std::shared_ptr<
+                               refusion::core::FontAssetResolverPort>
+                               font_assets)
+      : composition_(std::make_shared<const refusion::core::CompositionSnapshot>(
+            require_composition(project))),
+        render_program_(std::make_shared<const
+                        refusion::runtime::render::VisualRenderProgram>(
+            refusion::runtime::render::compile_visual_render_program(project))),
+        preflight_text_layout_(
+            refusion::adapters::skia::create_skia_text_layout_port(
+                font_assets)),
+        device_service_(refusion::platform::create_platform_gpu_device_service()),
+        renderer_(refusion::adapters::skia::create_skia_gpu_composition(
+            device_service_->borrow(), nullptr, nullptr,
+            std::move(font_assets))),
         presenter_(refusion::platform::create_platform_viewport_presenter(
             *device_service_, *renderer_)),
         render_session_(std::make_unique<
             refusion::runtime::presentation::ViewportRenderSession>(
-                *presenter_, playback_spec(project))),
+                *presenter_, playback_spec(project),
+                refusion::runtime::presentation::ViewportRenderSession::ClockNow{},
+                render_program_)),
         viewport_window_(std::make_unique<EngineViewportWindow>(
             QString::fromStdString(device_service_->identity().adapter_name),
             std::move(project_path),
-            require_composition(project),
+            composition_,
             *render_session_)),
         transport_bridge_(std::make_unique<StudioTransportBridge>(
-            *render_session_, require_composition(project))) {
+            *render_session_, composition_)) {
     QObject::connect(viewport_window_.get(),
                      &EngineViewportWindow::telemetryChanged,
                      transport_bridge_.get(),
@@ -51,7 +68,76 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
     return transport_bridge_.get();
   }
 
+  [[nodiscard]] refusion::application::CandidatePreparationResult prepare(
+      const refusion::core::ProjectSnapshot& project) override {
+    if (!project.composition) {
+      return rejection("RFX-RUNTIME-RELOAD-001", "composition is required");
+    }
+    const auto& candidate = *project.composition;
+    if (candidate.composition_id != composition_->composition_id ||
+        candidate.canvas != composition_->canvas ||
+        candidate.frame_rate != composition_->frame_rate ||
+        candidate.duration != composition_->duration) {
+      return rejection(
+          "RFX-RUNTIME-RELOAD-002",
+          "live edit must preserve composition ID, canvas, frame rate and duration");
+    }
+    auto program = std::make_shared<const
+        refusion::runtime::render::VisualRenderProgram>(
+        refusion::runtime::render::compile_visual_render_program(project));
+    const auto composition_time = transport_bridge_->compositionTimeNs();
+    const auto epoch = render_session_->playback_state().clock_epoch_id;
+    static_cast<void>(refusion::runtime::render::evaluate_visual_render_plan(
+        *program, composition_time, epoch, *preflight_text_layout_));
+    auto composition =
+        std::make_shared<const refusion::core::CompositionSnapshot>(candidate);
+    auto timeline = transport_bridge_->prepareComposition(composition);
+    return {.prepared = std::make_unique<Prepared>(
+                *this, std::move(program), std::move(composition),
+                std::move(timeline))};
+  }
+
  private:
+  class Prepared final
+      : public refusion::application::PreparedProjectRevision {
+   public:
+    Prepared(VisualRuntimeComposition& owner,
+             std::shared_ptr<const
+                 refusion::runtime::render::VisualRenderProgram> program,
+             std::shared_ptr<const refusion::core::CompositionSnapshot>
+                 composition,
+             StudioTransportBridge::PreparedCompositionProjection timeline)
+        : owner_(owner),
+          program_(std::move(program)),
+          composition_(std::move(composition)),
+          timeline_(std::move(timeline)) {}
+
+    void commit_engine_state() noexcept override {
+      owner_.render_session_->publish_render_program(program_);
+      owner_.render_program_ = program_;
+      owner_.composition_ = composition_;
+    }
+
+    void publish_observer_projections() noexcept override {
+      owner_.viewport_window_->publishComposition(composition_);
+      owner_.transport_bridge_->publishComposition(std::move(timeline_));
+    }
+
+   private:
+    VisualRuntimeComposition& owner_;
+    std::shared_ptr<const refusion::runtime::render::VisualRenderProgram>
+        program_;
+    std::shared_ptr<const refusion::core::CompositionSnapshot> composition_;
+    StudioTransportBridge::PreparedCompositionProjection timeline_;
+  };
+
+  [[nodiscard]] static refusion::application::CandidatePreparationResult
+  rejection(std::string code, std::string message) {
+    return {.diagnostic = {.code = std::move(code),
+                           .message = std::move(message),
+                           .blocking = true}};
+  }
+
   [[nodiscard]] static refusion::core::CompositionSnapshot require_composition(
       const refusion::core::ProjectSnapshot& project) {
     if (!project.composition) {
@@ -71,8 +157,12 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
     };
   }
 
+  std::shared_ptr<const refusion::core::CompositionSnapshot> composition_;
+  std::shared_ptr<const refusion::runtime::render::VisualRenderProgram>
+      render_program_;
+  std::shared_ptr<refusion::core::TextLayoutPort> preflight_text_layout_;
   std::unique_ptr<refusion::runtime::gpu::GpuDeviceService> device_service_;
-  std::unique_ptr<refusion::runtime::presentation::ViewportFrameRenderer> renderer_;
+  std::unique_ptr<refusion::adapters::skia::SkiaGpuContexts> renderer_;
   std::unique_ptr<refusion::runtime::presentation::ViewportPresenter> presenter_;
   std::unique_ptr<refusion::runtime::presentation::ViewportRenderSession>
       render_session_;
@@ -82,8 +172,10 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
 
 }  // namespace
 
-std::unique_ptr<StudioRuntimeComposition> create_studio_runtime_composition(
+std::shared_ptr<StudioRuntimeComposition> create_studio_runtime_composition(
     const refusion::core::ProjectSnapshot& project,
-    const QString& project_path) {
-  return std::make_unique<VisualRuntimeComposition>(project, project_path);
+    const QString& project_path,
+    std::shared_ptr<refusion::core::FontAssetResolverPort> font_assets) {
+  return std::make_shared<VisualRuntimeComposition>(
+      project, project_path, std::move(font_assets));
 }

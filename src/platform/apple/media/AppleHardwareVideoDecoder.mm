@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -34,6 +35,11 @@ using runtime::media::HardwareDecodeSequenceRequest;
 using runtime::media::HardwareDecodeSequenceResult;
 using runtime::media::MediaPathCounters;
 using runtime::media::NativeVideoSurfaceLease;
+using runtime::gpu::GpuObservabilityService;
+using runtime::gpu::GpuObservedFenceLease;
+using runtime::gpu::GpuObservedResourceLease;
+using runtime::gpu::GpuResourceKind;
+using runtime::gpu::GpuSubsystem;
 
 constexpr std::uintmax_t kMaximumFixtureBytes = 8U * 1024U * 1024U;
 
@@ -168,10 +174,10 @@ struct StartCode final {
 
 class AppleDecodeLifetime final {
  public:
-  explicit AppleDecodeLifetime(runtime::gpu::DeviceLease device_lease)
+  explicit AppleDecodeLifetime(runtime::gpu::BackendDeviceLease device_lease)
       : device_lease_(std::move(device_lease)) {
-    const auto handles = device_lease_.native_handles();
-    id<MTLDevice> device = (__bridge id<MTLDevice>)(reinterpret_cast<void *>(handles.device));
+    id<MTLDevice> device = (__bridge id<MTLDevice>)(const_cast<void *>(
+        device_lease_.backend_private_device()));
     if (device == nil ||
         static_cast<std::uint64_t>(device.registryID) != device_lease_.identity().adapter_id) {
       throw std::runtime_error("Decoded surfaces require the admitted engine Metal device");
@@ -199,7 +205,7 @@ class AppleDecodeLifetime final {
   [[nodiscard]] CVMetalTextureCacheRef texture_cache() const noexcept { return texture_cache_; }
 
  private:
-  runtime::gpu::DeviceLease device_lease_;
+  runtime::gpu::BackendDeviceLease device_lease_;
   CVMetalTextureCacheRef texture_cache_{nullptr};
 };
 
@@ -207,6 +213,7 @@ class AppleDecodedSurfaceLease final : public NativeVideoSurfaceLease {
  public:
   AppleDecodedSurfaceLease(std::shared_ptr<AppleDecodeLifetime> lifetime,
                            std::shared_ptr<CounterState> counter_state,
+                           std::shared_ptr<GpuObservabilityService> observability,
                            const CVImageBufferRef image_buffer,
                            const HardwareDecodeRequest &request, const CMTime presentation_time,
                            const CMTime duration, const std::uint64_t lease_id)
@@ -273,6 +280,19 @@ class AppleDecodedSurfaceLease final : public NativeVideoSurfaceLease {
         .device = lifetime_->device_identity(),
         .plane_count = 2,
     };
+    if (observability) {
+      const auto resident_bytes =
+          static_cast<std::uint64_t>(
+              CVPixelBufferGetBytesPerRowOfPlane(pixel_buffer_, 0)) *
+              luma_height +
+          static_cast<std::uint64_t>(
+              CVPixelBufferGetBytesPerRowOfPlane(pixel_buffer_, 1)) *
+              chroma_height;
+      observed_resource_ = std::make_unique<GpuObservedResourceLease>(
+          std::move(observability), GpuSubsystem::media,
+          GpuResourceKind::native_video_surface,
+          lifetime_->device_identity().generation, resident_bytes);
+    }
     counter_state_->increment(&MediaPathCounters::native_surface_allocations);
     counter_state_->increment(&MediaPathCounters::native_surface_plane_bindings, 2);
     counter_state_->increment(&MediaPathCounters::native_surface_leases_issued);
@@ -326,12 +346,14 @@ class AppleDecodedSurfaceLease final : public NativeVideoSurfaceLease {
   CVMetalTextureRef luma_view_{nullptr};
   CVMetalTextureRef chroma_view_{nullptr};
   DecodedSurfaceInfo info_;
+  std::unique_ptr<GpuObservedResourceLease> observed_resource_;
 };
 
 struct SequenceCallbackContext final {
   std::mutex mutex;
   std::shared_ptr<AppleDecodeLifetime> lifetime;
   std::shared_ptr<CounterState> counter_state;
+  std::shared_ptr<GpuObservabilityService> observability;
   std::vector<std::shared_ptr<const NativeVideoSurfaceLease>> surfaces;
   std::string diagnostic;
   OSStatus status{noErr};
@@ -359,8 +381,9 @@ void decompression_output_callback(void *output_context, void *source_frame_cont
 
   try {
     auto surface = std::make_shared<AppleDecodedSurfaceLease>(
-        sequence.lifetime, sequence.counter_state, image_buffer, sample->request, presentation_time,
-        duration, sample->lease_id);
+        sequence.lifetime, sequence.counter_state, sequence.observability,
+        image_buffer, sample->request, presentation_time, duration,
+        sample->lease_id);
     sequence.counter_state->increment(&MediaPathCounters::hardware_frames_decoded);
     sequence.surfaces.push_back(std::move(surface));
   } catch (const std::exception &error) {
@@ -371,8 +394,18 @@ void decompression_output_callback(void *output_context, void *source_frame_cont
 
 class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDecoder {
  public:
-  explicit AppleHardwareVideoDecoder(runtime::gpu::GpuDeviceService &gpu_device_service)
-      : gpu_device_service_(gpu_device_service), counter_state_(std::make_shared<CounterState>()) {}
+  AppleHardwareVideoDecoder(
+      runtime::gpu::GpuDeviceService &gpu_device_service,
+      std::shared_ptr<GpuObservabilityService> observability)
+      : gpu_device_service_(gpu_device_service),
+        counter_state_(std::make_shared<CounterState>()),
+        observability_(std::move(observability)) {
+    if (observability_ &&
+        !observability_->observes(gpu_device_service_.identity())) {
+      throw std::invalid_argument(
+          "GPU observability and Apple decode must share one device identity");
+    }
+  }
 
   [[nodiscard]] HardwareDecodeResult decode(const HardwareDecodeRequest &request) override {
     HardwareDecodeSequenceRequest sequence_request{
@@ -415,7 +448,7 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
                               "The hardware decode sequence request is incomplete or invalid");
     }
 
-    std::optional<runtime::gpu::DeviceLease> gpu_lease;
+    std::optional<runtime::gpu::BackendDeviceLease> gpu_lease;
     try {
       gpu_lease.emplace(gpu_device_service_.borrow());
     } catch (const std::exception &error) {
@@ -520,6 +553,7 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
     SequenceCallbackContext callback_context{
         .lifetime = lifetime,
         .counter_state = counter_state_,
+        .observability = observability_,
     };
     const VTDecompressionOutputCallbackRecord callback{
         .decompressionOutputCallback = decompression_output_callback,
@@ -554,6 +588,22 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
                               "VideoToolbox did not confirm the required hardware decoder");
     }
     counter_state_->increment(&MediaPathCounters::hardware_decoder_sessions);
+
+    std::shared_ptr<GpuObservedFenceLease> decode_fence;
+    auto decode_start = std::chrono::steady_clock::now();
+    if (observability_) {
+      try {
+        decode_fence = std::make_shared<GpuObservedFenceLease>(
+            observability_, GpuSubsystem::media,
+            lifetime->device_identity().generation);
+      } catch (const std::exception &error) {
+        VTDecompressionSessionInvalidate(session);
+        CFRelease(session);
+        CFRelease(format_description);
+        return sequence_failure(DecodeState::session_failed,
+                                "RFX-MEDIA-GPU-OBS-FENCE", error.what());
+      }
+    }
 
     std::vector<std::unique_ptr<SampleCallbackContext>> sample_contexts;
     sample_contexts.reserve(request.samples.size());
@@ -612,10 +662,21 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
             .lease_id = lease_id,
         }));
         VTDecodeInfoFlags info_flags = 0;
-        counter_state_->increment(&MediaPathCounters::compressed_samples_submitted);
-        status = VTDecompressionSessionDecodeFrame(session, sample_buffer,
-                                                   kVTDecodeFrame_EnableAsynchronousDecompression,
-                                                   sample_contexts.back().get(), &info_flags);
+        if (observability_) {
+          const auto observation = observability_->record_submission(
+              GpuSubsystem::media, observability_->issue_object_id(),
+              lifetime->device_identity().generation);
+          if (!observation.accepted) {
+            status = kVTVideoDecoderBadDataErr;
+          }
+        }
+        if (status == noErr) {
+          counter_state_->increment(&MediaPathCounters::compressed_samples_submitted);
+          status = VTDecompressionSessionDecodeFrame(
+              session, sample_buffer,
+              kVTDecodeFrame_EnableAsynchronousDecompression,
+              sample_contexts.back().get(), &info_flags);
+        }
       }
 
       if (sample_buffer != nullptr) {
@@ -632,6 +693,14 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
     const auto wait_status = VTDecompressionSessionWaitForAsynchronousFrames(session);
     if (wait_status == noErr) {
       counter_state_->increment(&MediaPathCounters::hardware_decoder_flushes);
+      if (decode_fence) {
+        const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - decode_start);
+        if (elapsed.count() < 0 ||
+            !decode_fence->complete(static_cast<std::uint64_t>(elapsed.count()))) {
+          status = kVTVideoDecoderBadDataErr;
+        }
+      }
     } else if (status == noErr) {
       status = wait_status;
     }
@@ -691,6 +760,7 @@ class AppleHardwareVideoDecoder final : public runtime::media::HardwareVideoDeco
 
   runtime::gpu::GpuDeviceService &gpu_device_service_;
   std::shared_ptr<CounterState> counter_state_;
+  std::shared_ptr<GpuObservabilityService> observability_;
   std::mutex operation_mutex_;
   std::atomic_uint64_t next_lease_id_{1};
 };
@@ -728,8 +798,10 @@ std::optional<MetalVideoSurfaceView> borrow_metal_video_surface(
 }  // namespace apple
 
 std::unique_ptr<runtime::media::HardwareVideoDecoder> create_platform_hardware_video_decoder(
-    runtime::gpu::GpuDeviceService &gpu_device_service) {
-  return std::make_unique<AppleHardwareVideoDecoder>(gpu_device_service);
+    runtime::gpu::GpuDeviceService &gpu_device_service,
+    std::shared_ptr<runtime::gpu::GpuObservabilityService> observability) {
+  return std::make_unique<AppleHardwareVideoDecoder>(gpu_device_service,
+                                                     std::move(observability));
 }
 
 }  // namespace refusion::platform

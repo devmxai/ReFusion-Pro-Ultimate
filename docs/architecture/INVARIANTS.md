@@ -4,7 +4,7 @@ kind: invariants
 status: accepted
 owner_role: principal-architecture
 canonical_for: architecture-invariants
-last_verified: 2026-08-07
+last_verified: 2026-08-08
 accepted_by: product-owner-user-instruction-2026-08-07
 ---
 
@@ -17,6 +17,9 @@ accepted_by: product-owner-user-instruction-2026-08-07
 3. Timeline, Canvas, Inspector, Console, audio, preview, and export consume one
    accepted revision and a compatible `EvaluationStamp`.
 4. Stale or invalid candidates never replace Last-Known-Good.
+5. Semantic validation, asset/font/plugin resolution, capability admission and
+   render-program preparation complete before one accepted bundle is published.
+   Runtime/Studio activation may not fail after Core/UI has advanced alone.
 
 ## Portable semantic core
 
@@ -30,6 +33,15 @@ accepted_by: product-owner-user-instruction-2026-08-07
 - Every shared contract is designed for macOS, Windows, iOS, and Android from
   its first revision. Absence of a device may change the evidence state to
   `not-run`; it may never authorize a one-platform semantic shortcut.
+- Every visual feature has one portable descriptor/evaluator and one immutable
+  RenderPlan meaning executed by the common compositor. Metal, D3D12 and Vulkan
+  adapters own only device/target/import/sync/submit/present mechanics.
+- Qualified text is shaped from project-relative, content-digested font bytes
+  through the common layout engine. Host system fonts and implicit OS fallback
+  are explicitly unqualified and may never supply cross-platform evidence.
+- A qualified font/layout receipt binds the actual font bytes, face/style/
+  variation/shaping inputs, line-break and fallback policy. Missing bytes or an
+  undeclared fallback fail before accepted-revision publication.
 
 ## UI boundary
 
@@ -59,6 +71,20 @@ One `GpuDeviceService` selects and owns the physical adapter/device/queues.
 Skia and media bridges borrow its admitted resources. Skia is a 2D/text content
 producer inside the render graph, not the project schema or scheduler.
 
+Native backend files may not traverse a Project/Composition, switch on Layer,
+Mask, Blend or Effect kinds, shape text, choose project time or define color/
+filter semantics. Those behaviors are shared and backend-neutral.
+
+Common GPU/presentation contracts carry full adapter identity and
+lifetime-bearing opaque leases, never integer native handles. A frame target
+also carries its extent, format and stable target identity. Backend-private
+device/queue/target/host state may be inspected only inside the matching native
+bridge after backend, adapter and generation validation.
+
+Every presentation request owns one immutable accepted render-program lease and
+exact Core ProjectTime/transport epoch. A telemetry sequence is never project
+time. Stale program/device/target combinations fail before submission.
+
 ## Time and coordinates
 
 - Portable Core `ProjectClock` is the only mutable authority for canonical
@@ -71,6 +97,8 @@ producer inside the render graph, not the project schema or scheduler.
 - VFR frame selection uses presentation timestamps/indexes, never average FPS.
 - Audio addressing uses integer sample domains.
 - `1 Composition Unit = 1 Composition Pixel`; viewport zoom/DPI are not saved.
+- Derived/UI-authored pixel commands commit to the binary-exact `1/1024 px`
+  grid; explicit existing project literals are never silently reinterpreted.
 - The engine provides measurement/time-resolution tools; agents never guess.
 
 ## Product and extension safety
@@ -81,3 +109,10 @@ producer inside the render graph, not the project schema or scheduler.
   revision, or main render process. Public native ABI is post-v1.
 - Mobile does not download executable native plugins; only packaged or
   declarative content is eligible, subject to store policy.
+- Built-in FX and plugins use the same versioned descriptor/state/migration/
+  admission/RenderPlan contract. A native C++ plugin is one semantic source plus
+  separately signed target artifacts behind stable C ABI/versioned IPC—not one
+  portable binary and never a platform-specific visual meaning.
+- Unknown, missing, incompatible or failed contributions preserve source state,
+  remain unresolved/quarantined and fail closed; no approximate FX substitute
+  may render or export.

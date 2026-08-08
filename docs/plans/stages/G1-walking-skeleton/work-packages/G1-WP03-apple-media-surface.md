@@ -1,7 +1,7 @@
 ---
 id: G1-WP03
 kind: work-package
-status: active
+status: passed-bounded-macos
 gate: G1
 owner_role: apple-media
 evidence: docs/evidence/G1/G1-WP03.md
@@ -54,4 +54,15 @@ the viewport scheduler. One hardware-required VideoToolbox session now decodes
 the eight all-IDR access units into one immutable exact-PTS-indexed GPU surface
 queue. Core Transport seeks `[3, 7, 1]` select those exact source frames in Skia
 at epochs `[1, 2, 3]`, with all forbidden counters zero. B-frame/VFR/long-GOP
-dependency-aware seek and production Video Layer integration remain next.
+dependency-aware seek remained the final bounded proof at that checkpoint.
+
+Checkpoint `CP-G1-0008` closes the Apple proof with a repository-owned
+16-frame H.264 High fixture containing B-frames, two GOP roots, variable frame
+durations and a non-zero three-second source origin. Portable Runtime now plans
+the decode-order dependency window from the nearest sync sample, bounds the
+published PTS queue, and rejects publication after a Core transport-epoch or
+GPU-device-generation change. Physical VideoToolbox sessions decoded and
+flushed three non-trivial windows, released all 19 native leases, and Skia
+selected/composited source frames `[9, 10, 9]` from a two-surface GPU queue.
+Every forbidden path counter remains zero. MP4/MOV demux, import and production
+Timeline Video Layer playback remain G4 rather than being inferred here.

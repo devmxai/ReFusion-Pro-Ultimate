@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 project(ReFusion VERSION 0.0.1 LANGUAGES CXX)
 
 option(REFUSION_BUILD_STUDIO "Build the Qt command-only Studio shell" OFF)
+option(REFUSION_BUILD_CLI "Build the host command-line application" ON)
 option(REFUSION_BUILD_PLATFORM_GPU "Build the native engine-owned GPU service" OFF)
 option(REFUSION_BUILD_PLATFORM_MEDIA
        "Build the strict native hardware-media capability probe" OFF)
@@ -34,7 +35,6 @@ include(CTest)
 add_subdirectory(src/core)
 add_subdirectory(src/application)
 add_subdirectory(src/runtime)
-add_subdirectory(apps/cli)
 
 if(REFUSION_BUILD_PLATFORM_GPU OR REFUSION_BUILD_PLATFORM_MEDIA)
   add_subdirectory(src/platform)
@@ -42,6 +42,10 @@ endif()
 
 if(REFUSION_ENABLE_SKIA)
   add_subdirectory(src/adapters)
+endif()
+
+if(REFUSION_BUILD_CLI)
+  add_subdirectory(apps/cli)
 endif()
 
 if(REFUSION_BUILD_STUDIO)

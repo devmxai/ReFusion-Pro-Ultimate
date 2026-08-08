@@ -1,0 +1,6 @@
+format = "refusion-project-lock"
+format_version = 1
+project_id = "prj_rfx_authoring_exp_01"
+rfx_language_version = 2
+contract = "refusion-project-rfx-exp2"
+contract_status = "experimental"

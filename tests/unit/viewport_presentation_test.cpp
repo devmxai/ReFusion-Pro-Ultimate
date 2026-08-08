@@ -1,4 +1,5 @@
 #include <chrono>
+#include <memory>
 #include <source_location>
 #include <stdexcept>
 #include <string>
@@ -19,8 +20,15 @@ void require(const bool condition, const std::source_location where =
 class FakePresenter final
     : public refusion::runtime::presentation::ViewportPresenter {
  public:
+  [[nodiscard]] refusion::runtime::gpu::DeviceIdentity device_identity()
+      const noexcept override {
+    return {.backend = refusion::runtime::gpu::Backend::metal,
+            .adapter_name = "fake",
+            .adapter_id = 1,
+            .generation = 1};
+  }
   [[nodiscard]] refusion::runtime::presentation::FrameResult attach(
-      refusion::runtime::presentation::NativeViewportHost) override {
+      refusion::runtime::presentation::NativeViewportHostLease) override {
     return {.status = refusion::runtime::presentation::FrameStatus::accepted};
   }
   void detach() noexcept override {}
@@ -30,7 +38,8 @@ class FakePresenter final
   }
   void set_visible(bool) noexcept override {}
   [[nodiscard]] refusion::runtime::presentation::FrameResult present(
-      const refusion::runtime::presentation::FixtureFrame& frame) override {
+      const refusion::runtime::presentation::PresentationFrameRequest& frame)
+      override {
     last_frame = frame;
     ++state.frame_requests;
     if (reject_next_frame) {
@@ -49,7 +58,7 @@ class FakePresenter final
     return state;
   }
 
-  refusion::runtime::presentation::FixtureFrame last_frame;
+  refusion::runtime::presentation::PresentationFrameRequest last_frame;
   refusion::runtime::presentation::PresentationTelemetry state;
   bool reject_next_frame{false};
 };
@@ -69,20 +78,24 @@ int main() {
   require(retina_extent.height_pixels() == 720);
   require(!ViewportExtent{}.valid());
 
-  require(NativeViewportHost{
+  require(NativeViewportHostLease{
       .window_system = NativeWindowSystem::cocoa_view,
-      .handle = 1,
+      .host_id = 1,
+      .backend_private_state = std::make_shared<const int>(1),
   }
               .valid());
-  require(!NativeViewportHost{}.valid());
+  require(!NativeViewportHostLease{}.valid());
 
-  require(NativeFrameTarget{
-      .backend = refusion::runtime::gpu::Backend::metal,
+  require(BackendFrameTargetLease{
+      .device = {.backend = refusion::runtime::gpu::Backend::metal,
+                 .adapter_name = "fake",
+                 .adapter_id = 1,
+                 .generation = 1},
       .pixel_format = PixelFormat::bgra8_unorm,
-      .texture = 1,
+      .target_id = 1,
       .width_pixels = 1280,
       .height_pixels = 720,
-      .device_generation = 1,
+      .backend_private_state = std::make_shared<const int>(1),
   }
               .valid());
 
@@ -126,8 +139,8 @@ int main() {
   ViewportRenderSession session(fake_presenter, playback);
   require(session.render_once().succeeded());
   require(session.render_once().succeeded());
-  require(fake_presenter.last_frame.frame_index == 1);
-  require(fake_presenter.last_frame.duration_ns == 30'000'000'000);
+  require(fake_presenter.last_frame.request_sequence == 1);
+  require(fake_presenter.last_frame.device.generation == 1);
   require(session.telemetry().present_submissions == 2);
   session.start_playback();
   fake_presenter.reject_next_frame = true;
@@ -166,9 +179,10 @@ int main() {
   require(transport.playback_state().frame_index == 330);
   require(transport.playback_state().clock_epoch_id == 3);
   require(transport
-              .attach(NativeViewportHost{
+              .attach(NativeViewportHostLease{
                   .window_system = NativeWindowSystem::cocoa_view,
-                  .handle = 1,
+                  .host_id = 1,
+                  .backend_private_state = std::make_shared<const int>(1),
               })
               .succeeded());
 
@@ -180,7 +194,7 @@ int main() {
   require(seek_result.snapshot.frame_index == 450);
   require(seek_result.snapshot.position_ns == 15'000'000'000);
   require(seek_result.snapshot.clock_epoch_id == 4);
-  require(transport_presenter.last_frame.presentation_time_ns ==
+  require(transport_presenter.last_frame.project_time_ns ==
           15'000'000'000);
   require(transport_presenter.last_frame.transport_epoch_id == 4);
 

@@ -5,6 +5,7 @@
 | What are we building? | `product/PRODUCT_CONTRACT.md` |
 | In what order? | `plans/MASTER_PLAN.md` |
 | What is active now? | `status/CURRENT.md` |
+| How must visual/FX/plugin cross-platform work be repaired? | `plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md` |
 | What must never be violated? | `architecture/INVARIANTS.md` |
 | Why was an architecture selected? | `decisions/adrs/` |
 | What proves a gate? | `evidence/` |
@@ -12,4 +13,3 @@
 
 Normative documents link to sources rather than duplicating them. Generated
 indexes and catalogs belong under `docs/generated/` and are never hand-edited.
-

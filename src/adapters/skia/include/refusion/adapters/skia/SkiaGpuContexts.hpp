@@ -3,13 +3,17 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 
-#include "refusion/core/ProjectDocument.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
+#include "refusion/runtime/gpu/GpuObservability.hpp"
 #include "refusion/runtime/media/HardwareVideoDecode.hpp"
 #include "refusion/runtime/presentation/ViewportPresentation.hpp"
+#include "refusion/runtime/render/VisualRenderPlan.hpp"
 
 namespace refusion::adapters::skia {
+
+class SkiaTextLayoutEngine;
 
 class SkiaGpuContexts final
     : public runtime::presentation::ViewportFrameRenderer {
@@ -22,19 +26,29 @@ class SkiaGpuContexts final
   SkiaGpuContexts& operator=(SkiaGpuContexts&&) = delete;
 
   [[nodiscard]] static std::unique_ptr<SkiaGpuContexts> create(
-      runtime::gpu::DeviceLease lease, core::CompositionSnapshot composition,
+      runtime::gpu::BackendDeviceLease lease,
       std::shared_ptr<const runtime::media::DecodedSurfaceQueue>
-          decoded_video_queue = nullptr);
+          decoded_video_queue = nullptr,
+      std::shared_ptr<runtime::gpu::GpuObservabilityService> observability =
+          nullptr);
+
+  [[nodiscard]] static std::unique_ptr<SkiaGpuContexts> create(
+      runtime::gpu::BackendDeviceLease lease,
+      std::shared_ptr<const runtime::media::DecodedSurfaceQueue>
+          decoded_video_queue,
+      std::shared_ptr<runtime::gpu::GpuObservabilityService> observability,
+      std::unique_ptr<SkiaTextLayoutEngine> text_layout_engine);
 
   [[nodiscard]] bool ganesh_ready() const noexcept;
   [[nodiscard]] bool graphite_ready() const noexcept;
+  [[nodiscard]] std::string text_layout_engine_digest() const;
   [[nodiscard]] std::optional<std::uint64_t> selected_video_source_frame_index()
       const noexcept;
   [[nodiscard]] const runtime::gpu::DeviceIdentity& device_identity()
       const noexcept override;
   [[nodiscard]] runtime::presentation::FrameResult render(
-      const runtime::presentation::NativeFrameTarget& target,
-      const runtime::presentation::FixtureFrame& frame) override;
+      const runtime::presentation::BackendFrameTargetLease& target,
+      const runtime::presentation::PresentationFrameRequest& frame) override;
 
  private:
   struct Implementation;

@@ -4,12 +4,14 @@
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 
 #include "refusion/core/ProjectClock.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
+#include "refusion/runtime/render/VisualRenderPlan.hpp"
 
 namespace refusion::runtime::presentation {
 
@@ -41,30 +43,44 @@ struct ViewportExtent final {
   [[nodiscard]] std::uint32_t height_pixels() const noexcept;
 };
 
-struct NativeViewportHost final {
+// Lifetime-bearing native host acquired by a platform adapter. Studio passes
+// only this lease; no raw window/view handle crosses into Runtime.
+struct NativeViewportHostLease final {
   NativeWindowSystem window_system{NativeWindowSystem::cocoa_view};
-  std::uintptr_t handle{0};
+  std::uint64_t host_id{0};
+  std::shared_ptr<const void> backend_private_state;
 
   [[nodiscard]] bool valid() const noexcept;
+  [[nodiscard]] const void* backend_private_host() const noexcept;
 };
 
-struct NativeFrameTarget final {
-  gpu::Backend backend{gpu::Backend::metal};
+// One acquired backend render target with explicit identity, extent, format,
+// device generation and lifetime. Native API state is type-erased; only the
+// matching native renderer bridge may inspect it.
+struct BackendFrameTargetLease final {
+  gpu::DeviceIdentity device;
   PixelFormat pixel_format{PixelFormat::bgra8_unorm};
-  std::uintptr_t texture{0};
+  std::uint64_t target_id{0};
   std::uint32_t width_pixels{0};
   std::uint32_t height_pixels{0};
-  std::uint64_t device_generation{0};
+  std::shared_ptr<const void> backend_private_state;
 
   [[nodiscard]] bool valid() const noexcept;
+  [[nodiscard]] const void* backend_private_target() const noexcept;
 };
 
-struct FixtureFrame final {
-  std::uint64_t frame_index{0};
-  std::uint64_t presentation_time_ns{0};
-  std::uint64_t duration_ns{0};
+// One coherent immutable rendering request. The program lease binds accepted
+// project/revision/composition identity; exact Core time/epoch and device
+// generation complete the EvaluationStamp used by the common renderer.
+struct PresentationFrameRequest final {
+  std::uint64_t request_sequence{0};
+  core::ProjectTimeNs project_time_ns{0};
   std::uint64_t loop_index{0};
   std::uint64_t transport_epoch_id{0};
+  gpu::DeviceIdentity device;
+  std::shared_ptr<const render::VisualRenderProgram> render_program;
+
+  [[nodiscard]] bool valid() const noexcept;
 };
 
 struct PlaybackSpec final {
@@ -153,19 +169,22 @@ class ViewportFrameRenderer {
 
   [[nodiscard]] virtual const gpu::DeviceIdentity& device_identity()
       const noexcept = 0;
-  [[nodiscard]] virtual FrameResult render(const NativeFrameTarget& target,
-                                           const FixtureFrame& frame) = 0;
+  [[nodiscard]] virtual FrameResult render(
+      const BackendFrameTargetLease& target,
+      const PresentationFrameRequest& frame) = 0;
 };
 
 class ViewportPresenter {
  public:
   virtual ~ViewportPresenter() = default;
 
-  [[nodiscard]] virtual FrameResult attach(NativeViewportHost host) = 0;
+  [[nodiscard]] virtual gpu::DeviceIdentity device_identity() const noexcept = 0;
+  [[nodiscard]] virtual FrameResult attach(NativeViewportHostLease host) = 0;
   virtual void detach() noexcept = 0;
   [[nodiscard]] virtual FrameResult resize(ViewportExtent extent) = 0;
   virtual void set_visible(bool visible) noexcept = 0;
-  [[nodiscard]] virtual FrameResult present(const FixtureFrame& frame) = 0;
+  [[nodiscard]] virtual FrameResult present(
+      const PresentationFrameRequest& frame) = 0;
   [[nodiscard]] virtual PresentationTelemetry telemetry() const noexcept = 0;
 };
 
@@ -176,13 +195,16 @@ class ViewportRenderSession final {
 
   explicit ViewportRenderSession(ViewportPresenter& presenter,
                                  PlaybackSpec playback_spec = {},
-                                 ClockNow clock_now = {});
+                                 ClockNow clock_now = {},
+                                 std::shared_ptr<const
+                                     render::VisualRenderProgram>
+                                     render_program = nullptr);
   ~ViewportRenderSession();
 
   ViewportRenderSession(const ViewportRenderSession&) = delete;
   ViewportRenderSession& operator=(const ViewportRenderSession&) = delete;
 
-  [[nodiscard]] FrameResult attach(NativeViewportHost host);
+  [[nodiscard]] FrameResult attach(NativeViewportHostLease host);
   void detach() noexcept;
   [[nodiscard]] FrameResult resize(ViewportExtent extent);
   void set_visible(bool visible) noexcept;
@@ -197,9 +219,11 @@ class ViewportRenderSession final {
   [[nodiscard]] PresentationTelemetry telemetry() const noexcept;
   [[nodiscard]] PlaybackState playback_state() const;
   void set_frame_observer(FrameObserver observer);
+  void publish_render_program(
+      std::shared_ptr<const render::VisualRenderProgram> render_program) noexcept;
 
  private:
-  [[nodiscard]] FixtureFrame next_frame_locked(
+  [[nodiscard]] PresentationFrameRequest next_frame_locked(
       const core::ProjectClockSnapshot& clock_snapshot) noexcept;
   [[nodiscard]] core::ClockTick clock_tick(
       std::chrono::steady_clock::time_point now) const noexcept;
@@ -213,6 +237,7 @@ class ViewportRenderSession final {
   std::condition_variable_any wake_;
   ClockNow clock_now_;
   std::uint64_t next_frame_index_{0};
+  std::shared_ptr<const render::VisualRenderProgram> render_program_;
   FrameStatus last_frame_status_{FrameStatus::skipped};
   std::string diagnostic_;
   bool attached_{false};

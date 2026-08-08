@@ -6,7 +6,43 @@
       "path": "project/refusion-project-v1.schema.json",
       "status": "experimental",
       "owner": "core-project"
+    },
+    {
+      "id": "RFX-PROJECT-RFX-EXP1",
+      "path": "project/refusion-project-rfx-exp1.ebnf",
+      "status": "experimenting",
+      "owner": "core-project"
+    },
+    {
+      "id": "RFX-PROJECT-RFX-EXP2",
+      "path": "project/refusion-project-rfx-exp2.ebnf",
+      "status": "experimenting",
+      "owner": "core-project"
+    },
+    {
+      "id": "RFX-PROJECT-RFX-EXP3",
+      "path": "project/refusion-project-rfx-exp3.ebnf",
+      "status": "experimenting",
+      "owner": "visual-authoring"
+    },
+    {
+      "id": "RFX-PROJECT-RFX-EXP4",
+      "path": "project/refusion-project-rfx-exp4.ebnf",
+      "status": "experimenting",
+      "owner": "visual-authoring"
+    },
+    {
+      "id": "RFX-PROJECT-RFX-EXP5",
+      "path": "project/refusion-project-rfx-exp5.ebnf",
+      "status": "experimenting",
+      "owner": "visual-authoring"
+    },
+    {
+      "id": "RFX-XPLAT-VISUAL-BOUNDARY-EXCEPTIONS-1",
+      "path": "architecture/cross-platform-visual-boundary-exceptions.json",
+      "status": "active-shrink-only",
+      "owner": "principal-cross-platform-architecture"
     }
   ],
-  "note": "The project schema is an experimental G1/G2 seed and is not a stable shipping-format claim."
+  "note": "RFX1-RFX4 remain readable migration inputs. RFX5 binds the Mask/FX contribution Registry and uses one descriptor-driven typed parameter grammar; none is a stable shipping-format claim."
 }

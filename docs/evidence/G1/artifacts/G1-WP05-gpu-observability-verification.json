@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "work_package": "G1-WP05",
+  "source_commit": "working-tree-pending-checkpoint",
+  "device": {
+    "id": "MAC-LAB-001",
+    "model": "MacBookAir10,1",
+    "chip": "Apple M1",
+    "backend": "Metal",
+    "adapter_id": 4294969077
+  },
+  "qualification_budget": {
+    "device_tier_id": "MACOS-METAL-INTERACTIVE-640X360/Apple M1",
+    "maximum_peak_resident_bytes": 67108864,
+    "maximum_fence_latency_ns": 2000000000,
+    "maximum_thermal_state": "serious",
+    "aggregate_cross_device_qualification": "forbidden"
+  },
+  "observed": {
+    "resource_leases_acquired": 15,
+    "resource_leases_released": 15,
+    "attributed_submissions": 15,
+    "attributed_copies": 0,
+    "attributed_conversions": 0,
+    "unattributed_submissions": 0,
+    "unattributed_copies": 0,
+    "unattributed_conversions": 0,
+    "peak_resident_bytes": 2089728,
+    "fences_issued": 3,
+    "fences_completed": 3,
+    "fences_abandoned": 0,
+    "fence_latency_max_ns": 10732084,
+    "thermal_samples": 3,
+    "maximum_thermal_state": "nominal",
+    "device_loss_events": 1,
+    "stale_generation_rejections": 1,
+    "stale_generation_resources_accepted": 0,
+    "within_qualification_budget": true,
+    "strict_path_clean": true,
+    "quiescent": true
+  },
+  "forbidden_counters": {
+    "software_decoder_selections": 0,
+    "cpu_pixel_maps": 0,
+    "cpu_pixel_conversions": 0,
+    "cpu_pixel_uploads": 0,
+    "gpu_readbacks": 0,
+    "cross_adapter_events": 0,
+    "unattributed_gpu_copies": 0
+  },
+  "workflows": {
+    "macos_core": {"passed": 19, "failed": 0},
+    "macos_core_sanitized": {"passed": 19, "failed": 0},
+    "macos_media": {"passed": 25, "failed": 0},
+    "macos_visual": {"passed": 40, "failed": 0},
+    "architecture_checked_source_files": 75,
+    "architecture_check_problems": 0,
+    "docs_doctor_checked_documents": 89,
+    "docs_doctor_problems": 0
+  },
+  "platform_state": {
+    "macos": "bounded-shared-gpu-observability-passed",
+    "windows": "portable-contract-defined-runtime-not-run",
+    "ios": "not-run",
+    "android": "not-run",
+    "g1_wp05": "passed-bounded-macos",
+    "g1_exit": "not-passed"
+  }
+}

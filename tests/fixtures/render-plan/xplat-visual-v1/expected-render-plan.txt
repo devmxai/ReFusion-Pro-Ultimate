@@ -1,0 +1,6 @@
+# ReFusion cross-platform VisualRenderPlan receipt corpus v1
+# frame semantic_digest
+0 rfx-render-plan-fnv1a64:0707e5f44e0e1c60
+30 rfx-render-plan-fnv1a64:b49e0ee807ad95c2
+60 rfx-render-plan-fnv1a64:f19a2a141157beaf
+119 rfx-render-plan-fnv1a64:443c34ed73b7f8a7

@@ -30,7 +30,27 @@ The reproducible Skia flow is:
 5. record artifact size/SHA-256 and source/profile identity;
 6. let CMake import the artifact only after rechecking official Origin and HEAD.
 
+The deterministic baseline-font flow is also explicit and repository-local:
+
+```bash
+python3 tools/bootstrap.py sync-font noto_sans_latin_baseline --fresh
+python3 tools/bootstrap.py sync-font noto_sans_arabic_baseline --fresh
+python3 tools/bootstrap.py verify-font noto_sans_latin_baseline
+python3 tools/bootstrap.py verify-font noto_sans_arabic_baseline
+```
+
+`sync-font` downloads only the pinned official release archive, checks its
+SHA-256, extracts only the allowlisted font/license members into
+`out/deps-src`, and checks every selected-member digest. Normal configure/build
+remains offline and accepts no system font as qualified project input.
+
 Qt is not auto-downloaded. Its commercial/LGPL lane and module allowlist must be
 decided before a redistributable Studio build. FFmpeg, Dawn/wgpu, OpenColorIO,
 JUCE, plugin SDKs, updater, cloud telemetry, and AI models are intentionally not
 in the foundation lock until their stage intake/qualification.
+
+The G1 mobile compile canaries use two additional tracked Skia profiles:
+`ios-arm64-metal-canary` and `android-arm64-vulkan-canary`. The Android profile
+requires the exact `android_ndk` version recorded by `manifest.lock.json`
+through `ANDROID_NDK_HOME`; it never searches for an arbitrary host NDK. These
+artifacts remain contract-canary inputs and do not qualify a mobile runtime.

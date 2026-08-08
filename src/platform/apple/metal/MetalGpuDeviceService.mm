@@ -122,19 +122,17 @@ class MetalGpuDeviceService final : public runtime::gpu::GpuDeviceService {
     return health_locked();
   }
 
-  [[nodiscard]] runtime::gpu::DeviceLease borrow() override {
+  [[nodiscard]] runtime::gpu::BackendDeviceLease borrow() override {
     std::scoped_lock lock(mutex_);
     if (status_ != runtime::gpu::DeviceStatus::ready) {
       throw std::runtime_error(code_.empty() ? "GPU device is not ready" : code_);
     }
-    return runtime::gpu::DeviceLease(
+    return runtime::gpu::BackendDeviceLease(
         identity_,
-        runtime::gpu::NativeHandles{
-            .device = reinterpret_cast<std::uintptr_t>((__bridge void*)state_->device),
-            .command_queue = reinterpret_cast<std::uintptr_t>(
-                (__bridge void*)state_->command_queue),
-        },
-        state_);
+        std::shared_ptr<const void>(
+            state_, (__bridge const void*)state_->device),
+        std::shared_ptr<const void>(
+            state_, (__bridge const void*)state_->command_queue));
   }
 
  private:

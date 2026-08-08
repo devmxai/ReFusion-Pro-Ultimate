@@ -12,6 +12,9 @@ last_verified: 2026-08-07
 - Development pin: 6.11.1.
 - Role: native Studio window/control/accessibility/input/view-model shell only.
 - Allowed runtime modules: `deps/policies/qt-modules.json`.
+- `Qt6::QuickDialogs2` is limited to native project-folder and `Project.rfx`
+  selection in the Studio shell; it receives no project, render, transport or
+  media authority.
 - Forbidden role: project model, media pipeline, transport, project Canvas,
   GPU ownership, video frames, export, or accepted-revision authority.
 - License: Qt Commercial selected by ADR-0005. Commercial entitlement evidence

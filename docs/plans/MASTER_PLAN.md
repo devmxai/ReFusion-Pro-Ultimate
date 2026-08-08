@@ -2,15 +2,20 @@
 id: MP-001
 kind: master-plan
 status: active
-version: 1
+version: 2
 owner_role: program-architecture
 canonical_for: delivery-order
-last_verified: 2026-08-07
+last_verified: 2026-08-08
 research_basis: docs/research/foundation-screening-draft.md
 activated_by: user-instruction-2026-08-07
 ---
 
 # ReFusion Master Plan
+
+Version 2 moves one bounded LayerGroup/hierarchy proof into G2 so the accepted
+project schema, ChangeSets, journal, Timeline projection and Agent contract do
+not fossilize the current flat Layer-equals-row experiment. It does not activate
+G2 or pull broad G3 materials/FX scope forward.
 
 ## Mission
 
@@ -46,6 +51,14 @@ defect-free program. Failures are contained, diagnosed, and fail closed.
 macOS arm64 and Windows x64 are Desktop v1 product lanes. iOS and Android enter
 portable-core and adapter-contract CI early, but full mobile product work does
 not delay Desktop v1.
+
+The 2026-08-08 renderer/project portability audit is governed by
+[`Fix Cross-Platform Architecture`](FIX_CROSS_PLATFORM_ARCHITECTURE.md). That
+document is a cross-cutting remediation and conformance overlay, not a second
+master plan or a new delivery gate. Its shared-renderer, deterministic-project,
+font, color and backend qualification guards apply to every visual capability.
+Native Metal, D3D12 and Vulkan adapters may differ; project and render semantics
+may not.
 
 ## Program gates
 
@@ -129,22 +142,40 @@ to G6 redistributable RC admission and do not block G1 technical experiments.
 The Unity-like authoring mechanism becomes real: UI, MCP/CLI, and canonical file
 edits produce transactional ChangeSets; valid candidates atomically publish one
 revision to Timeline/Canvas/Inspector, while invalid candidates retain LKG and
-emit structured diagnostics.
+emit structured diagnostics. A bounded LayerGroup slice proves that content
+hierarchy does not require one Timeline row per drawing primitive.
 
 ### Scope
 
 Stable typed IDs, exact rational time, pixel-true coordinates, schemas and
 registry, CAS revision authority, EvaluationStamp/PresentationGate, persistence
 and journal, Source/Dependency/Artifact DBs, watcher-as-hint reconciliation,
-minimal MCP/CLI, Text/Shape/Image, Console, and deterministic round-trip tests.
+minimal MCP/CLI, Text/Shape/Image, one LayerGroup with parent transform and
+drill-down, Console, and deterministic round-trip tests. Track, Clip, Visual
+Layer, ContentNode and TimelineRow remain distinct semantic/view concepts.
 
 ### Exit criteria
 
 - equivalent UI/agent commands produce the same semantic digest;
 - no mixed revision under stress;
 - rename/reorder/save/reopen preserves IDs;
+- one collapsed group row preserves addressable children, exact parent/child
+  animation and local/world measurements;
 - partial, stale, and invalid edits never replace active state;
 - exact time and canvas probes pass; diagnostics match across Console/CLI/MCP.
+
+Detailed plan: [`G2 — Transactional Live Authoring and Hierarchy Spine`](stages/G2-live-authoring/PLAN.md).
+
+Proposed decision package: [RFC-0002](../decisions/rfcs/RFC-0002-visual-authoring-hierarchy.md),
+[ARCH-VA-001](../architecture/VISUAL_AUTHORING_MODEL.md), and the
+[non-authoritative screening draft](../research/visual-authoring-hierarchy-screening-draft.md).
+These links do not accept the RFC or activate G2.
+
+The 2026-08-08 owner revision input is preserved by
+[`EV-VA-0001`](../evidence/reviews/EV-VA-0001-reels-authoring-review.md) and the
+bounded [`EXP-006`](experiments/EXP-006-semantic-authoring-measurement.md).
+They refine G2 entry evidence and work-package acceptance; they do not create a
+second master plan, activate G2 or move general animated FX out of G3.
 
 ## G3 — Unified visual authoring
 
@@ -161,6 +192,17 @@ offline render use one evaluator.
 - invalid port combinations fail with typed diagnostics;
 - Arabic/RTL/font fixtures and macOS/Windows semantic goldens pass;
 - no backend/UI types enter project state.
+
+The detailed G3 work-package plan is intentionally deferred until the G2 exit
+review. G2 decisions must still reserve the G3 capability boundaries so paints,
+masks, typography, FX and Adjustment extend the accepted registry/evaluator
+rather than creating parallel systems.
+
+Owner-authorized bounded pre-G3 experiments are tracked separately as
+[`EXP-004`](experiments/EXP-004-modern-shape-authoring.md) and
+[`EXP-005`](experiments/EXP-005-layer-mask-fx-stack.md). Their implementation
+does not activate G3, accept the proposed RFCs, close Group isolation/Precomp,
+or waive Windows evidence.
 
 ## G4 — Hardware media, audio, and exact transport
 
@@ -247,6 +289,11 @@ are not a mobile contract.
 4. Stable C ABI in an out-of-process Plugin Host after v1 contracts stabilize.
 5. Certified GPU/audio extensions and marketplace only after conformance,
    signing, compatibility, crash containment, and revocation exist.
+
+All built-in contributions and future extension tiers obey the single semantic
+path, package identity, mobile restrictions and fail-closed admission contract
+in [`PLAN-XPLAT-FIX-001`](FIX_CROSS_PLATFORM_ARCHITECTURE.md). G10 exposes that
+already-qualified internal model; it does not introduce a second plugin engine.
 
 ## Capability Definition of Done
 

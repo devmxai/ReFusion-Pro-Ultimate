@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -15,11 +16,11 @@
 namespace refusion::platform {
 namespace {
 
-using runtime::presentation::FixtureFrame;
+using runtime::presentation::PresentationFrameRequest;
 using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
-using runtime::presentation::NativeFrameTarget;
-using runtime::presentation::NativeViewportHost;
+using runtime::presentation::BackendFrameTargetLease;
+using runtime::presentation::NativeViewportHostLease;
 using runtime::presentation::NativeWindowSystem;
 using runtime::presentation::PixelFormat;
 using runtime::presentation::PresentationTelemetry;
@@ -41,11 +42,28 @@ using runtime::presentation::ViewportPresenter;
   };
 }
 
+[[nodiscard]] runtime::gpu::GpuThermalState process_thermal_state() noexcept {
+  switch (NSProcessInfo.processInfo.thermalState) {
+    case NSProcessInfoThermalStateNominal:
+      return runtime::gpu::GpuThermalState::nominal;
+    case NSProcessInfoThermalStateFair:
+      return runtime::gpu::GpuThermalState::fair;
+    case NSProcessInfoThermalStateSerious:
+      return runtime::gpu::GpuThermalState::serious;
+    case NSProcessInfoThermalStateCritical:
+      return runtime::gpu::GpuThermalState::critical;
+  }
+  return runtime::gpu::GpuThermalState::unknown;
+}
+
 class MetalViewportPresenter final : public ViewportPresenter {
  public:
   MetalViewportPresenter(runtime::gpu::GpuDeviceService& device_service,
-                         ViewportFrameRenderer& frame_renderer)
-      : device_service_(device_service), frame_renderer_(frame_renderer) {
+                         ViewportFrameRenderer& frame_renderer,
+                         std::shared_ptr<runtime::gpu::GpuObservabilityService>
+                             observability)
+      : device_service_(device_service), frame_renderer_(frame_renderer),
+        observability_(std::move(observability)) {
     const auto& device = device_service_.identity();
     const auto& renderer = frame_renderer_.device_identity();
     if (device.backend != runtime::gpu::Backend::metal ||
@@ -55,29 +73,39 @@ class MetalViewportPresenter final : public ViewportPresenter {
       throw std::invalid_argument(
           "Metal presenter and frame renderer must share one GPU generation");
     }
+    if (observability_ && !observability_->observes(device)) {
+      throw std::invalid_argument(
+          "GPU observability and Metal presentation must share one device "
+          "identity");
+    }
     telemetry_.device_generation = device.generation;
     telemetry_.device_status = runtime::gpu::DeviceStatus::ready;
   }
 
   ~MetalViewportPresenter() override { detach(); }
 
-  [[nodiscard]] FrameResult attach(const NativeViewportHost host) override {
+  [[nodiscard]] runtime::gpu::DeviceIdentity device_identity()
+      const noexcept override {
+    return device_service_.identity();
+  }
+
+  [[nodiscard]] FrameResult attach(const NativeViewportHostLease host) override {
     if (!host.valid() || host.window_system != NativeWindowSystem::cocoa_view) {
       ++telemetry_.rejected_frames;
       return rejected("Metal presenter requires a valid Cocoa NSView host");
     }
 
     detach();
-    NSView* view = (__bridge NSView*)(reinterpret_cast<void*>(host.handle));
+    NSView* view = (__bridge NSView*)(
+        const_cast<void *>(host.backend_private_host()));
     if (view == nil || ![view isKindOfClass:[NSView class]]) {
       ++telemetry_.rejected_frames;
       return rejected("Cocoa viewport host is not an NSView");
     }
 
     auto device_lease = device_service_.borrow();
-    const auto handles = device_lease.native_handles();
-    id<MTLDevice> device = (__bridge id<MTLDevice>)(
-        reinterpret_cast<void*>(handles.device));
+    id<MTLDevice> device = (__bridge id<MTLDevice>)(const_cast<void *>(
+        device_lease.backend_private_device()));
     if (device == nil) {
       ++telemetry_.rejected_frames;
       return rejected("Metal presenter received an empty engine device");
@@ -101,6 +129,21 @@ class MetalViewportPresenter final : public ViewportPresenter {
     metal_layer.allowsNextDrawableTimeout = YES;
     metal_layer.displaySyncEnabled = YES;
     [view.layer addSublayer:metal_layer];
+
+    if (observability_) {
+      try {
+        observed_layer_ =
+            std::make_unique<runtime::gpu::GpuObservedResourceLease>(
+                observability_, runtime::gpu::GpuSubsystem::presentation,
+                runtime::gpu::GpuResourceKind::viewport_layer,
+                device_lease.identity().generation, 0);
+      } catch (const std::exception& error) {
+        [metal_layer removeFromSuperlayer];
+        metal_layer = nil;
+        ++telemetry_.rejected_frames;
+        return rejected(std::string("RFX-GPU-OBS-LAYER: ") + error.what());
+      }
+    }
 
     host_view_ = view;
     metal_layer_ = metal_layer;
@@ -131,6 +174,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
       occlusion_observer_ = nil;
     }
     [metal_layer_ removeFromSuperlayer];
+    observed_layer_.reset();
     metal_layer_ = nil;
     host_view_ = nil;
     visible_ = false;
@@ -169,9 +213,19 @@ class MetalViewportPresenter final : public ViewportPresenter {
     }
   }
 
-  [[nodiscard]] FrameResult present(const FixtureFrame& frame) override {
+  [[nodiscard]] FrameResult present(
+      const PresentationFrameRequest& frame) override {
     ++telemetry_.frame_requests;
     @autoreleasepool {
+      if (observability_) {
+        const auto thermal = observability_->record_thermal_sample(
+            runtime::gpu::GpuSubsystem::presentation,
+            process_thermal_state());
+        if (!thermal.accepted) {
+          ++telemetry_.rejected_frames;
+          return rejected(thermal.code + ": " + thermal.diagnostic);
+        }
+      }
       const auto health = device_service_.health();
       telemetry_.device_status = health.status;
       telemetry_.device_event_sequence = health.event_sequence;
@@ -181,17 +235,31 @@ class MetalViewportPresenter final : public ViewportPresenter {
         return skipped(health.code + ": " + health.diagnostic);
       }
       if (health.status == runtime::gpu::DeviceStatus::lost) {
+        if (observability_) {
+          static_cast<void>(observability_->observe_device_loss(health.identity));
+        }
         ++telemetry_.rejected_frames;
         ++telemetry_.device_loss_rejections;
         if (!health.generation_matches(frame_renderer_.device_identity())) {
           ++telemetry_.stale_generation_rejections;
+          if (observability_) {
+            static_cast<void>(observability_->reject_stale_generation(
+                runtime::gpu::GpuSubsystem::presentation,
+                frame_renderer_.device_identity().generation));
+          }
         }
         return rejected(health.code + ": " + health.diagnostic);
       }
       if (!health.generation_matches(frame_renderer_.device_identity()) ||
-          health.identity.generation != telemetry_.device_generation) {
+          health.identity.generation != telemetry_.device_generation ||
+          (frame.device.generation != 0 && frame.device != health.identity)) {
         ++telemetry_.rejected_frames;
         ++telemetry_.stale_generation_rejections;
+        if (observability_) {
+          static_cast<void>(observability_->reject_stale_generation(
+              runtime::gpu::GpuSubsystem::presentation,
+              frame_renderer_.device_identity().generation));
+        }
         return rejected(
             "RFX-GPU-STALE-GENERATION: presenter rejected stale GPU resources");
       }
@@ -222,13 +290,36 @@ class MetalViewportPresenter final : public ViewportPresenter {
       ++telemetry_.drawable_acquisitions;
 
       id<MTLTexture> texture = drawable.texture;
-      const NativeFrameTarget target{
-          .backend = runtime::gpu::Backend::metal,
+      std::shared_ptr<runtime::gpu::GpuObservedResourceLease>
+          observed_drawable;
+      if (observability_) {
+        try {
+          const auto resident_bytes = texture.allocatedSize != 0
+                                          ? static_cast<std::uint64_t>(
+                                                texture.allocatedSize)
+                                          : static_cast<std::uint64_t>(
+                                                texture.width) *
+                                                texture.height * 4U;
+          observed_drawable =
+              std::make_shared<runtime::gpu::GpuObservedResourceLease>(
+                  observability_, runtime::gpu::GpuSubsystem::presentation,
+                  runtime::gpu::GpuResourceKind::drawable,
+                  health.identity.generation, resident_bytes);
+        } catch (const std::exception& error) {
+          ++telemetry_.rejected_frames;
+          return rejected(std::string("RFX-GPU-OBS-DRAWABLE: ") +
+                          error.what());
+        }
+      }
+      const BackendFrameTargetLease target{
+          .device = health.identity,
           .pixel_format = PixelFormat::bgra8_unorm,
-          .texture = reinterpret_cast<std::uintptr_t>((__bridge void*)texture),
+          .target_id = next_target_id_++,
           .width_pixels = static_cast<std::uint32_t>(texture.width),
           .height_pixels = static_cast<std::uint32_t>(texture.height),
-          .device_generation = health.identity.generation,
+          .backend_private_state = std::shared_ptr<const void>(
+              CFBridgingRetain(texture),
+              [](const void* value) { CFRelease(value); }),
       };
       auto rendered = frame_renderer_.render(target, frame);
       if (!rendered.succeeded()) {
@@ -241,7 +332,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
       }
       ++telemetry_.renderer_submissions;
 
-      std::optional<runtime::gpu::DeviceLease> device_lease;
+      std::optional<runtime::gpu::BackendDeviceLease> device_lease;
       try {
         device_lease.emplace(device_service_.borrow());
       } catch (const std::exception& error) {
@@ -260,15 +351,46 @@ class MetalViewportPresenter final : public ViewportPresenter {
         }
         return rejected(std::string("RFX-GPU-BORROW: ") + error.what());
       }
-      const auto handles = device_lease->native_handles();
-      id<MTLCommandQueue> command_queue = (__bridge id<MTLCommandQueue>)(
-          reinterpret_cast<void*>(handles.command_queue));
+      id<MTLCommandQueue> command_queue =
+          (__bridge id<MTLCommandQueue>)(const_cast<void *>(
+              device_lease->backend_private_submission_queue()));
       id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
       if (command_buffer == nil) {
         ++telemetry_.rejected_frames;
         return rejected("Metal failed to allocate the presentation command buffer");
       }
       command_buffer.label = @"ReFusion Present";
+      std::shared_ptr<runtime::gpu::GpuObservedFenceLease> observed_fence;
+      auto submission_start = std::chrono::steady_clock::now();
+      if (observability_) {
+        const auto submission = observability_->record_submission(
+            runtime::gpu::GpuSubsystem::presentation,
+            observability_->issue_object_id(), health.identity.generation);
+        if (!submission.accepted) {
+          ++telemetry_.rejected_frames;
+          return rejected(submission.code + ": " + submission.diagnostic);
+        }
+        try {
+          observed_fence =
+              std::make_shared<runtime::gpu::GpuObservedFenceLease>(
+                  observability_, runtime::gpu::GpuSubsystem::presentation,
+                  health.identity.generation);
+        } catch (const std::exception& error) {
+          ++telemetry_.rejected_frames;
+          return rejected(std::string("RFX-GPU-OBS-FENCE: ") + error.what());
+        }
+        [command_buffer
+            addCompletedHandler:^(id<MTLCommandBuffer>) {
+              const auto elapsed =
+                  std::chrono::duration_cast<std::chrono::nanoseconds>(
+                      std::chrono::steady_clock::now() - submission_start);
+              if (elapsed.count() >= 0) {
+                static_cast<void>(observed_fence->complete(
+                    static_cast<std::uint64_t>(elapsed.count())));
+              }
+              static_cast<void>(observed_drawable);
+            }];
+      }
       [command_buffer presentDrawable:drawable];
       [command_buffer commit];
       ++telemetry_.present_submissions;
@@ -288,7 +410,10 @@ class MetalViewportPresenter final : public ViewportPresenter {
   __strong id occlusion_observer_{nil};
   ViewportExtent extent_;
   PresentationTelemetry telemetry_;
+  std::shared_ptr<runtime::gpu::GpuObservabilityService> observability_;
+  std::unique_ptr<runtime::gpu::GpuObservedResourceLease> observed_layer_;
   bool visible_{false};
+  std::uint64_t next_target_id_{1};
   std::atomic_bool occluded_{false};
   bool last_occluded_{false};
 };
@@ -300,11 +425,30 @@ platform_native_window_system() noexcept {
   return runtime::presentation::NativeWindowSystem::cocoa_view;
 }
 
+runtime::presentation::NativeViewportHostLease
+acquire_platform_viewport_host(const std::uintptr_t native_handle) {
+  NSView* view = (__bridge NSView*)(reinterpret_cast<void*>(native_handle));
+  if (view == nil || ![view isKindOfClass:[NSView class]]) {
+    throw std::invalid_argument(
+        "RFX-VIEWPORT-HOST-001: native Cocoa host is not an NSView");
+  }
+  static std::atomic_uint64_t next_host_id{1};
+  return runtime::presentation::NativeViewportHostLease{
+      .window_system = runtime::presentation::NativeWindowSystem::cocoa_view,
+      .host_id = next_host_id.fetch_add(1),
+      .backend_private_state = std::shared_ptr<const void>(
+          CFBridgingRetain(view),
+          [](const void* value) { CFRelease(value); }),
+  };
+}
+
 std::unique_ptr<runtime::presentation::ViewportPresenter>
 create_platform_viewport_presenter(
     runtime::gpu::GpuDeviceService& device_service,
-    runtime::presentation::ViewportFrameRenderer& frame_renderer) {
-  return std::make_unique<MetalViewportPresenter>(device_service, frame_renderer);
+    runtime::presentation::ViewportFrameRenderer& frame_renderer,
+    std::shared_ptr<runtime::gpu::GpuObservabilityService> observability) {
+  return std::make_unique<MetalViewportPresenter>(
+      device_service, frame_renderer, std::move(observability));
 }
 
 }  // namespace refusion::platform

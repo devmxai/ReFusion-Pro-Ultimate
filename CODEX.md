@@ -24,6 +24,12 @@ Use the repo-local `$refusion-engineering` skill when executing or handing off a
 ReFusion work package. It performs progressive disclosure: load the current
 status and stage first, then only linked contracts/decisions.
 
+For visual state, FX, plugins, Skia, fonts, RenderPlan, Canvas or GPU backends,
+also read every `active_guardrails` entry in `docs/status/CURRENT.md`. The active
+cross-platform remediation authority is
+`docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md`; platform code may implement
+native mechanics only and may not acquire a second visual meaning.
+
 ## Diagnostics discipline
 
 Prefer structured diagnostics over raw logs. A useful diagnostic carries a
@@ -37,4 +43,3 @@ The product will expose one service core through both CLI and local MCP. MCP is
 the preferred transactional authoring surface; canonical project files remain
 portable and externally editable. Both paths must produce the same semantic
 revision digest and diagnostics.
-

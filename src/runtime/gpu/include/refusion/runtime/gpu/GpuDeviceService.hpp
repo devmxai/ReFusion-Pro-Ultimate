@@ -28,11 +28,8 @@ struct DeviceIdentity final {
   std::string adapter_name;
   std::uint64_t adapter_id{0};
   std::uint64_t generation{0};
-};
 
-struct NativeHandles final {
-  std::uintptr_t device{0};
-  std::uintptr_t command_queue{0};
+  friend bool operator==(const DeviceIdentity&, const DeviceIdentity&) = default;
 };
 
 struct DeviceHealth final {
@@ -47,26 +44,33 @@ struct DeviceHealth final {
       const DeviceIdentity& candidate) const noexcept;
 };
 
-class DeviceLease final {
+// A lifetime-bearing, backend-opaque borrow of the engine-owned GPU device.
+// Runtime may inspect identity only. The two private accessors are for native
+// backend/media bridge translation units and are guarded by architecture-check.
+// They intentionally expose neither integer handles nor any native API type.
+class BackendDeviceLease final {
  public:
-  DeviceLease(DeviceIdentity identity,
-              NativeHandles handles,
-              std::shared_ptr<const void> lifetime);
+  BackendDeviceLease(DeviceIdentity identity,
+                     std::shared_ptr<const void> backend_device,
+                     std::shared_ptr<const void> backend_submission_queue);
 
-  DeviceLease(const DeviceLease&) = delete;
-  DeviceLease& operator=(const DeviceLease&) = delete;
-  DeviceLease(DeviceLease&&) noexcept = default;
-  DeviceLease& operator=(DeviceLease&&) noexcept = default;
-  ~DeviceLease() = default;
+  BackendDeviceLease(const BackendDeviceLease&) = delete;
+  BackendDeviceLease& operator=(const BackendDeviceLease&) = delete;
+  BackendDeviceLease(BackendDeviceLease&&) noexcept = default;
+  BackendDeviceLease& operator=(BackendDeviceLease&&) noexcept = default;
+  ~BackendDeviceLease() = default;
 
   [[nodiscard]] const DeviceIdentity& identity() const noexcept;
-  [[nodiscard]] NativeHandles native_handles() const noexcept;
   [[nodiscard]] bool valid() const noexcept;
+
+  // Backend-private opaque access. Callers must first validate identity().
+  [[nodiscard]] const void* backend_private_device() const noexcept;
+  [[nodiscard]] const void* backend_private_submission_queue() const noexcept;
 
  private:
   DeviceIdentity identity_;
-  NativeHandles handles_;
-  std::shared_ptr<const void> lifetime_;
+  std::shared_ptr<const void> backend_device_;
+  std::shared_ptr<const void> backend_submission_queue_;
 };
 
 class GpuDeviceService {
@@ -79,7 +83,7 @@ class GpuDeviceService {
       DeviceLifecycleEvent event) = 0;
   [[nodiscard]] virtual DeviceHealth report_device_loss(
       std::string diagnostic) = 0;
-  [[nodiscard]] virtual DeviceLease borrow() = 0;
+  [[nodiscard]] virtual BackendDeviceLease borrow() = 0;
 };
 
 }  // namespace refusion::runtime::gpu

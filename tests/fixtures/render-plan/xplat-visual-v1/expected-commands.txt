@@ -1,0 +1,11 @@
+schema=refusion.xplat-command-conformance.v1
+final_revision=15
+snapshot_digest=rfx-project-fnv1a64:b8a6a8913e15e51b
+canonical_size=5415
+solid_position_x=320.123046875
+solid_position_y=180.654296875
+solid_anchor_x=0.3330078125
+solid_anchor_y=-0.6669921875
+solid_width=639.9873046875
+radial_position_x=131.59765625
+radial_position_y=127.6787109375

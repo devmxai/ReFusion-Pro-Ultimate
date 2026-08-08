@@ -9,6 +9,21 @@ function(refusion_import_skia)
       CACHE PATH "Verified official Skia source directory")
   set(REFUSION_SKIA_BUILD_DIR "${CMAKE_SOURCE_DIR}/out/deps-build/skia/macos-arm64-metal"
       CACHE PATH "Verified prebuilt Skia profile directory")
+  set(REFUSION_SKIA_PROFILE "" CACHE STRING
+      "Required verified Skia profile identity")
+  if(REFUSION_SKIA_PROFILE STREQUAL "")
+    if(IOS)
+      set(REFUSION_SKIA_PROFILE "ios-arm64-metal-canary")
+    elseif(ANDROID)
+      set(REFUSION_SKIA_PROFILE "android-arm64-vulkan-canary")
+    elseif(APPLE)
+      set(REFUSION_SKIA_PROFILE "macos-arm64-metal")
+    elseif(WIN32)
+      set(REFUSION_SKIA_PROFILE "windows-x64-d3d12")
+    else()
+      message(FATAL_ERROR "No admitted Skia profile exists for this platform")
+    endif()
+  endif()
 
   file(REAL_PATH "${CMAKE_SOURCE_DIR}" refusion_repo_root)
   file(REAL_PATH "${REFUSION_SKIA_SOURCE_DIR}" refusion_skia_source_real)
@@ -96,6 +111,10 @@ function(refusion_import_skia)
     message(FATAL_ERROR "Skia artifact was built from an unexpected source revision")
   endif()
   string(JSON built_profile GET "${skia_build_record}" profile)
+  if(NOT built_profile STREQUAL REFUSION_SKIA_PROFILE)
+    message(FATAL_ERROR
+      "Skia profile mismatch: expected ${REFUSION_SKIA_PROFILE}, got ${built_profile}")
+  endif()
   file(READ "${CMAKE_SOURCE_DIR}/deps/profiles/skia/profiles.json"
        skia_profile_catalog)
   string(JSON expected_target_count LENGTH "${skia_profile_catalog}"
@@ -180,7 +199,19 @@ function(refusion_import_skia)
       "SK_GANESH;SK_GRAPHITE;REFUSION_SKIA_REVISION=\"${expected_skia_revision}\""
   )
 
-  if(APPLE)
+  if(IOS)
+    find_library(REFUSION_CORE_FOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
+    find_library(REFUSION_CORE_GRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
+    find_library(REFUSION_CORE_TEXT_FRAMEWORK CoreText REQUIRED)
+    find_library(REFUSION_FOUNDATION_FRAMEWORK Foundation REQUIRED)
+    find_library(REFUSION_METAL_FRAMEWORK Metal REQUIRED)
+    find_library(REFUSION_QUARTZ_CORE_FRAMEWORK QuartzCore REQUIRED)
+    find_library(REFUSION_UIKIT_FRAMEWORK UIKit REQUIRED)
+    set_property(TARGET Skia::Skia PROPERTY INTERFACE_LINK_LIBRARIES
+      "${REFUSION_CORE_FOUNDATION_FRAMEWORK};${REFUSION_CORE_GRAPHICS_FRAMEWORK};${REFUSION_CORE_TEXT_FRAMEWORK};${REFUSION_FOUNDATION_FRAMEWORK};${REFUSION_METAL_FRAMEWORK};${REFUSION_QUARTZ_CORE_FRAMEWORK};${REFUSION_UIKIT_FRAMEWORK}")
+    set_property(TARGET Skia::Skia APPEND PROPERTY
+      INTERFACE_COMPILE_DEFINITIONS SK_METAL)
+  elseif(APPLE)
     find_library(REFUSION_APPKIT_FRAMEWORK AppKit REQUIRED)
     find_library(REFUSION_APPLICATION_SERVICES_FRAMEWORK ApplicationServices REQUIRED)
     find_library(REFUSION_CORE_FOUNDATION_FRAMEWORK CoreFoundation REQUIRED)

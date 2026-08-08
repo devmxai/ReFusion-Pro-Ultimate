@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 
 class EngineViewportWindow final : public QWindow {
   Q_OBJECT
@@ -20,11 +21,11 @@ class EngineViewportWindow final : public QWindow {
   Q_PROPERTY(qulonglong playbackDurationMs READ playbackDurationMs CONSTANT)
   Q_PROPERTY(qulonglong playbackLoop READ playbackLoop NOTIFY telemetryChanged)
   Q_PROPERTY(bool playbackRunning READ playbackRunning NOTIFY telemetryChanged)
-  Q_PROPERTY(uint compositionWidth READ compositionWidth CONSTANT)
-  Q_PROPERTY(uint compositionHeight READ compositionHeight CONSTANT)
-  Q_PROPERTY(QString compositionName READ compositionName CONSTANT)
+  Q_PROPERTY(uint compositionWidth READ compositionWidth NOTIFY compositionChanged)
+  Q_PROPERTY(uint compositionHeight READ compositionHeight NOTIFY compositionChanged)
+  Q_PROPERTY(QString compositionName READ compositionName NOTIFY compositionChanged)
   Q_PROPERTY(QString projectPath READ projectPath CONSTANT)
-  Q_PROPERTY(QStringList layerNames READ layerNames CONSTANT)
+  Q_PROPERTY(QStringList layerNames READ layerNames NOTIFY compositionChanged)
   Q_PROPERTY(QString deviceStatus READ deviceStatus NOTIFY telemetryChanged)
   Q_PROPERTY(qulonglong deviceEventSequence READ deviceEventSequence NOTIFY telemetryChanged)
   Q_PROPERTY(qulonglong visibilitySuspends READ visibilitySuspends NOTIFY telemetryChanged)
@@ -37,7 +38,7 @@ class EngineViewportWindow final : public QWindow {
   EngineViewportWindow(
       QString adapter_name,
       QString project_path,
-      refusion::core::CompositionSnapshot composition,
+      std::shared_ptr<const refusion::core::CompositionSnapshot> composition,
       refusion::runtime::presentation::ViewportRenderSession& render_session);
   ~EngineViewportWindow() override;
 
@@ -61,10 +62,14 @@ class EngineViewportWindow final : public QWindow {
   [[nodiscard]] qulonglong occlusionSuspends() const noexcept;
   [[nodiscard]] qulonglong occlusionResumes() const noexcept;
   [[nodiscard]] qulonglong deviceLossRejections() const noexcept;
+  void publishComposition(
+      std::shared_ptr<const refusion::core::CompositionSnapshot>
+          composition) noexcept;
 
  signals:
   void diagnosticChanged();
   void telemetryChanged();
+  void compositionChanged();
 
  protected:
   bool event(QEvent* event) override;
@@ -79,7 +84,7 @@ class EngineViewportWindow final : public QWindow {
 
   QString adapter_name_;
   QString project_path_;
-  refusion::core::CompositionSnapshot composition_;
+  std::shared_ptr<const refusion::core::CompositionSnapshot> composition_;
   refusion::runtime::presentation::ViewportRenderSession& render_session_;
   QString diagnostic_;
   bool attached_{false};

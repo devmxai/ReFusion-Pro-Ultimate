@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "policy_id": "PLAN-XPLAT-FIX-001/XPF-WP06",
+  "state_order": [
+    "defined",
+    "compiled",
+    "physically_run",
+    "semantically_matched",
+    "visual_tolerance_passed",
+    "performance_qualified",
+    "qualified"
+  ],
+  "profiles": {
+    "macos-metal-desktop-v1": {
+      "platform": "macos",
+      "backend": "metal",
+      "required_for": "desktop-v1"
+    },
+    "windows-d3d12-desktop-v1": {
+      "platform": "windows",
+      "backend": "d3d12",
+      "required_for": "desktop-v1"
+    },
+    "ios-metal-contract-canary": {
+      "platform": "ios",
+      "backend": "metal",
+      "required_for": "mobile-contract-canary"
+    },
+    "android-vulkan-contract-canary": {
+      "platform": "android",
+      "backend": "vulkan",
+      "required_for": "mobile-contract-canary"
+    }
+  },
+  "capabilities": [
+    {
+      "capability_id": "visual.properties.registry.v1",
+      "descriptor_id": "visual_property_registry",
+      "profiles": {
+        "macos-metal-desktop-v1": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["refusion.visual_property_registry", "refusion.exp006g_authoring_parity"]
+        },
+        "windows-d3d12-desktop-v1": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+        },
+        "ios-metal-contract-canary": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07A-IOS-COMPILE-2026-08-08"]
+        },
+        "android-vulkan-contract-canary": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07B-ANDROID-SOURCE-2026-08-08"]
+        }
+      }
+    },
+    {
+      "capability_id": "visual.mask.rounded_rect.v1",
+      "descriptor_id": "rounded_rect",
+      "profiles": {
+        "macos-metal-desktop-v1": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+        },
+        "windows-d3d12-desktop-v1": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+        },
+        "ios-metal-contract-canary": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07A-IOS-COMPILE-2026-08-08"]
+        },
+        "android-vulkan-contract-canary": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07B-ANDROID-SOURCE-2026-08-08"]
+        }
+      }
+    },
+    {
+      "capability_id": "visual.fx.gaussian_blur.v1",
+      "descriptor_id": "gaussian_blur",
+      "profiles": {
+        "macos-metal-desktop-v1": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+        },
+        "windows-d3d12-desktop-v1": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+        },
+        "ios-metal-contract-canary": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07A-IOS-COMPILE-2026-08-08"]
+        },
+        "android-vulkan-contract-canary": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07B-ANDROID-SOURCE-2026-08-08"]
+        }
+      }
+    },
+    {
+      "capability_id": "visual.fx.drop_shadow.v1",
+      "descriptor_id": "drop_shadow",
+      "profiles": {
+        "macos-metal-desktop-v1": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+        },
+        "windows-d3d12-desktop-v1": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+        },
+        "ios-metal-contract-canary": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07A-IOS-COMPILE-2026-08-08"]
+        },
+        "android-vulkan-contract-canary": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07B-ANDROID-SOURCE-2026-08-08"]
+        }
+      }
+    },
+    {
+      "capability_id": "visual.fx.glow.v1",
+      "descriptor_id": "glow",
+      "profiles": {
+        "macos-metal-desktop-v1": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["refusion.visual_contribution_registry", "refusion.skia_fixture_renderer"]
+        },
+        "windows-d3d12-desktop-v1": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+        },
+        "ios-metal-contract-canary": {
+          "defined": true,
+          "compiled": true,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07A-IOS-COMPILE-2026-08-08"]
+        },
+        "android-vulkan-contract-canary": {
+          "defined": true,
+          "compiled": false,
+          "physically_run": false,
+          "semantically_matched": false,
+          "visual_tolerance_passed": false,
+          "performance_qualified": false,
+          "qualified": false,
+          "evidence": ["EVID-XPF-WP07B-ANDROID-SOURCE-2026-08-08"]
+        }
+      }
+    }
+  ]
+}

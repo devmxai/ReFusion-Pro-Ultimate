@@ -1,0 +1,4 @@
+schema=refusion.xplat-project-conformance.v1
+snapshot_digest=rfx-project-fnv1a64:eacf593fd4f6b146
+registry_digest=rfx-vp-fnv1a64:f6f8d1b88fe2d101
+revision=12

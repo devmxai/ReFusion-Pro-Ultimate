@@ -16,27 +16,37 @@ bool DeviceHealth::generation_matches(
          identity.generation == candidate.generation;
 }
 
-DeviceLease::DeviceLease(DeviceIdentity identity,
-                         NativeHandles handles,
-                         std::shared_ptr<const void> lifetime)
+BackendDeviceLease::BackendDeviceLease(
+    DeviceIdentity identity,
+    std::shared_ptr<const void> backend_device,
+    std::shared_ptr<const void> backend_submission_queue)
     : identity_(std::move(identity)),
-      handles_(handles),
-      lifetime_(std::move(lifetime)) {
+      backend_device_(std::move(backend_device)),
+      backend_submission_queue_(std::move(backend_submission_queue)) {
   if (identity_.adapter_name.empty() || identity_.generation == 0) {
     throw std::invalid_argument("GPU device identity is incomplete");
   }
-  if (handles_.device == 0 || handles_.command_queue == 0 || !lifetime_) {
-    throw std::invalid_argument("GPU device lease has invalid native state");
+  if (!backend_device_ || !backend_submission_queue_) {
+    throw std::invalid_argument("GPU device lease has invalid backend state");
   }
 }
 
-const DeviceIdentity& DeviceLease::identity() const noexcept { return identity_; }
+const DeviceIdentity& BackendDeviceLease::identity() const noexcept {
+  return identity_;
+}
 
-NativeHandles DeviceLease::native_handles() const noexcept { return handles_; }
+bool BackendDeviceLease::valid() const noexcept {
+  return identity_.generation != 0 && static_cast<bool>(backend_device_) &&
+         static_cast<bool>(backend_submission_queue_);
+}
 
-bool DeviceLease::valid() const noexcept {
-  return handles_.device != 0 && handles_.command_queue != 0 &&
-         static_cast<bool>(lifetime_);
+const void* BackendDeviceLease::backend_private_device() const noexcept {
+  return backend_device_.get();
+}
+
+const void* BackendDeviceLease::backend_private_submission_queue()
+    const noexcept {
+  return backend_submission_queue_.get();
 }
 
 }  // namespace refusion::runtime::gpu

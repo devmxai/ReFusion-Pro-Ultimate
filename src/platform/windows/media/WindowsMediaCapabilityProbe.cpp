@@ -88,7 +88,8 @@ create_platform_media_capability_probe(
 
 std::unique_ptr<runtime::media::HardwareVideoDecoder>
 create_platform_hardware_video_decoder(
-    runtime::gpu::GpuDeviceService& gpu_device_service) {
+    runtime::gpu::GpuDeviceService& gpu_device_service,
+    std::shared_ptr<runtime::gpu::GpuObservabilityService>) {
   return std::make_unique<WindowsHardwareVideoDecoder>(gpu_device_service);
 }
 

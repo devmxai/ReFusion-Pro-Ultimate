@@ -1,0 +1,272 @@
+rfx 4;
+registry digest("rfx-vp-fnv1a64:f6f8d1b88fe2d101");
+
+project id("prj_exp006g_reels") revision(1)
+  name("EXP-006G Sanitized Reels Regression");
+
+composition id("cmp_exp006g_reels") name("Sanitized Reels") {
+  canvas px(1080, 1920);
+  frame_rate rational(60, 1);
+  duration frames(1800);
+
+  layer shape id("lyr_bg_base") name("Background Base") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(540, 960);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    blend(normal);
+    content shape {
+      size px(1080, 1920);
+      corner_radius px(0);
+      fill linear_gradient {
+        start local_px(-540, -960);
+        end local_px(540, 960);
+        stop ratio(0) color rgba8("#090B18FF");
+        stop ratio(0.55) color rgba8("#121A3AFF");
+        stop ratio(1) color rgba8("#080B16FF");
+      };
+      stroke width px(0) color rgba8("#000000FF");
+    }
+  }
+
+  layer shape id("lyr_bg_violet") name("Background Violet Glow") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(250, 420);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(0.92);
+    }
+    blend(screen);
+    content shape {
+      size px(860, 860);
+      corner_radius px(430);
+      fill radial_gradient {
+        center local_px(0, 0);
+        radius px(430);
+        stop ratio(0) color rgba8("#8D5CFFFF");
+        stop ratio(0.48) color rgba8("#5639B8A0");
+        stop ratio(1) color rgba8("#1A143000");
+      };
+      stroke width px(0) color rgba8("#000000FF");
+    }
+    effect gaussian_blur id("fx_bg_violet_blur") enabled(true) {
+      sigma px(42, 42);
+    }
+    animate transform.position.x {
+      key frame(0) value(250);
+      key frame(900) value(340);
+      key frame(1800) value(250);
+    }
+  }
+
+  layer shape id("lyr_bg_cyan") name("Background Cyan Glow") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(820, 1420);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(0.82);
+    }
+    blend(screen);
+    content shape {
+      size px(760, 760);
+      corner_radius px(380);
+      fill radial_gradient {
+        center local_px(0, 0);
+        radius px(380);
+        stop ratio(0) color rgba8("#20D0FFFF");
+        stop ratio(0.52) color rgba8("#1668C590");
+        stop ratio(1) color rgba8("#07142D00");
+      };
+      stroke width px(0) color rgba8("#000000FF");
+    }
+    effect gaussian_blur id("fx_bg_cyan_blur") enabled(true) {
+      sigma px(36, 36);
+    }
+    animate transform.position.y {
+      key frame(0) value(1420);
+      key frame(900) value(1320);
+      key frame(1800) value(1420);
+    }
+  }
+
+  layer text id("lyr_title") name("REFUSION PRO Title") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(540, 700);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    blend(normal);
+    content text {
+      value("REFUSION PRO");
+      font system_family("Arial");
+      font_size local_px(104);
+      box local_px(920, 180) padding local_px(12, 20, 12, 20);
+      direction(ltr);
+      horizontal_align(center);
+      vertical_align(center);
+      wrap(no_wrap);
+      overflow(clip);
+      line_height ratio(1.1);
+      letter_spacing local_px(2);
+      fill rgba8("#FFFFFFFF");
+    }
+    effect drop_shadow id("fx_title_shadow") enabled(true) {
+      offset px(0, 22);
+      sigma px(18, 18);
+      color rgba8("#040610B0");
+    }
+    effect glow id("fx_title_glow") enabled(true) {
+      sigma px(20);
+      color rgba8("#8D5CFFB0");
+    }
+    animate transform.scale.x {
+      key frame(0) value(0.82);
+      key frame(24) value(1.04);
+      key frame(48) value(1);
+      key frame(1800) value(1);
+    }
+    animate transform.scale.y {
+      key frame(0) value(0.82);
+      key frame(24) value(1.04);
+      key frame(48) value(1);
+      key frame(1800) value(1);
+    }
+    animate transform.opacity {
+      key frame(0) value(0);
+      key frame(24) value(1);
+      key frame(1800) value(1);
+    }
+  }
+
+  layer shape id("lyr_subscribe_body") name("Subscribe Body") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(0, 0);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    blend(normal);
+    content shape {
+      size px(780, 190);
+      corner_radius px(95);
+      fill linear_gradient {
+        start local_px(-390, 0);
+        end local_px(390, 0);
+        stop ratio(0) color rgba8("#FF3E58FF");
+        stop ratio(0.5) color rgba8("#FF294DFF");
+        stop ratio(1) color rgba8("#8D5CFFFF");
+      };
+      stroke width px(3) color rgba8("#FFFFFF70");
+    }
+    effect drop_shadow id("fx_subscribe_shadow") enabled(true) {
+      offset px(0, 28);
+      sigma px(24, 24);
+      color rgba8("#050812A0");
+    }
+  }
+
+  layer text id("lyr_subscribe_label") name("Subscribe Label") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(0, 0);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    blend(normal);
+    content text {
+      value("SUBSCRIBE");
+      font system_family("Arial");
+      font_size local_px(66);
+      box local_px(520, 120) padding local_px(8, 12, 8, 12);
+      direction(ltr);
+      horizontal_align(center);
+      vertical_align(center);
+      wrap(no_wrap);
+      overflow(clip);
+      line_height ratio(1);
+      letter_spacing local_px(1);
+      fill rgba8("#FFFFFFFF");
+    }
+  }
+
+  layer shape id("lyr_subscribe_bell") name("Subscribe Bell") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(292, 0);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    blend(screen);
+    content shape {
+      size px(112, 112);
+      corner_radius px(56);
+      fill rgba8("#FFFFFFE8");
+      stroke width px(0) color rgba8("#000000FF");
+    }
+    effect glow id("fx_bell_glow") enabled(true) {
+      sigma px(14);
+      color rgba8("#FFFFFFFF");
+    }
+  }
+
+  group id("grp_background") name("Background") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(0, 0);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    children {
+      layer("lyr_bg_base");
+      layer("lyr_bg_violet");
+      layer("lyr_bg_cyan");
+    }
+  }
+
+  group id("grp_subscribe") name("Subscribe Component") {
+    range frames(0, 1800);
+    transform {
+      position parent_px(540, 1120);
+      anchor local_px(0, 0);
+      scale ratio(1, 1);
+      rotation degrees(0);
+      opacity ratio(1);
+    }
+    children {
+      layer("lyr_subscribe_body");
+      layer("lyr_subscribe_label");
+      layer("lyr_subscribe_bell");
+    }
+    animate transform.position.y {
+      key frame(0) value(1240);
+      key frame(36) value(1100);
+      key frame(60) value(1120);
+      key frame(1800) value(1120);
+    }
+  }
+
+  root {
+    group("grp_background");
+    layer("lyr_title");
+    group("grp_subscribe");
+  }
+}

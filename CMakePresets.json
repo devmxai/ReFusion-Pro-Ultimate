@@ -18,6 +18,49 @@
       }
     },
     {
+      "name": "ios-canary-base",
+      "hidden": true,
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "iOS",
+        "CMAKE_OSX_SYSROOT": "iphoneos",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "18.0",
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY",
+        "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO",
+        "BUILD_TESTING": "OFF",
+        "REFUSION_BUILD_CLI": "OFF",
+        "REFUSION_STRICT_WARNINGS": "ON"
+      }
+    },
+    {
+      "name": "android-canary-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "$env{ANDROID_NDK_HOME}",
+        "rhs": ""
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake",
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-28",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY",
+        "BUILD_TESTING": "OFF",
+        "REFUSION_BUILD_CLI": "OFF",
+        "REFUSION_STRICT_WARNINGS": "ON"
+      }
+    },
+    {
       "name": "macos-core",
       "inherits": "base",
       "displayName": "macOS portable core",
@@ -52,6 +95,7 @@
       "cacheVariables": {
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_PROFILE": "macos-arm64-metal",
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
         "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/macos-arm64-metal"
       }
@@ -65,6 +109,7 @@
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_BUILD_PLATFORM_MEDIA": "ON",
         "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_PROFILE": "macos-arm64-metal",
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
         "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/macos-arm64-metal"
       }
@@ -103,8 +148,17 @@
       "cacheVariables": {
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_PROFILE": "windows-x64-d3d12",
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
         "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/windows-x64-d3d12"
+      }
+    },
+    {
+      "name": "windows-visual",
+      "inherits": "windows-graphics",
+      "displayName": "Windows native Qt + D3D12 + Skia visual runtime",
+      "cacheVariables": {
+        "REFUSION_BUILD_STUDIO": "ON"
       }
     },
     {
@@ -114,6 +168,40 @@
       "cacheVariables": {
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_BUILD_PLATFORM_MEDIA": "ON"
+      }
+    },
+    {
+      "name": "ios-core-canary",
+      "inherits": "ios-canary-base",
+      "displayName": "iOS arm64 portable Core/RFX/RenderPlan contract canary"
+    },
+    {
+      "name": "ios-graphics-canary",
+      "inherits": "ios-core-canary",
+      "displayName": "iOS arm64 Metal + shared Skia contract canary",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_PROFILE": "ios-arm64-metal-canary",
+        "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
+        "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/ios-arm64-metal-canary"
+      }
+    },
+    {
+      "name": "android-core-canary",
+      "inherits": "android-canary-base",
+      "displayName": "Android arm64-v8a portable Core/RFX/RenderPlan contract canary"
+    },
+    {
+      "name": "android-graphics-canary",
+      "inherits": "android-core-canary",
+      "displayName": "Android arm64-v8a Vulkan + shared Skia contract canary",
+      "cacheVariables": {
+        "REFUSION_BUILD_PLATFORM_GPU": "ON",
+        "REFUSION_ENABLE_SKIA": "ON",
+        "REFUSION_SKIA_PROFILE": "android-arm64-vulkan-canary",
+        "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
+        "REFUSION_SKIA_BUILD_DIR": "${sourceDir}/out/deps-build/skia/android-arm64-vulkan-canary"
       }
     }
   ],
@@ -127,7 +215,12 @@
     { "name": "windows-core", "configurePreset": "windows-core" },
     { "name": "windows-studio", "configurePreset": "windows-studio" },
     { "name": "windows-graphics", "configurePreset": "windows-graphics" },
-    { "name": "windows-media", "configurePreset": "windows-media" }
+    { "name": "windows-visual", "configurePreset": "windows-visual" },
+    { "name": "windows-media", "configurePreset": "windows-media" },
+    { "name": "ios-core-canary", "configurePreset": "ios-core-canary", "configuration": "Debug" },
+    { "name": "ios-graphics-canary", "configurePreset": "ios-graphics-canary", "configuration": "Debug" },
+    { "name": "android-core-canary", "configurePreset": "android-core-canary" },
+    { "name": "android-graphics-canary", "configurePreset": "android-graphics-canary" }
   ],
   "testPresets": [
     {
@@ -177,6 +270,11 @@
     {
       "name": "windows-graphics",
       "configurePreset": "windows-graphics",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-visual",
+      "configurePreset": "windows-visual",
       "output": { "outputOnFailure": true }
     },
     {
@@ -259,11 +357,47 @@
       ]
     },
     {
+      "name": "windows-visual",
+      "steps": [
+        { "type": "configure", "name": "windows-visual" },
+        { "type": "build", "name": "windows-visual" },
+        { "type": "test", "name": "windows-visual" }
+      ]
+    },
+    {
       "name": "windows-media",
       "steps": [
         { "type": "configure", "name": "windows-media" },
         { "type": "build", "name": "windows-media" },
         { "type": "test", "name": "windows-media" }
+      ]
+    },
+    {
+      "name": "ios-core-canary",
+      "steps": [
+        { "type": "configure", "name": "ios-core-canary" },
+        { "type": "build", "name": "ios-core-canary" }
+      ]
+    },
+    {
+      "name": "ios-graphics-canary",
+      "steps": [
+        { "type": "configure", "name": "ios-graphics-canary" },
+        { "type": "build", "name": "ios-graphics-canary" }
+      ]
+    },
+    {
+      "name": "android-core-canary",
+      "steps": [
+        { "type": "configure", "name": "android-core-canary" },
+        { "type": "build", "name": "android-core-canary" }
+      ]
+    },
+    {
+      "name": "android-graphics-canary",
+      "steps": [
+        { "type": "configure", "name": "android-graphics-canary" },
+        { "type": "build", "name": "android-graphics-canary" }
       ]
     }
   ]

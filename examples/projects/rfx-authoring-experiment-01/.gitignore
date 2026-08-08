@@ -1,0 +1,3 @@
+# Runtime-owned, reproducible or session-local state. It remains visible to the
+# local agent while Studio runs but is not authored project truth.
+.refusion/

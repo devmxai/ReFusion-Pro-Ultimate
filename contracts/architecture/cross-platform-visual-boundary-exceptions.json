@@ -1,0 +1,458 @@
+{
+  "schema_version": 1,
+  "policy_id": "PLAN-XPLAT-FIX-001/XPF-WP00A",
+  "mode": "shrink-only",
+  "frozen_baseline": [
+    {
+      "id": "xpf-visual-debt-001",
+      "rule": "common-native-include",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "include/ports/SkFontMgr_android.h",
+      "initial_occurrences": 1,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-002",
+      "rule": "common-native-include",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "include/ports/SkFontMgr_mac_ct.h",
+      "initial_occurrences": 1,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-003",
+      "rule": "common-native-include",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "include/ports/SkTypeface_win.h",
+      "initial_occurrences": 1,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-004",
+      "rule": "common-native-link",
+      "path": "src/adapters/skia/CMakeLists.txt",
+      "symbol": "ReFusion::PlatformMedia",
+      "initial_occurrences": 1,
+      "owner": "skia-build-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-005",
+      "rule": "common-platform-branch",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "_WIN32",
+      "initial_occurrences": 2,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-006",
+      "rule": "common-platform-branch",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "__ANDROID__",
+      "initial_occurrences": 2,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-007",
+      "rule": "common-platform-branch",
+      "path": "src/adapters/skia/SkiaTextLayout.cpp",
+      "symbol": "__APPLE__",
+      "initial_occurrences": 2,
+      "owner": "qualified-text-platform-split",
+      "removal_work_package": "XPF-WP03",
+      "expires": "XPF-WP03-exit"
+    },
+    {
+      "id": "xpf-visual-debt-008",
+      "rule": "common-platform-definition",
+      "path": "src/adapters/skia/CMakeLists.txt",
+      "symbol": "REFUSION_SKIA_APPLE_MEDIA",
+      "initial_occurrences": 1,
+      "owner": "skia-build-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-009",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::BlendMode",
+      "initial_occurrences": 6,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-010",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::ColorRgba8",
+      "initial_occurrences": 2,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-011",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::CompositionSnapshot",
+      "initial_occurrences": 6,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-012",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::DropShadowEffect",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-013",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::GaussianBlurEffect",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-014",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::GlowEffect",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-015",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::GradientStop",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-016",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::LayerEffect",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-017",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::LinearGradientFill",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-018",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::RadialGradientFill",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-019",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::ShapeLayerContent",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-020",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::TextLayerContent",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-021",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::TextOverflowMode",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-022",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::evaluate_visual_layers",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-023",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/SkiaGpuContextsMetal.mm",
+      "symbol": "core::validate_composition",
+      "initial_occurrences": 2,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-024",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/include/refusion/adapters/skia/SkiaGpuContexts.hpp",
+      "symbol": "ProjectDocument.hpp",
+      "initial_occurrences": 1,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-025",
+      "rule": "native-project-semantics",
+      "path": "src/adapters/skia/include/refusion/adapters/skia/SkiaGpuContexts.hpp",
+      "symbol": "core::CompositionSnapshot",
+      "initial_occurrences": 2,
+      "owner": "runtime-rendering-boundary",
+      "removal_work_package": "XPF-WP02",
+      "expires": "XPF-WP02-exit"
+    },
+    {
+      "id": "xpf-visual-debt-026",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "add-effect:drop_shadow",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-027",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "add-effect:gaussian_blur",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-028",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "add-effect:glow",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-029",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "qml-kind-dispatch:drop_shadow",
+      "initial_occurrences": 9,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-030",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "qml-kind-dispatch:gaussian_blur",
+      "initial_occurrences": 4,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-031",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/Main.qml",
+      "symbol": "qml-kind-dispatch:glow",
+      "initial_occurrences": 3,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-032",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::DropShadowEffect",
+      "initial_occurrences": 3,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-033",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::GaussianBlurEffect",
+      "initial_occurrences": 3,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-034",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::GlowEffect",
+      "initial_occurrences": 3,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-035",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::LayerEffect",
+      "initial_occurrences": 4,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-036",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::LayerMask",
+      "initial_occurrences": 2,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-037",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "core::RoundedRectMask",
+      "initial_occurrences": 2,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-038",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "effect-dispatch:drop_shadow",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-039",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "effect-dispatch:gaussian_blur",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-040",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.cpp",
+      "symbol": "effect-dispatch:glow",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-041",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.hpp",
+      "symbol": "core::LayerEffect",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-042",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioBridge.hpp",
+      "symbol": "core::LayerMask",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-043",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioTransportBridge.cpp",
+      "symbol": "core::DropShadowEffect",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-044",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioTransportBridge.cpp",
+      "symbol": "core::GaussianBlurEffect",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    },
+    {
+      "id": "xpf-visual-debt-045",
+      "rule": "studio-effect-vocabulary",
+      "path": "apps/studio/StudioTransportBridge.cpp",
+      "symbol": "core::LayerEffect",
+      "initial_occurrences": 1,
+      "owner": "studio-descriptor-projection",
+      "removal_work_package": "XPF-WP06",
+      "expires": "XPF-WP06-exit"
+    }
+  ],
+  "active_allowances": {}
+}

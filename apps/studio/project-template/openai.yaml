@@ -1,0 +1,4 @@
+interface:
+  display_name: "ReFusion Project Authoring"
+  short_description: "Author validated typed ReFusion projects"
+  default_prompt: "Use $refusion-project-authoring to edit and validate this Project.rfx."

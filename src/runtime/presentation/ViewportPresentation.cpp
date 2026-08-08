@@ -48,11 +48,27 @@ std::uint32_t ViewportExtent::height_pixels() const noexcept {
   return scaled_extent(height_points, pixels_per_point);
 }
 
-bool NativeViewportHost::valid() const noexcept { return handle != 0; }
+bool NativeViewportHostLease::valid() const noexcept {
+  return host_id != 0 && static_cast<bool>(backend_private_state);
+}
 
-bool NativeFrameTarget::valid() const noexcept {
-  return texture != 0 && width_pixels != 0 && height_pixels != 0 &&
-         device_generation != 0;
+const void* NativeViewportHostLease::backend_private_host() const noexcept {
+  return backend_private_state.get();
+}
+
+bool BackendFrameTargetLease::valid() const noexcept {
+  return target_id != 0 && width_pixels != 0 && height_pixels != 0 &&
+         device.generation != 0 && !device.adapter_name.empty() &&
+         static_cast<bool>(backend_private_state);
+}
+
+const void* BackendFrameTargetLease::backend_private_target() const noexcept {
+  return backend_private_state.get();
+}
+
+bool PresentationFrameRequest::valid() const noexcept {
+  return device.generation != 0 && !device.adapter_name.empty() &&
+         render_program && render_program->valid();
 }
 
 bool PlaybackSpec::valid() const noexcept {
@@ -95,12 +111,16 @@ bool PresentationTelemetry::zero_cpu_pixel_transfer() const noexcept {
 
 ViewportRenderSession::ViewportRenderSession(ViewportPresenter& presenter,
                                              PlaybackSpec playback_spec,
-                                             ClockNow clock_now)
+                                             ClockNow clock_now,
+                                             std::shared_ptr<const
+                                                 render::VisualRenderProgram>
+                                                 render_program)
     : presenter_(presenter),
       playback_spec_(playback_spec),
       project_clock_(project_clock_spec(playback_spec)),
       clock_now_(clock_now ? std::move(clock_now)
                            : [] { return std::chrono::steady_clock::now(); }),
+      render_program_(std::move(render_program)),
       render_thread_([this](const std::stop_token stop_token) {
         render_loop(stop_token);
       }) {
@@ -118,7 +138,7 @@ ViewportRenderSession::~ViewportRenderSession() {
   set_frame_observer({});
 }
 
-FrameResult ViewportRenderSession::attach(const NativeViewportHost host) {
+FrameResult ViewportRenderSession::attach(const NativeViewportHostLease host) {
   std::scoped_lock lock(mutex_);
   auto result = presenter_.attach(host);
   attached_ = result.succeeded();
@@ -206,14 +226,15 @@ core::ClockTick ViewportRenderSession::clock_tick(
   };
 }
 
-FixtureFrame ViewportRenderSession::next_frame_locked(
+PresentationFrameRequest ViewportRenderSession::next_frame_locked(
     const core::ProjectClockSnapshot& clock_snapshot) noexcept {
-  return FixtureFrame{
-      .frame_index = next_frame_index_++,
-      .presentation_time_ns = clock_snapshot.position_ns,
-      .duration_ns = playback_spec_.duration_ns,
+  return PresentationFrameRequest{
+      .request_sequence = next_frame_index_++,
+      .project_time_ns = clock_snapshot.position_ns,
       .loop_index = clock_snapshot.loop_index,
       .transport_epoch_id = clock_snapshot.epoch_id,
+      .device = presenter_.device_identity(),
+      .render_program = render_program_,
   };
 }
 
@@ -323,6 +344,16 @@ PlaybackState ViewportRenderSession::playback_state() const {
 void ViewportRenderSession::set_frame_observer(FrameObserver observer) {
   std::scoped_lock lock(observer_mutex_);
   frame_observer_ = std::move(observer);
+}
+
+void ViewportRenderSession::publish_render_program(
+    std::shared_ptr<const render::VisualRenderProgram> render_program) noexcept {
+  if (!render_program || !render_program->valid()) {
+    return;
+  }
+  std::scoped_lock lock(mutex_);
+  render_program_ = std::move(render_program);
+  wake_.notify_all();
 }
 
 void ViewportRenderSession::notify_frame_observer() {

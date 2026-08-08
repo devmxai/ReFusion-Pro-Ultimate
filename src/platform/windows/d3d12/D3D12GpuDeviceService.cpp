@@ -149,18 +149,15 @@ class D3D12GpuDeviceService final : public runtime::gpu::GpuDeviceService {
     return health_locked();
   }
 
-  [[nodiscard]] runtime::gpu::DeviceLease borrow() override {
+  [[nodiscard]] runtime::gpu::BackendDeviceLease borrow() override {
     std::scoped_lock lock(mutex_);
     if (status_ != runtime::gpu::DeviceStatus::ready) {
       throw std::runtime_error(code_.empty() ? "GPU device is not ready" : code_);
     }
-    return runtime::gpu::DeviceLease(
+    return runtime::gpu::BackendDeviceLease(
         identity_,
-        runtime::gpu::NativeHandles{
-            .device = reinterpret_cast<std::uintptr_t>(state_->device.Get()),
-            .command_queue = reinterpret_cast<std::uintptr_t>(state_->command_queue.Get()),
-        },
-        state_);
+        std::shared_ptr<const void>(state_, state_->device.Get()),
+        std::shared_ptr<const void>(state_, state_->command_queue.Get()));
   }
 
  private:

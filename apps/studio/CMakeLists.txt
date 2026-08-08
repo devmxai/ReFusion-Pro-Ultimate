@@ -19,7 +19,8 @@ if(REFUSION_RELEASE_BUILD)
   list(PREPEND CMAKE_PREFIX_PATH "${refusion_qt_sdk_root}")
 endif()
 
-find_package(Qt6 6.11.1 EXACT REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+find_package(Qt6 6.11.1 EXACT REQUIRED COMPONENTS
+  Core Gui Qml Quick QuickControls2 QuickDialogs2)
 
 if(REFUSION_RELEASE_BUILD)
   file(REAL_PATH "${Qt6_DIR}" refusion_qt6_dir)
@@ -67,8 +68,12 @@ target_link_libraries(refusion_studio_bridge
 refusion_enable_warnings(refusion_studio_bridge)
 
 add_library(refusion_project_file_adapter STATIC
-  adapters/QtJsonProjectFileAdapter.cpp
-  adapters/QtJsonProjectFileAdapter.hpp
+  adapters/QtProjectFontAssetResolver.cpp
+  adapters/QtProjectFontAssetResolver.hpp
+  adapters/QtProjectWorkspaceCreator.cpp
+  adapters/QtProjectWorkspaceCreator.hpp
+  adapters/QtRfxProjectFileAdapter.cpp
+  adapters/QtRfxProjectFileAdapter.hpp
 )
 
 add_library(ReFusion::ProjectFileAdapter ALIAS refusion_project_file_adapter)
@@ -86,13 +91,101 @@ target_link_libraries(refusion_project_file_adapter
 
 refusion_enable_warnings(refusion_project_file_adapter)
 
+qt_add_resources(refusion_project_file_adapter "refusion_project_templates"
+  PREFIX "/refusion/project-template"
+  BASE "${CMAKE_CURRENT_SOURCE_DIR}/project-template"
+  FILES
+    project-template/AGENTS.md
+    project-template/SKILL.md
+    project-template/openai.yaml
+    project-template/supported-capabilities.md
+    project-template/coordinates-and-time.md
+    project-template/semantic-authoring.md
+    project-template/language-v1.md
+    project-template/language-v2.md
+    project-template/language-v3.md
+    project-template/language-v4.md
+    project-template/language-v5.md
+    project-template/diagnostics-and-repair.md
+)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+foreach(refusion_font_component IN ITEMS
+    noto_sans_latin_baseline noto_sans_arabic_baseline)
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/bootstrap.py"
+            verify-font "${refusion_font_component}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE refusion_font_verify_result
+    OUTPUT_VARIABLE refusion_font_verify_output
+    ERROR_VARIABLE refusion_font_verify_error)
+  if(NOT refusion_font_verify_result EQUAL 0)
+    message(FATAL_ERROR
+      "Packaged font ${refusion_font_component} is absent or changed; run "
+      "tools/bootstrap.py sync-font ${refusion_font_component} --fresh\n"
+      "${refusion_font_verify_output}${refusion_font_verify_error}")
+  endif()
+endforeach()
+
+qt_add_resources(refusion_project_file_adapter "refusion_packaged_fonts"
+  PREFIX "/refusion/fonts"
+  BASE "${CMAKE_SOURCE_DIR}/out/deps-src"
+  FILES
+    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/font.ttf"
+    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/OFL.txt"
+    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf"
+    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/OFL.txt"
+)
+
+add_library(refusion_project_launcher STATIC
+  ProjectLauncherBridge.cpp
+  ProjectLauncherBridge.hpp
+)
+
+add_library(ReFusion::ProjectLauncher ALIAS refusion_project_launcher)
+
+target_include_directories(refusion_project_launcher
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_link_libraries(refusion_project_launcher
+  PUBLIC
+    ReFusion::Application
+    ReFusion::ProjectFileAdapter
+    Qt6::Core
+)
+
+refusion_enable_warnings(refusion_project_launcher)
+
+add_library(refusion_project_live_reload STATIC
+  ProjectLiveReloadController.cpp
+  ProjectLiveReloadController.hpp
+  StudioRuntimeComposition.hpp
+)
+
+add_library(ReFusion::ProjectLiveReload ALIAS refusion_project_live_reload)
+
+target_include_directories(refusion_project_live_reload
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_link_libraries(refusion_project_live_reload
+  PUBLIC
+    ReFusion::StudioBridge
+    Qt6::Core
+)
+
+refusion_enable_warnings(refusion_project_live_reload)
+
 set(refusion_studio_sources
   main.cpp
   StudioRuntimeComposition.hpp
 )
 
 set(refusion_studio_visual_runtime OFF)
-if(APPLE AND TARGET ReFusion::PlatformGpu AND TARGET ReFusion::SkiaAdapter)
+if((APPLE OR WIN32) AND TARGET ReFusion::PlatformGpu AND TARGET ReFusion::SkiaAdapter)
   list(APPEND refusion_studio_sources
     EngineViewportWindow.cpp
     EngineViewportWindow.hpp
@@ -106,7 +199,7 @@ endif()
 qt_add_executable(refusion-studio ${refusion_studio_sources})
 
 target_compile_definitions(refusion-studio PRIVATE
-  REFUSION_DEFAULT_PROJECT_PATH="${CMAKE_SOURCE_DIR}/examples/projects/reels-demo-30s/ReFusionDemoReel.refusion.json"
+  REFUSION_CLI_PATH="$<TARGET_FILE:refusion-cli>"
 )
 
 target_include_directories(refusion-studio
@@ -116,21 +209,26 @@ target_include_directories(refusion-studio
 qt_add_qml_module(refusion-studio
   URI ReFusion.Studio
   VERSION 1.0
-  QML_FILES Main.qml
+  QML_FILES Launcher.qml Main.qml
 )
 
 target_link_libraries(refusion-studio
   PRIVATE
     ReFusion::StudioBridge
     ReFusion::ProjectFileAdapter
+    ReFusion::ProjectLauncher
+    ReFusion::ProjectLiveReload
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::QuickDialogs2
 )
 
 if(refusion_studio_visual_runtime)
+  target_compile_definitions(refusion-studio PRIVATE
+    REFUSION_STUDIO_SKIA_MEASUREMENT=1)
   target_link_libraries(refusion-studio
     PRIVATE
       ReFusion::PlatformGpu

@@ -1,5 +1,8 @@
 add_library(refusion_application STATIC
+  AgentAuthoringGuide.cpp
   ApplicationHost.cpp
+  ProjectCreationService.cpp
+  VisualContributionCommands.cpp
 )
 
 add_library(ReFusion::Application ALIAS refusion_application)

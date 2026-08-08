@@ -4,7 +4,7 @@
     "macos-arm64-metal": {
       "host": "macos-arm64",
       "gn_args": "macos-arm64-metal.gn",
-      "targets": ["skia", "modules/skshaper"],
+      "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
       "bundle_artifact": "librefusion_skia_bundle.a",
       "purpose": "G1 graphics preflight; not a release artifact",
       "qualification": "macos-context-creation-proved"
@@ -12,7 +12,7 @@
     "macos-arm64-metal-release": {
       "host": "macos-arm64",
       "gn_args": "macos-arm64-metal-release.gn",
-      "targets": ["skia", "modules/skshaper"],
+      "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
       "bundle_artifact": "librefusion_skia_bundle.a",
       "purpose": "redistributable candidate; requires clean rebuild and G1 qualification",
       "qualification": "defined-not-built"
@@ -20,10 +20,26 @@
     "windows-x64-d3d12": {
       "host": "windows-x64",
       "gn_args": "windows-x64-d3d12.gn",
-      "targets": ["skia", "modules/skshaper"],
+      "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
       "bundle_artifact": "refusion_skia_bundle.lib",
-      "purpose": "G1 D3D/Dawn candidate; blocked by missing same-device adapter",
+      "purpose": "G1 D3D12/Ganesh visual candidate; source wiring exists and physical Windows qualification is required",
       "qualification": "windows-runner-required"
+    },
+    "ios-arm64-metal-canary": {
+      "host": "macos-arm64",
+      "gn_args": "ios-arm64-metal-canary.gn",
+      "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
+      "bundle_artifact": "librefusion_skia_bundle.a",
+      "purpose": "G1 iOS arm64 portable visual contract canary; not a product artifact",
+      "qualification": "defined-not-built"
+    },
+    "android-arm64-vulkan-canary": {
+      "host": "android-ndk-host",
+      "gn_args": "android-arm64-vulkan-canary.gn",
+      "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
+      "bundle_artifact": "librefusion_skia_bundle.a",
+      "purpose": "G1 Android arm64-v8a portable visual contract canary; not a product artifact",
+      "qualification": "android-ndk-required"
     }
   }
 }

@@ -14,7 +14,7 @@
 EngineViewportWindow::EngineViewportWindow(
     QString adapter_name,
     QString project_path,
-    refusion::core::CompositionSnapshot composition,
+    std::shared_ptr<const refusion::core::CompositionSnapshot> composition,
     refusion::runtime::presentation::ViewportRenderSession& render_session)
     : adapter_name_(std::move(adapter_name)),
       project_path_(std::move(project_path)),
@@ -61,25 +61,37 @@ bool EngineViewportWindow::playbackRunning() const noexcept {
 }
 
 uint EngineViewportWindow::compositionWidth() const noexcept {
-  return composition_.canvas.width_pixels;
+  return composition_->canvas.width_pixels;
 }
 
 uint EngineViewportWindow::compositionHeight() const noexcept {
-  return composition_.canvas.height_pixels;
+  return composition_->canvas.height_pixels;
 }
 
 QString EngineViewportWindow::compositionName() const {
-  return QString::fromStdString(composition_.display_name);
+  return QString::fromStdString(composition_->display_name);
 }
 
 QString EngineViewportWindow::projectPath() const { return project_path_; }
 
 QStringList EngineViewportWindow::layerNames() const {
   QStringList names;
-  names.reserve(static_cast<qsizetype>(composition_.layers.size()));
-  for (auto layer = composition_.layers.rbegin();
-       layer != composition_.layers.rend(); ++layer) {
-    names.push_back(QString::fromStdString(layer->display_name));
+  const auto roots = refusion::core::composition_root_nodes(*composition_);
+  names.reserve(static_cast<qsizetype>(roots.size()));
+  for (auto node = roots.rbegin(); node != roots.rend(); ++node) {
+    if (const auto* layer_id =
+            std::get_if<refusion::core::LayerId>(&*node)) {
+      const auto* layer = refusion::core::find_layer(*composition_, *layer_id);
+      if (layer != nullptr) {
+        names.push_back(QString::fromStdString(layer->display_name));
+      }
+    } else {
+      const auto* group = refusion::core::find_layer_group(
+          *composition_, std::get<refusion::core::LayerGroupId>(*node));
+      if (group != nullptr) {
+        names.push_back(QString::fromStdString(group->display_name));
+      }
+    }
   }
   return names;
 }
@@ -120,6 +132,13 @@ qulonglong EngineViewportWindow::deviceLossRejections() const noexcept {
   return render_session_.telemetry().device_loss_rejections;
 }
 
+void EngineViewportWindow::publishComposition(
+    std::shared_ptr<const refusion::core::CompositionSnapshot>
+        composition) noexcept {
+  composition_ = std::move(composition);
+  emit compositionChanged();
+}
+
 bool EngineViewportWindow::event(QEvent* event) {
   if (event->type() == QEvent::PlatformSurface) {
     const auto* surface_event = static_cast<QPlatformSurfaceEvent*>(event);
@@ -157,10 +176,8 @@ void EngineViewportWindow::ensure_attached() {
   }
   create();
   const auto result = render_session_.attach(
-      refusion::runtime::presentation::NativeViewportHost{
-          .window_system = refusion::platform::platform_native_window_system(),
-          .handle = static_cast<std::uintptr_t>(winId()),
-      });
+      refusion::platform::acquire_platform_viewport_host(
+          static_cast<std::uintptr_t>(winId())));
   attached_ = result.succeeded();
   if (result.status == refusion::runtime::presentation::FrameStatus::rejected) {
     set_diagnostic(QString::fromStdString(result.diagnostic));

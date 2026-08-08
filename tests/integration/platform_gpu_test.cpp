@@ -24,8 +24,8 @@ int main() {
   auto lease = service->borrow();
   require(lease.valid());
   require(lease.identity().generation == service->identity().generation);
-  require(lease.native_handles().device != 0);
-  require(lease.native_handles().command_queue != 0);
+  require(lease.backend_private_device() != nullptr);
+  require(lease.backend_private_submission_queue() != nullptr);
 
   using refusion::runtime::gpu::DeviceLifecycleEvent;
   using refusion::runtime::gpu::DeviceStatus;

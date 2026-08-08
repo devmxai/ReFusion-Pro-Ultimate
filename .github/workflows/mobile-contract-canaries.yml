@@ -1,0 +1,83 @@
+name: Mobile Contract Canaries
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-contract-canaries-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-arm64:
+    name: iOS arm64 Core + Metal/Skia compile contract
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out the immutable source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify repository policy
+        run: |
+          python3 tools/bootstrap.py doctor
+          python3 tools/rfdev.py docs-doctor
+          python3 tools/rfdev.py architecture-check
+
+      - name: Materialize pinned official Skia sources
+        run: |
+          python3 tools/bootstrap.py sync depot_tools --fresh
+          python3 tools/bootstrap.py sync skia --fresh
+          python3 tools/bootstrap.py hydrate-skia
+          python3 tools/bootstrap.py verify-skia-materialization
+
+      - name: Build pinned iOS Skia contract profile
+        run: python3 tools/bootstrap.py build-skia --profile ios-arm64-metal-canary
+
+      - name: Compile iOS portable and visual contracts
+        run: |
+          cmake --workflow --preset ios-core-canary
+          cmake --workflow --preset ios-graphics-canary
+
+  android-arm64:
+    name: Android arm64-v8a Core + Vulkan/Skia compile contract
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      REFUSION_ANDROID_NDK_VERSION: 28.2.13676358
+    steps:
+      - name: Check out the immutable source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned official Android NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$REFUSION_ANDROID_NDK_VERSION"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$REFUSION_ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: Verify repository policy
+        run: |
+          python3 tools/bootstrap.py doctor
+          python3 tools/rfdev.py docs-doctor
+          python3 tools/rfdev.py architecture-check
+
+      - name: Materialize pinned official Skia sources
+        run: |
+          python3 tools/bootstrap.py sync depot_tools --fresh
+          python3 tools/bootstrap.py sync skia --fresh
+          python3 tools/bootstrap.py hydrate-skia
+          python3 tools/bootstrap.py verify-skia-materialization
+
+      - name: Build pinned Android Skia contract profile
+        run: python3 tools/bootstrap.py build-skia --profile android-arm64-vulkan-canary
+
+      - name: Compile Android portable and visual contracts
+        run: |
+          cmake --workflow --preset android-core-canary
+          cmake --workflow --preset android-graphics-canary

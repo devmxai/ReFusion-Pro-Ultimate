@@ -39,7 +39,7 @@ class AppleMediaCapabilityProbe final
                      "The strict decode profile has an invalid coded extent");
     }
 
-    std::optional<runtime::gpu::DeviceLease> gpu_lease;
+    std::optional<runtime::gpu::BackendDeviceLease> gpu_lease;
     try {
       gpu_lease.emplace(gpu_device_service_.borrow());
     } catch (const std::exception& error) {
@@ -63,8 +63,8 @@ class AppleMediaCapabilityProbe final
     }
     ++counters_.hardware_decoder_admissions;
 
-    id<MTLDevice> metal_device = (__bridge id<MTLDevice>)(
-        reinterpret_cast<void*>(gpu_lease->native_handles().device));
+    id<MTLDevice> metal_device = (__bridge id<MTLDevice>)(const_cast<void *>(
+        gpu_lease->backend_private_device()));
     if (metal_device == nil ||
         static_cast<std::uint64_t>(metal_device.registryID) !=
             gpu_lease->identity().adapter_id) {

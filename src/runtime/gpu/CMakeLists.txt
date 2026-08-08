@@ -1,5 +1,6 @@
 add_library(refusion_runtime_gpu STATIC
   GpuDeviceService.cpp
+  GpuObservability.cpp
 )
 
 add_library(ReFusion::RuntimeGpu ALIAS refusion_runtime_gpu)

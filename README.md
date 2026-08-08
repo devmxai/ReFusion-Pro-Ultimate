@@ -14,8 +14,16 @@ Read in this order:
 
 1. [`AGENTS.md`](AGENTS.md)
 2. [`docs/status/CURRENT.md`](docs/status/CURRENT.md)
-3. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
-4. the current stage plan linked from `CURRENT.md`
+3. every active guardrail linked from `CURRENT.md`, currently
+   [`Fix Cross-Platform Architecture`](docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md)
+4. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
+5. the current stage plan linked from `CURRENT.md`
+
+Visual development is single-source: portable descriptors/evaluation compile
+to one RenderPlan executed by one common Skia compositor. Metal, D3D12 and
+Vulkan targets differ only in native device/target/import/sync/present mechanics.
+The D3D12/DXGI source route and `windows-visual` lane are defined, but Windows
+build/device/pixel evidence remains `not-run` until a real Windows lab exists.
 
 The large foundation discussion is preserved in
 `docs/research/foundation-screening-draft.md`; it is research evidence, not an
