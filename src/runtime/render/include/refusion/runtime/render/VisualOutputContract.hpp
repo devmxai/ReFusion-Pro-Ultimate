@@ -13,6 +13,11 @@ enum class VisualOutputConsumer : std::uint8_t {
   offline_export,
 };
 
+// A shared admission predicate prevents presentation/export adapters from
+// inventing consumer values or silently selecting a semantic fork.
+[[nodiscard]] bool is_known_visual_output_consumer(
+    VisualOutputConsumer consumer) noexcept;
+
 // One exact-time plan prepared by the shared semantic route. The consumer
 // identity is metadata only and cannot participate in plan lowering.
 struct VisualOutputFrame final {

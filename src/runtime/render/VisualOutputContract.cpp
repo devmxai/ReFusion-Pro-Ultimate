@@ -7,16 +7,6 @@
 namespace refusion::runtime::render {
 namespace {
 
-[[nodiscard]] bool known_consumer(
-    const VisualOutputConsumer consumer) noexcept {
-  switch (consumer) {
-    case VisualOutputConsumer::interactive_preview:
-    case VisualOutputConsumer::offline_export:
-      return true;
-  }
-  return false;
-}
-
 [[nodiscard]] bool complementary_consumers(
     const VisualOutputConsumer first,
     const VisualOutputConsumer second) noexcept {
@@ -28,8 +18,18 @@ namespace {
 
 }  // namespace
 
+bool is_known_visual_output_consumer(
+    const VisualOutputConsumer consumer) noexcept {
+  switch (consumer) {
+    case VisualOutputConsumer::interactive_preview:
+    case VisualOutputConsumer::offline_export:
+      return true;
+  }
+  return false;
+}
+
 bool VisualOutputFrame::valid() const noexcept {
-  return known_consumer(consumer) && plan.valid();
+  return is_known_visual_output_consumer(consumer) && plan.valid();
 }
 
 VisualOutputFrame prepare_visual_output_frame(
@@ -38,7 +38,7 @@ VisualOutputFrame prepare_visual_output_frame(
     const ProjectTimeNs project_time_ns,
     const std::uint64_t clock_epoch,
     core::TextLayoutPort& text_layout_port) {
-  if (!known_consumer(consumer)) {
+  if (!is_known_visual_output_consumer(consumer)) {
     throw std::invalid_argument(
         "RFX-VISUAL-OUTPUT-001: unknown visual output consumer");
   }

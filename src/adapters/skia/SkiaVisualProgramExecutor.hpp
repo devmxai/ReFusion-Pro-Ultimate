@@ -1,6 +1,6 @@
 #pragma once
 
-#include "refusion/runtime/render/VisualRenderPlan.hpp"
+#include "refusion/runtime/render/VisualOutputContract.hpp"
 
 #include <cstdint>
 
@@ -19,6 +19,7 @@ void execute_visual_render_program(
     const runtime::render::VisualRenderProgram& program,
     runtime::render::ProjectTimeNs project_time_ns,
     std::uint64_t transport_epoch_id,
+    runtime::render::VisualOutputConsumer output_consumer,
     float target_width,
     float target_height);
 

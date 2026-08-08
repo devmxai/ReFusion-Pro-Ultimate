@@ -32,14 +32,19 @@ Metal `XPF-WP04A`, Windows-source `XPF-WP05A`, local `XPF-WP06A` and iOS
 now pass their available checks; formal Windows and Android receipts remain
 `not-run`. D3D12 context/target and DXGI swapchain/fence mechanics are defined
 and Windows Studio selects the common visual runtime. The exact resume point is
-now the `Pre-Windows Source Closure` in
-[`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md): accept and
-bind the Desktop v1 SDR color contract, finish the Windows Core/Graphics/Visual
-build entrance, replace unbounded D3D12 waits with typed bounded failure,
-complete the test-only offscreen qualification consumer/corpus, commit the
-mobile-canary automation, preserve the full working source in one reviewed Git
-checkpoint, and rerun the macOS/iPhoneOS readiness gates. This work is local and
-does not enter G4 production Export.
+now the final evidence edge of `Pre-Windows Source Closure` in
+[`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md). The color
+descriptor, common Preview/Offline GPU route, packaged-font corpus, D3D12
+offscreen/capture test, bounded/typed DXGI behavior, Windows compile-only versus
+physical bring-up split, calibrated comparison contract, receipt generator and
+mobile automation are source-implemented. ADR-0010 remains `proposed` because
+only its owner may accept the Desktop color/tolerance decision. The immediate
+step is an immutable candidate-implementation checkpoint; after the explicit
+decision, generate the receipt bound to that accepted implementation commit and
+issue `XPF-PRE-WINDOWS-READY`. The final local source tree already
+passes macOS Core 30/30, sanitized Core 30/30, Visual 51/51, both iPhoneOS arm64
+build canaries, docs-doctor and architecture-check. This work is qualification
+infrastructure, not G4 production Export.
 
 Only the resulting `XPF-PRE-WINDOWS-READY` commit is handed through GitHub to
 the physical Windows host. That host materializes and locks official Windows

@@ -117,10 +117,15 @@ int main() {
   const auto repeated = evaluate_visual_render_plan(
       program, 1'000'000'000ULL, 11, layout);
   require(first.valid(), "render plan must be valid");
+  require(first.color_contract ==
+              refusion::core::desktop_v1_sdr_color_contract() &&
+              first.color_contract_digest ==
+                  refusion::core::desktop_v1_sdr_color_contract_digest(),
+          "RenderPlan did not bind the Desktop v1 SDR color contract");
   require(first.semantic_digest == repeated.semantic_digest,
           "same accepted revision/time must produce one digest");
   require(first.semantic_digest ==
-              "rfx-render-plan-fnv1a64:fe9550afd21eaa35",
+              "rfx-render-plan-v2-fnv1a64:bfe6cb16e05d238e",
           "cross-toolchain digest fixture: " + first.semantic_digest);
   require(first.layers.size() == 1, "one visible layer expected");
   require(first.layers.front().effects.size() == 3,

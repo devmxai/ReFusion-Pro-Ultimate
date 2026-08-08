@@ -1,0 +1,46 @@
+name: Windows Graphics Source Lane
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-graphics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  graphics:
+    name: Windows Server 2025 x64 / MSVC / Skia D3D12
+    runs-on: windows-2025
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out the immutable source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the common visual route and D3D12 source lane
+        shell: pwsh
+        run: |
+          ./tools/windows/Invoke-ReFusionWindowsBringup.ps1 `
+            -Lane Graphics `
+            -FreshDependencies `
+            -CompileOnly `
+            -ReceiptPath out/evidence/windows-graphics-ci.json
+
+      - name: Publish the machine receipt in the immutable job log
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path out/evidence/windows-graphics-ci.json) {
+            Get-Content out/evidence/windows-graphics-ci.json
+            "## Windows Graphics receipt" | Add-Content $env:GITHUB_STEP_SUMMARY
+            '```json' | Add-Content $env:GITHUB_STEP_SUMMARY
+            Get-Content out/evidence/windows-graphics-ci.json | Add-Content $env:GITHUB_STEP_SUMMARY
+            '```' | Add-Content $env:GITHUB_STEP_SUMMARY
+          }

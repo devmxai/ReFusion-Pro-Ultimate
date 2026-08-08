@@ -1,5 +1,7 @@
 #pragma once
 
+#include "refusion/core/ColorContract.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -180,6 +182,8 @@ struct VisualRenderPlan final {
   EvaluationStamp stamp;
   std::uint32_t canvas_width_pixels{0};
   std::uint32_t canvas_height_pixels{0};
+  core::VisualColorContract color_contract;
+  std::string color_contract_digest;
   ColorRgba8 clear_color{.red = 0, .green = 0, .blue = 0, .alpha = 255};
   std::vector<DrawLayer> layers;
   std::string semantic_digest;
@@ -187,6 +191,9 @@ struct VisualRenderPlan final {
   [[nodiscard]] bool valid() const noexcept {
     return canvas_width_pixels != 0 && canvas_height_pixels != 0 &&
            !stamp.project_id.empty() && !stamp.composition_id.empty() &&
+           core::is_desktop_v1_sdr_color_contract(color_contract) &&
+           color_contract_digest ==
+               core::desktop_v1_sdr_color_contract_digest() &&
            !semantic_digest.empty();
   }
 };
@@ -202,6 +209,8 @@ class VisualRenderProgram final {
   [[nodiscard]] const std::string& composition_id() const noexcept;
   [[nodiscard]] std::uint32_t canvas_width_pixels() const noexcept;
   [[nodiscard]] std::uint32_t canvas_height_pixels() const noexcept;
+  [[nodiscard]] const core::VisualColorContract& color_contract() const noexcept;
+  [[nodiscard]] const std::string& color_contract_digest() const noexcept;
 
  private:
   struct State;

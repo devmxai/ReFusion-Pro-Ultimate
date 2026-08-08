@@ -13,6 +13,8 @@ namespace refusion::runtime::render {
 
 struct VisualRenderProgram::State final {
   core::ProjectSnapshot project;
+  core::VisualColorContract color_contract;
+  std::string color_contract_digest;
 };
 
 struct VisualRenderProgramAccess final {
@@ -28,7 +30,11 @@ struct VisualRenderProgramAccess final {
       const core::ProjectSnapshot& project) {
     return VisualRenderProgram(
         std::make_shared<const VisualRenderProgram::State>(
-            VisualRenderProgram::State{.project = project}));
+            VisualRenderProgram::State{
+                .project = project,
+                .color_contract = core::desktop_v1_sdr_color_contract(),
+                .color_contract_digest =
+                    core::desktop_v1_sdr_color_contract_digest()}));
   }
 };
 
@@ -252,6 +258,19 @@ void hash_string(std::uint64_t& hash, const std::string_view value) noexcept {
   hash_value(hash, plan.stamp.project_time_ns);
   hash_value(hash, plan.canvas_width_pixels);
   hash_value(hash, plan.canvas_height_pixels);
+  hash_string(hash, plan.color_contract.profile_id);
+  hash_value(hash, plan.color_contract.schema_version);
+  hash_value(hash, plan.color_contract.authored_encoding);
+  hash_value(hash, plan.color_contract.primaries);
+  hash_value(hash, plan.color_contract.transfer);
+  hash_value(hash, plan.color_contract.project_alpha);
+  hash_value(hash, plan.color_contract.compositing_alpha);
+  hash_value(hash, plan.color_contract.blend_filter_working_space);
+  hash_value(hash, plan.color_contract.gradient_interpolation);
+  hash_value(hash, plan.color_contract.filter_edge);
+  hash_value(hash, plan.color_contract.target_format);
+  hash_value(hash, plan.color_contract.output_transfer);
+  hash_string(hash, plan.color_contract_digest);
   hash_color(hash, plan.clear_color);
   for (const auto& layer : plan.layers) {
     hash_string(hash, layer.layer_id);
@@ -340,7 +359,7 @@ void hash_string(std::uint64_t& hash, const std::string_view value) noexcept {
         },
         layer.content);
   }
-  return "rfx-render-plan-fnv1a64:" + core::canonical_hex64(hash);
+  return "rfx-render-plan-v2-fnv1a64:" + core::canonical_hex64(hash);
 }
 
 }  // namespace
@@ -380,6 +399,17 @@ std::uint32_t VisualRenderProgram::canvas_height_pixels() const noexcept {
              : 0;
 }
 
+const core::VisualColorContract& VisualRenderProgram::color_contract() const
+    noexcept {
+  static const core::VisualColorContract empty;
+  return state_ ? state_->color_contract : empty;
+}
+
+const std::string& VisualRenderProgram::color_contract_digest() const noexcept {
+  static const std::string empty;
+  return state_ ? state_->color_contract_digest : empty;
+}
+
 VisualRenderProgram compile_visual_render_program(
     const core::ProjectSnapshot& project) {
   if (project.project_id.value.empty() || !project.composition) {
@@ -413,6 +443,8 @@ VisualRenderPlan evaluate_visual_render_plan(
                 .clock_epoch = clock_epoch},
       .canvas_width_pixels = composition.canvas.width_pixels,
       .canvas_height_pixels = composition.canvas.height_pixels,
+      .color_contract = program.color_contract(),
+      .color_contract_digest = program.color_contract_digest(),
   };
   const auto scene = core::evaluate_visual_scene(
       composition, project_time_ns, text_layout_port);

@@ -1,3 +1,5 @@
+#include "XplatFontFixture.hpp"
+#include "refusion/adapters/skia/SkiaGpuComposition.hpp"
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/core/ProjectRfx.hpp"
 #include "refusion/platform/PlatformGpuDeviceService.hpp"
@@ -44,6 +46,26 @@ struct PixelQualification final {
   std::size_t changed_from_background{0};
 };
 
+void write_reference_ppm(const std::string& path,
+                         const std::vector<std::uint8_t>& bgra,
+                         const std::size_t width,
+                         const std::size_t height) {
+  std::ofstream output(path, std::ios::binary | std::ios::trunc);
+  require(static_cast<bool>(output),
+          "could not open the requested qualification capture");
+  output << "P6\n" << width << ' ' << height << "\n255\n";
+  for (std::size_t index = 0; index + 3 < bgra.size(); index += 4) {
+    const char rgb[] = {
+        static_cast<char>(bgra[index + 2]),
+        static_cast<char>(bgra[index + 1]),
+        static_cast<char>(bgra[index]),
+    };
+    output.write(rgb, sizeof(rgb));
+  }
+  require(static_cast<bool>(output),
+          "could not write the requested qualification capture");
+}
+
 [[nodiscard]] PixelQualification qualify_pixels(
     const std::vector<std::uint8_t>& bgra) {
   PixelQualification result;
@@ -84,8 +106,9 @@ int main() {
   auto render_program = std::make_shared<const
       refusion::runtime::render::VisualRenderProgram>(
           conformance_render_program());
-  auto contexts = refusion::adapters::skia::SkiaGpuContexts::create(
-      device_service->borrow());
+  auto contexts = refusion::adapters::skia::create_skia_gpu_composition(
+      device_service->borrow(), nullptr, nullptr,
+      refusion::tests::make_xplat_font_fixture_resolver());
   MTLTextureDescriptor* descriptor = [MTLTextureDescriptor
       texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                 width:640
@@ -115,6 +138,7 @@ int main() {
           .project_time_ns = 1'000'000'000,
           .transport_epoch_id = 77,
           .device = device_service->identity(),
+          .output_consumer = refusion::runtime::render::VisualOutputConsumer::interactive_preview,
           .render_program = render_program,
       });
   require(rendered.succeeded());
@@ -152,6 +176,67 @@ int main() {
   require(pixels[0] == 32 && pixels[1] == 16 && pixels[2] == 10 &&
               pixels[3] == 255,
           "pixel qualification: base corner color changed");
+
+  // Offline qualification is a distinct output consumer but must execute the
+  // same immutable program, exact ProjectTime, lowering and Skia compositor.
+  // A second offscreen GPU target proves that the consumer identity does not
+  // introduce a hidden export renderer or alter project pixels.
+  id<MTLTexture> offline_texture =
+      [device newTextureWithDescriptor:descriptor];
+  require(offline_texture != nil);
+  const BackendFrameTargetLease offline_target{
+      .device = device_service->identity(),
+      .pixel_format = PixelFormat::bgra8_unorm,
+      .target_id = 2,
+      .width_pixels = 640,
+      .height_pixels = 360,
+      .backend_private_state = std::shared_ptr<const void>(
+          CFBridgingRetain(offline_texture),
+          [](const void* value) { CFRelease(value); }),
+  };
+  const auto offline_rendered = contexts->render(
+      offline_target,
+      PresentationFrameRequest{
+          .request_sequence = 60,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 0,
+          .device = device_service->identity(),
+          .output_consumer = refusion::runtime::render::VisualOutputConsumer::offline_export,
+          .render_program = render_program,
+      });
+  require(offline_rendered.succeeded());
+
+  id<MTLCommandBuffer> offline_barrier = [command_queue commandBuffer];
+  require(offline_barrier != nil);
+  [offline_barrier commit];
+  [offline_barrier waitUntilCompleted];
+  require(offline_barrier.status == MTLCommandBufferStatusCompleted);
+
+  std::vector<std::uint8_t> offline_pixels(
+      width * height * bytes_per_pixel);
+  [offline_texture getBytes:offline_pixels.data()
+                 bytesPerRow:width * bytes_per_pixel
+                  fromRegion:MTLRegionMake2D(0, 0, width, height)
+                 mipmapLevel:0];
+  require(offline_pixels == pixels,
+          "Preview and Offline qualification produced different pixels");
+  if (const char* capture_path =
+          std::getenv("REFUSION_XPLAT_CAPTURE_PPM");
+      capture_path != nullptr && capture_path[0] != '\0') {
+    write_reference_ppm(capture_path, pixels, width, height);
+  }
+
+  auto unknown_consumer_request = PresentationFrameRequest{
+      .device = device_service->identity(),
+      .output_consumer = static_cast<
+          refusion::runtime::render::VisualOutputConsumer>(255),
+      .render_program = render_program,
+  };
+  require(!unknown_consumer_request.valid(),
+          "unknown output consumers must fail request admission");
+  require(contexts->render(target, unknown_consumer_request).status ==
+              FrameStatus::rejected,
+          "the native renderer admitted an unknown output consumer");
 
   auto wrong_generation = target;
   ++wrong_generation.device.generation;

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "contract_id": "refusion.color.desktop-v1-sdr.v1",
+  "status": "proposed",
+  "decision": "ADR-0010",
+  "canonical_sha256": "50a4acc6cc8d7092b5aa10d4f70bc24aa93aaf4e71413617c5ec297e5547af78",
+  "authored_encoding": "srgb-unorm8",
+  "primaries": "rec709-d65",
+  "transfer": "srgb",
+  "project_alpha": "straight",
+  "compositing_alpha": "premultiplied",
+  "blend_filter_working_space": "srgb-encoded",
+  "gradient_interpolation": "srgb-straight",
+  "filter_edge": "transparent-decal",
+  "target_format": "bgra8-unorm",
+  "output_transfer": "srgb",
+  "profile_scope": [
+    "macos-metal-desktop-v1",
+    "windows-d3d12-desktop-v1"
+  ],
+  "qualification_rule": "Same canonical contract bytes, RenderPlan digest and calibrated visual corpus on each physical Desktop profile; no backend default may redefine a field."
+}

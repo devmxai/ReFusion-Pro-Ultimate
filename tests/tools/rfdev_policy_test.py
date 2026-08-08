@@ -208,6 +208,10 @@ def main() -> None:
         not RFDEV.visual_capability_matrix_problems(ROOT),
         "the real visual capability matrix is inconsistent",
     )
+    require(
+        not RFDEV.visual_qualification_contract_problems(ROOT),
+        "the real visual qualification contract is inconsistent",
+    )
 
     capability_matrix = json.loads(
         RFDEV.VISUAL_CAPABILITY_MATRIX.read_text(encoding="utf-8")

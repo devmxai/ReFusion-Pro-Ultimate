@@ -42,6 +42,24 @@
       "path": "architecture/cross-platform-visual-boundary-exceptions.json",
       "status": "active-shrink-only",
       "owner": "principal-cross-platform-architecture"
+    },
+    {
+      "id": "RFX-VISUAL-COLOR-DESKTOP-V1-SDR-1",
+      "path": "visual/desktop-v1-sdr-color.json",
+      "status": "proposed",
+      "owner": "principal-cross-platform-architecture"
+    },
+    {
+      "id": "RFX-VISUAL-PIXEL-TOLERANCE-DESKTOP-V1-1",
+      "path": "visual/desktop-v1-pixel-tolerance.json",
+      "status": "proposed",
+      "owner": "principal-cross-platform-architecture"
+    },
+    {
+      "id": "RFX-XPLAT-VISUAL-QUALIFICATION-RECEIPT-1",
+      "path": "visual/xplat-qualification-receipt-v1.schema.json",
+      "status": "active",
+      "owner": "principal-cross-platform-architecture"
     }
   ],
   "note": "RFX1-RFX4 remain readable migration inputs. RFX5 binds the Mask/FX contribution Registry and uses one descriptor-driven typed parameter grammar; none is a stable shipping-format claim."

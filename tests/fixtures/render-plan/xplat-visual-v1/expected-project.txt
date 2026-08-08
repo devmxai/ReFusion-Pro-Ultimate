@@ -1,4 +1,7 @@
-schema=refusion.xplat-project-conformance.v1
-snapshot_digest=rfx-project-fnv1a64:eacf593fd4f6b146
+schema=refusion.xplat-project-conformance.v2
+snapshot_digest=rfx-project-fnv1a64:1c857e5f5e6d8a04
 registry_digest=rfx-vp-fnv1a64:f6f8d1b88fe2d101
+contribution_registry_digest=rfx-vc-fnv1a64:67e38c18c14ab42b
+canonical_sha256=sha256:d0181f7a9a3399dbf7827942de6d52f7d2f5a7da213a26959b8a0e37202e575b
+canonical_size=5478
 revision=12

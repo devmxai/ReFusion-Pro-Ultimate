@@ -23,6 +23,20 @@ compile, a compile cannot imply a physical run, and no profile is qualified
 until semantic, calibrated visual and performance evidence all pass. The
 architecture check rejects missing Registry entries or an evidence-state jump.
 
+`visual/desktop-v1-sdr-color.json` is the proposed Desktop v1 color contract.
+It fixes authored RGBA8 interpretation, Rec.709/sRGB primaries/transfer,
+straight project alpha, premultiplied compositing, sRGB-encoded blend/filter
+working space, straight-sRGB gradient interpolation, transparent-decal filter
+edges, BGRA8 UNORM targets and sRGB output transfer. Core canonical bytes and
+SHA-256 bind this identity into every VisualRenderPlan; Metal and D3D12 may not
+replace any field with an API default. ADR-0010 remains the decision authority.
+
+`visual/desktop-v1-pixel-tolerance.json` declares the proposed calibrated
+Metal-versus-D3D12 capture bounds.
+`visual/xplat-qualification-receipt-v1.schema.json` defines the evidence
+envelope both physical Desktop hosts must emit from the same source checkpoint;
+a source-defined lane cannot masquerade as a compile or physical run.
+
 `project/refusion-project-rfx-exp1.ebnf` is the strict source grammar for the
 bounded EXP-001 agent-authoring experiment. It is experimental evidence, not a
 shipping-format commitment. The native portable compiler is the enforcement

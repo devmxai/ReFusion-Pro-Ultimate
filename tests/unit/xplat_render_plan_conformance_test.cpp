@@ -3,6 +3,7 @@
 #include "refusion/runtime/render/RenderPlanCompiler.hpp"
 
 #include <array>
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <locale>
@@ -131,11 +132,30 @@ int main() {
         program, clock.time_at_frame(frames[index]), 77, layout);
     require(expected[index].first == frames[index],
             "xplat visual receipt frame order changed");
-    require(plan.semantic_digest == expected[index].second,
+    plans.push_back(std::move(plan));
+  }
+
+  if (const char* receipt_path =
+          std::getenv("REFUSION_XPLAT_RENDER_RECEIPT_OUTPUT");
+      receipt_path != nullptr && receipt_path[0] != '\0') {
+    std::ofstream output(receipt_path, std::ios::trunc);
+    require(static_cast<bool>(output),
+            "cannot open requested xplat RenderPlan receipt");
+    output << "# schema=refusion.xplat-render-plan-conformance.v2\n"
+           << "# color_contract="
+           << core::desktop_v1_sdr_color_contract_digest() << "\n"
+           << "# frame semantic_digest\n";
+    for (std::size_t index = 0; index < frames.size(); ++index) {
+      output << frames[index] << ' ' << plans[index].semantic_digest << '\n';
+    }
+    require(static_cast<bool>(output),
+            "cannot write requested xplat RenderPlan receipt");
+  }
+  for (std::size_t index = 0; index < frames.size(); ++index) {
+    require(plans[index].semantic_digest == expected[index].second,
             "xplat receipt mismatch at frame " +
                 std::to_string(frames[index]) + ":\n" +
-                operation_summary(plan));
-    plans.push_back(std::move(plan));
+                operation_summary(plans[index]));
   }
 
   const auto original_locale = std::locale();
@@ -148,6 +168,11 @@ int main() {
           "host locale changed RenderPlan semantic digest");
 
   const auto& plan = plans.front();
+  require(plan.color_contract ==
+              core::desktop_v1_sdr_color_contract() &&
+              plan.color_contract_digest ==
+                  core::desktop_v1_sdr_color_contract_digest(),
+          "cross-toolchain plan did not bind the color contract");
   require(plan.layers.size() == 4, "root/group operation order changed");
   require(plan.layers[0].layer_id == "lyr_solid_normal" &&
               plan.layers[1].layer_id == "lyr_linear_multiply" &&

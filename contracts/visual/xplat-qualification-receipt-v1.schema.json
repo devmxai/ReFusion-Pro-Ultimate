@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refusion.local/contracts/visual/xplat-qualification-receipt-v1.schema.json",
+  "title": "ReFusion cross-platform visual qualification receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source_commit",
+    "profile",
+    "host",
+    "toolchain",
+    "contracts",
+    "conformance",
+    "capture",
+    "tests",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema": {
+      "const": "refusion.xplat-visual-qualification-receipt.v1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "profile": {
+      "enum": [
+        "macos-metal-desktop-v1",
+        "windows-d3d12-desktop-v1",
+        "ios-metal-canary",
+        "android-vulkan-canary"
+      ]
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "gpu", "driver"],
+      "properties": {
+        "os": {"type": "string", "minLength": 1},
+        "architecture": {"type": "string", "minLength": 1},
+        "gpu": {"type": "string", "minLength": 1},
+        "driver": {"type": "string", "minLength": 1}
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compiler", "cmake", "ninja", "skia_revision"],
+      "properties": {
+        "compiler": {"type": "string", "minLength": 1},
+        "cmake": {"type": "string", "minLength": 1},
+        "ninja": {"type": "string", "minLength": 1},
+        "skia_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["color_id", "color_sha256", "font_layout_digest"],
+      "properties": {
+        "color_id": {"const": "refusion.color.desktop-v1-sdr.v1"},
+        "color_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "font_layout_digest": {"type": "string", "minLength": 1}
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_project_sha256",
+        "project_semantic_digest",
+        "property_registry_digest",
+        "contribution_registry_digest",
+        "command_receipt_sha256",
+        "font_layout_receipt_sha256",
+        "render_plan_digests"
+      ],
+      "properties": {
+        "canonical_project_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "project_semantic_digest": {"type": "string", "minLength": 1},
+        "property_registry_digest": {"type": "string", "minLength": 1},
+        "contribution_registry_digest": {"type": "string", "minLength": 1},
+        "command_receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "font_layout_receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "render_plan_digests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "pattern": "^rfx-render-plan-v[0-9]+-fnv1a64:[0-9a-f]{16}$"}
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "sha256",
+        "width",
+        "height",
+        "project_time_ns",
+        "preview_offscreen_exact",
+        "comparison_policy"
+      ],
+      "properties": {
+        "artifact": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "project_time_ns": {"type": "integer", "minimum": 0},
+        "preview_offscreen_exact": {"type": "boolean"},
+        "comparison_policy": {"const": "refusion.xplat-pixel-tolerance.desktop-v1.v1"}
+      }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["suite", "passed", "failed", "not_run"],
+      "properties": {
+        "suite": {"type": "string", "minLength": 1},
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "not_run": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compiled", "physically_run", "semantic_match", "visual_tolerance", "performance_qualified", "qualified"],
+      "properties": {
+        "compiled": {"type": "boolean"},
+        "physically_run": {"type": "boolean"},
+        "semantic_match": {"type": "boolean"},
+        "visual_tolerance": {"type": "boolean"},
+        "performance_qualified": {"type": "boolean"},
+        "qualified": {"type": "boolean"}
+      }
+    }
+  }
+}

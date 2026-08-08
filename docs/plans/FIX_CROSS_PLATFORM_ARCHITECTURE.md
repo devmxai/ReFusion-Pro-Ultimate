@@ -2,7 +2,7 @@
 id: PLAN-XPLAT-FIX-001
 kind: cross-cutting-remediation-plan
 status: active
-version: 19
+version: 20
 master_plan: MP-001
 policy: ARCH-XPLAT-001
 owner_role: principal-cross-platform-architecture
@@ -1660,9 +1660,9 @@ host produces their receipts.
 
 | Lane | Present state | Still required before this plan can close |
 |---|---|---|
-| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path and backend leases exist; active native-semantic debt is zero. | Accept and bind the Desktop v1 SDR color contract; finish the offscreen qualification consumer and full cross-toolchain corpus; commit the complete source/evidence checkpoint. |
-| macOS Metal | The application physically renders through the common route; the full local Visual lane passes and a bounded 10,000-frame Preview receipt exists. | Re-run all local gates after the remaining shared changes; produce the named Pre-Windows readiness receipt and the reference captures/digests that Windows must compare against. |
-| Windows D3D12 | The hardware-only device, Skia binding, DXGI presenter and Windows Studio source route are defined without a semantic renderer fork. | Materialize and lock official Windows Skia, compile/link with MSVC, harden and exercise bounded fence waits/device removal, open/resave the same projects, run the same semantic/pixel/performance corpus on a named non-WARP GPU, and retain evidence. |
+| Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. | Product-owner acceptance of ADR-0010, an immutable implementation checkpoint and its commit-bound Pre-Windows review receipt. |
+| macOS Metal | The application physically renders through the common route; Core 30/30, sanitized Core 30/30 and Visual 51/51 pass; the bounded 10,000-frame Preview receipt and committed 640x360 Desktop-v1 reference capture exist. | Bind the final capture/test/toolchain receipt to the immutable implementation commit and issue the named Pre-Windows readiness review. |
+| Windows D3D12 | The hardware-only device, Skia binding, DXGI presenter, Windows Studio route, bounded/typed fence failures and same-program offscreen capture executable are source-defined without a semantic renderer fork. | On Windows, first generate/review/commit the host-specific Skia transitive lock; then compile/link with MSVC, exercise a named non-WARP device, open/resave the same projects, run the semantic/pixel/performance corpus and retain receipts. |
 | iOS Metal canary | The Core and shared Graphics closures compile and the product presenter fails closed by design. | No Desktop-v1 product runtime is required here; retain the compile canary and honest non-runtime matrix state. |
 | Android Vulkan canary | The source/profile/official-NDK CI route is defined and fails closed as a product presenter. | Obtain the official-NDK Core/Graphics compile receipt. Full Android product runtime remains G9. |
 
@@ -1709,6 +1709,55 @@ Phase A exits only with a review record named
 source commit, dependency/profile digests, toolchain, exact test results,
 macOS reference artifact digests and the honest matrix state. Windows and
 Android remain explicitly `not-run` where no external receipt exists.
+
+**Phase A implementation state (2026-08-09):** the shared source work is now
+implemented but the named exit receipt is not yet issued. Core binds the
+candidate `refusion.color.desktop-v1-sdr.v1` descriptor and SHA-256 into every
+program/RenderPlan and the common compositor rejects drift. Presentation
+requests carry a validated output-consumer identity; Preview and Offline render
+independent GPU targets through the same exact-time common executor, and the
+macOS qualification test requires byte-exact pixels. The visual fixture now
+uses digest-pinned packaged Noto bytes rather than Arial/system fallback.
+
+Windows source owns a hardware-only D3D12 offscreen qualification executable,
+bounded fence waits, typed timeout/device-loss/occlusion/stale-generation
+failures and a PowerShell bring-up route. Hosted GitHub automation is explicitly
+`compile-only`; only a physical invocation may create the D3D12 capture,
+Metal-versus-D3D12 comparison and schema-bound host receipt. The repository
+requires a two-pass dependency-lock entrance: a non-qualifying `CompileOnly`
+run may generate the Windows transitive Skia lock, but physical qualification
+fails closed until that lock has been reviewed, committed and checked out from
+a clean source revision. Generated dependency state can therefore never be
+silently attributed to an older commit. The repository
+also contains one P6 capture comparator, proposed calibrated Desktop bounds,
+canonical RFX/command/Registry/font/color/RenderPlan receipts and the iOS/
+Android compile-canary automation.
+
+The final shared tree passes the locally executable readiness gates:
+
+```text
+macos-core             30/30 passed
+macos-core-sanitized   30/30 passed under ASan/UBSan
+macos-visual           51/51 passed
+ios-core-canary        BUILD SUCCEEDED (iPhoneOS arm64)
+ios-graphics-canary    BUILD SUCCEEDED (iPhoneOS arm64 + common Skia)
+docs-doctor            106 documents, 0 problems
+architecture-check     112 source files, 0 problems, 0 boundary debt
+```
+
+The remaining Phase A closure actions are intentionally narrow and auditable:
+
+1. create the immutable implementation checkpoint from this reviewed source
+   tree; this freezes the candidate bytes without pretending that its proposed
+   product decision has already been accepted;
+2. the product owner must explicitly accept or reject ADR-0010; an agent cannot
+   silently promote either the color profile or pixel thresholds from
+   `proposed` to `accepted`;
+3. generate the macOS qualification receipt against the accepted implementation
+   commit ID, then add the immutable
+   `XPF-PRE-WINDOWS-READY` review record in an evidence-only descendant commit;
+4. keep Windows MSVC/build/device/pixel/performance and Android official-NDK
+   execution states `not-run` until their external receipts exist.
 
 ### Phase B — Reproducible GitHub handoff
 
@@ -2016,3 +2065,18 @@ qualification, and returns machine/human receipts for reconciliation on macOS.
 The section also preserves the honest boundary that Windows Media Foundation
 video decode remains separate open G1/G4 work rather than being implied by a
 successful Canvas Preview.
+
+Version 20 implements the source side of that route. One explicit Desktop SDR
+descriptor is bound into the common program/RenderPlan/compositor; output
+consumer identity reaches the same common Skia executor without semantic
+branching; and Metal proves exact Preview-versus-Offscreen pixels on separate
+GPU targets. The cross-platform visual fixture now uses pinned packaged Noto
+bytes and emits canonical project, command, Registry, font, color and
+RenderPlan receipts plus a committed macOS PPM reference. Windows gains a
+hardware D3D12 offscreen fixture/capture path, bounded DXGI waits, typed failure
+diagnostics, a dependency-clean bring-up script and a schema-bound physical
+receipt. GitHub runs compile-only and cannot promote physical evidence. The
+proposed calibrated Metal/D3D12 policy and receipt schema are guarded by Repo
+OS. ADR-0010 owner acceptance and final macOS/iPhoneOS gates still precede the
+`XPF-PRE-WINDOWS-READY` evidence checkpoint; MSVC, Windows GPU and Android NDK
+execution remain truthfully `not-run`.

@@ -192,6 +192,15 @@ void draw_visual_render_plan(
     throw std::invalid_argument(
         "RFX-RENDER-PLAN-003: Skia received an invalid VisualRenderPlan");
   }
+  // The common compositor implements exactly this portable profile. A future
+  // profile requires its own admitted common policy; a native backend may not
+  // silently reinterpret this plan using API defaults.
+  if (!core::is_desktop_v1_sdr_color_contract(plan.color_contract) ||
+      plan.color_contract_digest !=
+          core::desktop_v1_sdr_color_contract_digest()) {
+    throw std::invalid_argument(
+        "RFX-COLOR-CONTRACT-001: unsupported visual color contract");
+  }
   canvas.clear(to_sk_color(plan.clear_color, 1.0));
   const float scale_x =
       target_width / static_cast<float>(plan.canvas_width_pixels);

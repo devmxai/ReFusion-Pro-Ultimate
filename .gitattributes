@@ -5,7 +5,7 @@
 *.png binary
 *.jpg binary
 *.jpeg binary
+*.ppm binary
 *.mp4 binary
 *.mov binary
 *.wav binary
-

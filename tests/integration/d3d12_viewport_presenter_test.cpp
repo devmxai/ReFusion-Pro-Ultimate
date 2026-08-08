@@ -88,7 +88,9 @@ int main() {
       reinterpret_cast<std::uintptr_t>(window.get()));
   auto wrong_host = host;
   wrong_host.window_system = NativeWindowSystem::cocoa_view;
-  require(presenter->attach(wrong_host).status == FrameStatus::rejected);
+  const auto wrong_host_result = presenter->attach(wrong_host);
+  require(wrong_host_result.status == FrameStatus::rejected);
+  require(wrong_host_result.failure == FrameFailureKind::incompatible);
   require(presenter->attach(host).succeeded());
   require(presenter->resize(ViewportExtent{
       .width_points = 640,
@@ -118,12 +120,14 @@ int main() {
   require(presenter->present(request(3, 50'000'001)).succeeded());
 
   presenter->set_visible(false);
-  require(presenter->present(request(4, 66'666'668)).status ==
-          FrameStatus::skipped);
+  const auto hidden_result = presenter->present(request(4, 66'666'668));
+  require(hidden_result.status == FrameStatus::skipped);
+  require(hidden_result.failure == FrameFailureKind::unavailable);
   const auto telemetry = presenter->telemetry();
   require(telemetry.renderer_submissions == 4);
   require(telemetry.present_submissions == 4);
   require(telemetry.skipped_frames == 1);
+  require(telemetry.native_wait_timeouts == 0);
   require(telemetry.zero_cpu_pixel_transfer());
   presenter->detach();
 }

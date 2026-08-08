@@ -1,11 +1,15 @@
 #include "refusion/core/AgentIntrospection.hpp"
 #include "refusion/core/CanonicalText.hpp"
+#include "refusion/core/ContentDigest.hpp"
 #include "refusion/core/ProjectRfx.hpp"
+#include "refusion/core/VisualContributionRegistry.hpp"
 #include "refusion/core/VisualPropertyRegistry.hpp"
 
+#include <cstdlib>
 #include <fstream>
 #include <locale>
 #include <map>
+#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -55,7 +59,7 @@ int main() {
   using namespace refusion::core;
 
   const auto receipt = read_receipt(REFUSION_XPLAT_PROJECT_RECEIPT_PATH);
-  require(receipt.at("schema") == "refusion.xplat-project-conformance.v1");
+  require(receipt.at("schema") == "refusion.xplat-project-conformance.v2");
 
   const auto source = read_file(REFUSION_XPLAT_PROJECT_FIXTURE_PATH);
   const auto compiled = compile_project_rfx(source);
@@ -67,6 +71,43 @@ int main() {
           receipt.at("snapshot_digest"));
 
   const auto canonical = serialize_project_rfx(*compiled.project);
+  const auto canonical_bytes = std::span<const std::uint8_t>(
+      reinterpret_cast<const std::uint8_t*>(canonical.data()),
+      canonical.size());
+  if (const char* receipt_path =
+          std::getenv("REFUSION_XPLAT_PROJECT_RECEIPT_OUTPUT");
+      receipt_path != nullptr && receipt_path[0] != '\0') {
+    std::ofstream output(receipt_path, std::ios::trunc);
+    require(static_cast<bool>(output));
+    output << "schema=refusion.xplat-project-conformance.v2\n"
+           << "snapshot_digest="
+           << project_snapshot_digest(*compiled.project) << "\n"
+           << "registry_digest=" << visual_property_registry_digest() << "\n"
+           << "contribution_registry_digest="
+           << visual_contribution_registry_digest() << "\n"
+           << "canonical_sha256="
+           << sha256_content_digest(canonical_bytes) << "\n"
+           << "canonical_size=" << canonical_uint64(canonical.size()) << "\n"
+           << "revision="
+           << canonical_uint64(compiled.project->revision_id.value) << "\n";
+    require(static_cast<bool>(output));
+  }
+  if (const char* canonical_path =
+          std::getenv("REFUSION_XPLAT_CANONICAL_PROJECT_OUTPUT");
+      canonical_path != nullptr && canonical_path[0] != '\0') {
+    std::ofstream output(canonical_path, std::ios::binary | std::ios::trunc);
+    require(static_cast<bool>(output));
+    output.write(canonical.data(),
+                 static_cast<std::streamsize>(canonical.size()));
+    require(static_cast<bool>(output));
+  }
+  require(canonical == read_file(REFUSION_XPLAT_CANONICAL_PROJECT_PATH));
+  require(sha256_content_digest(canonical_bytes) ==
+          receipt.at("canonical_sha256"));
+  require(canonical_uint64(canonical.size()) ==
+          receipt.at("canonical_size"));
+  require(visual_contribution_registry_digest() ==
+          receipt.at("contribution_registry_digest"));
   const auto round_trip = compile_project_rfx(canonical);
   require(round_trip.succeeded());
   require(*round_trip.project == *compiled.project);

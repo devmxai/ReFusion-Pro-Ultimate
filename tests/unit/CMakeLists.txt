@@ -42,6 +42,12 @@ refusion_enable_warnings(refusion-canonical-text-tests)
 
 add_test(NAME refusion.canonical_text COMMAND refusion-canonical-text-tests)
 
+add_executable(refusion-color-contract-tests color_contract_test.cpp)
+target_link_libraries(refusion-color-contract-tests PRIVATE ReFusion::Core)
+refusion_enable_warnings(refusion-color-contract-tests)
+
+add_test(NAME refusion.color_contract COMMAND refusion-color-contract-tests)
+
 add_executable(refusion-text-layout-tests text_layout_test.cpp)
 target_link_libraries(refusion-text-layout-tests PRIVATE ReFusion::Core)
 refusion_enable_warnings(refusion-text-layout-tests)
@@ -91,7 +97,8 @@ target_link_libraries(refusion-xplat-project-conformance-tests
   PRIVATE ReFusion::Core)
 target_compile_definitions(refusion-xplat-project-conformance-tests PRIVATE
   REFUSION_XPLAT_PROJECT_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx"
-  REFUSION_XPLAT_PROJECT_RECEIPT_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/expected-project.txt")
+  REFUSION_XPLAT_PROJECT_RECEIPT_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/expected-project.txt"
+  REFUSION_XPLAT_CANONICAL_PROJECT_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/expected-canonical.rfx")
 refusion_enable_warnings(refusion-xplat-project-conformance-tests)
 
 add_test(NAME refusion.xplat_project_conformance

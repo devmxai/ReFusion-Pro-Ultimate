@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "policy_id": "refusion.xplat-pixel-tolerance.desktop-v1.v1",
+  "status": "proposed",
+  "decision": "ADR-0010",
+  "reference_profile": "macos-metal-desktop-v1",
+  "candidate_profile": "windows-d3d12-desktop-v1",
+  "capture_format": "rgb8-ppm-p6",
+  "dimensions_must_match": true,
+  "alpha_policy": "qualification-source-bgra-alpha-must-be-255",
+  "metrics": {
+    "maximum_channel_delta": 8,
+    "mean_absolute_channel_delta": 0.75,
+    "pixels_over_delta_3_ratio": 0.005,
+    "minimum_ssim": 0.995
+  },
+  "failure_policy": "Any exceeded bound fails visual_tolerance_passed; no operator override or backend-specific semantic patch is permitted without a versioned contract revision and new evidence."
+}

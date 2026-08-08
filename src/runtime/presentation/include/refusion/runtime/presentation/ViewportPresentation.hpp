@@ -11,7 +11,7 @@
 
 #include "refusion/core/ProjectClock.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
-#include "refusion/runtime/render/VisualRenderPlan.hpp"
+#include "refusion/runtime/render/VisualOutputContract.hpp"
 
 namespace refusion::runtime::presentation {
 
@@ -31,6 +31,16 @@ enum class FrameStatus : std::uint8_t {
   presented,
   skipped,
   rejected,
+};
+
+enum class FrameFailureKind : std::uint8_t {
+  none,
+  unavailable,
+  incompatible,
+  occluded,
+  timed_out,
+  device_lost,
+  stale_generation,
 };
 
 struct ViewportExtent final {
@@ -78,6 +88,8 @@ struct PresentationFrameRequest final {
   std::uint64_t loop_index{0};
   std::uint64_t transport_epoch_id{0};
   gpu::DeviceIdentity device;
+  render::VisualOutputConsumer output_consumer{
+      render::VisualOutputConsumer::interactive_preview};
   std::shared_ptr<const render::VisualRenderProgram> render_program;
 
   [[nodiscard]] bool valid() const noexcept;
@@ -132,6 +144,8 @@ struct TransportCommandResult final {
 
 struct FrameResult final {
   FrameStatus status{FrameStatus::rejected};
+  FrameFailureKind failure{FrameFailureKind::none};
+  std::string code;
   std::string diagnostic;
 
   [[nodiscard]] bool succeeded() const noexcept;
@@ -155,6 +169,7 @@ struct PresentationTelemetry final {
   std::uint64_t device_suspended_frames{0};
   std::uint64_t device_loss_rejections{0};
   std::uint64_t stale_generation_rejections{0};
+  std::uint64_t native_wait_timeouts{0};
   std::uint64_t cpu_pixel_maps{0};
   std::uint64_t cpu_pixel_uploads{0};
   std::uint64_t gpu_readbacks{0};

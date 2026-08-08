@@ -261,7 +261,8 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     execute_visual_render_program(
         *surface->getCanvas(), *implementation_->text_layout_engine,
         *frame.render_program, frame.project_time_ns,
-        frame.transport_epoch_id, static_cast<float>(target.width_pixels),
+        frame.transport_epoch_id, frame.output_consumer,
+        static_cast<float>(target.width_pixels),
         static_cast<float>(target.height_pixels));
   } catch (const std::exception& error) {
     return rejected(error.what());

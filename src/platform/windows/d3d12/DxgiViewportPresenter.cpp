@@ -27,6 +27,7 @@ namespace {
 
 using Microsoft::WRL::ComPtr;
 using runtime::presentation::BackendFrameTargetLease;
+using runtime::presentation::FrameFailureKind;
 using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
 using runtime::presentation::NativeViewportHostLease;
@@ -39,17 +40,28 @@ using runtime::presentation::ViewportFrameRenderer;
 using runtime::presentation::ViewportPresenter;
 
 constexpr UINT kBufferCount = 3;
+constexpr DWORD kFenceWaitTimeoutMs = 2'000;
 
-[[nodiscard]] FrameResult rejected(std::string diagnostic) {
+[[nodiscard]] FrameResult rejected(
+    std::string diagnostic,
+    const FrameFailureKind failure = FrameFailureKind::incompatible,
+    std::string code = "RFX-DXGI-REJECTED") {
   return FrameResult{
       .status = FrameStatus::rejected,
+      .failure = failure,
+      .code = std::move(code),
       .diagnostic = std::move(diagnostic),
   };
 }
 
-[[nodiscard]] FrameResult skipped(std::string diagnostic) {
+[[nodiscard]] FrameResult skipped(
+    std::string diagnostic,
+    const FrameFailureKind failure = FrameFailureKind::unavailable,
+    std::string code = "RFX-DXGI-SKIPPED") {
   return FrameResult{
       .status = FrameStatus::skipped,
+      .failure = failure,
+      .code = std::move(code),
       .diagnostic = std::move(diagnostic),
   };
 }
@@ -178,7 +190,8 @@ class DxgiViewportPresenter final : public ViewportPresenter {
     if (health.status == runtime::gpu::DeviceStatus::suspended) {
       ++telemetry_.skipped_frames;
       ++telemetry_.device_suspended_frames;
-      return skipped(health.code + ": " + health.diagnostic);
+      return skipped(health.code + ": " + health.diagnostic,
+                     FrameFailureKind::unavailable, health.code);
     }
     if (health.status == runtime::gpu::DeviceStatus::lost) {
       return reject_device_loss(health);
@@ -203,11 +216,13 @@ class DxgiViewportPresenter final : public ViewportPresenter {
       occluded_ = true;
       ++telemetry_.skipped_frames;
       ++telemetry_.occluded_frames;
-      return skipped("RFX-VIEWPORT-OCCLUDED: Win32 window is occluded");
+      return skipped("Win32 window is occluded", FrameFailureKind::occluded,
+                     "RFX-VIEWPORT-OCCLUDED");
     }
     if (FAILED(visibility)) {
       return report_native_failure(
-          "RFX-DXGI-VISIBILITY: swapchain visibility test failed");
+          "RFX-DXGI-VISIBILITY",
+          "swapchain visibility test failed", visibility);
     }
     if (occluded_) {
       ++telemetry_.occlusion_resumes;
@@ -266,7 +281,8 @@ class DxgiViewportPresenter final : public ViewportPresenter {
 
     const HRESULT presented = swapchain_state_->swapchain->Present(1, 0);
     if (FAILED(presented)) {
-      return report_native_failure("RFX-DXGI-PRESENT: Present failed");
+      return report_native_failure("RFX-DXGI-PRESENT", "Present failed",
+                                   presented);
     }
 
     std::optional<runtime::gpu::BackendDeviceLease> device_lease;
@@ -279,9 +295,16 @@ class DxgiViewportPresenter final : public ViewportPresenter {
     auto* queue = static_cast<ID3D12CommandQueue*>(const_cast<void*>(
         device_lease->backend_private_submission_queue()));
     const auto fence_value = swapchain_state_->next_fence_value++;
-    if (queue == nullptr ||
-        FAILED(queue->Signal(swapchain_state_->fence.Get(), fence_value))) {
-      return report_native_failure("RFX-D3D12-FENCE: queue signal failed");
+    if (queue == nullptr) {
+      return report_native_failure("RFX-D3D12-FENCE-QUEUE",
+                                   "presentation queue is unavailable",
+                                   E_POINTER);
+    }
+    const HRESULT signaled =
+        queue->Signal(swapchain_state_->fence.Get(), fence_value);
+    if (FAILED(signaled)) {
+      return report_native_failure("RFX-D3D12-FENCE-SIGNAL",
+                                   "queue signal failed", signaled);
     }
     swapchain_state_->fence_values[buffer_index] = fence_value;
     swapchain_state_->observed_buffers[buffer_index] =
@@ -373,7 +396,8 @@ class DxgiViewportPresenter final : public ViewportPresenter {
           kBufferCount, extent_.width_pixels(), extent_.height_pixels(),
           DXGI_FORMAT_B8G8R8A8_UNORM, 0);
       if (FAILED(resized)) {
-        return report_native_failure("RFX-DXGI-RESIZE: ResizeBuffers failed");
+        return report_native_failure("RFX-DXGI-RESIZE",
+                                     "ResizeBuffers failed", resized);
       }
     }
 
@@ -389,13 +413,34 @@ class DxgiViewportPresenter final : public ViewportPresenter {
 
   [[nodiscard]] FrameResult wait_for_buffer(const UINT buffer_index) {
     const auto value = swapchain_state_->fence_values[buffer_index];
-    if (value != 0 && swapchain_state_->fence->GetCompletedValue() < value) {
-      if (FAILED(swapchain_state_->fence->SetEventOnCompletion(
-              value, swapchain_state_->fence_event)) ||
-          WaitForSingleObject(swapchain_state_->fence_event, INFINITE) !=
-              WAIT_OBJECT_0) {
+    const auto completed = swapchain_state_->fence->GetCompletedValue();
+    if (completed == UINT64_MAX) {
+      return report_native_failure(
+          "RFX-D3D12-FENCE-REMOVED",
+          "fence reported a removed D3D12 device", DXGI_ERROR_DEVICE_REMOVED);
+    }
+    if (value != 0 && completed < value) {
+      const HRESULT armed = swapchain_state_->fence->SetEventOnCompletion(
+          value, swapchain_state_->fence_event);
+      if (FAILED(armed)) {
         return report_native_failure(
-            "RFX-D3D12-FENCE: waiting for a back buffer failed");
+            "RFX-D3D12-FENCE-ARM",
+            "SetEventOnCompletion failed", armed);
+      }
+      const DWORD wait_result = WaitForSingleObject(
+          swapchain_state_->fence_event, kFenceWaitTimeoutMs);
+      if (wait_result == WAIT_TIMEOUT) {
+        ++telemetry_.native_wait_timeouts;
+        return report_native_failure(
+            "RFX-D3D12-FENCE-TIMEOUT",
+            "back-buffer fence exceeded the 2000 ms fail-closed budget",
+            DXGI_ERROR_DEVICE_HUNG, FrameFailureKind::timed_out);
+      }
+      if (wait_result != WAIT_OBJECT_0) {
+        return report_native_failure(
+            "RFX-D3D12-FENCE-WAIT",
+            "waiting for a back-buffer fence failed",
+            HRESULT_FROM_WIN32(GetLastError()));
       }
     }
     if (auto& observed = swapchain_state_->observed_fences[buffer_index]) {
@@ -432,7 +477,9 @@ class DxgiViewportPresenter final : public ViewportPresenter {
           frame_renderer_.device_identity().generation));
     }
     return rejected(
-        "RFX-GPU-STALE-GENERATION: presenter rejected stale GPU resources");
+        "presenter rejected stale GPU resources",
+        FrameFailureKind::stale_generation,
+        "RFX-GPU-STALE-GENERATION");
   }
 
   [[nodiscard]] FrameResult reject_device_loss(
@@ -445,15 +492,42 @@ class DxgiViewportPresenter final : public ViewportPresenter {
     if (!health.generation_matches(frame_renderer_.device_identity())) {
       ++telemetry_.stale_generation_rejections;
     }
-    return rejected(health.code + ": " + health.diagnostic);
+    return rejected(health.diagnostic, FrameFailureKind::device_lost,
+                    health.code.empty() ? "RFX-GPU-DEVICE-LOST"
+                                        : health.code);
   }
 
-  [[nodiscard]] FrameResult report_native_failure(std::string diagnostic) {
-    const auto health =
-        device_service_.report_device_loss(std::move(diagnostic));
+  [[nodiscard]] FrameResult report_native_failure(
+      std::string code, std::string diagnostic, const HRESULT failure,
+      const FrameFailureKind kind = FrameFailureKind::device_lost) {
+    std::string detail = code + ": " + std::move(diagnostic) +
+                         " (HRESULT=" +
+                         std::to_string(static_cast<long long>(failure)) + ")";
+    try {
+      const auto lease = device_service_.borrow();
+      auto* device = static_cast<ID3D12Device*>(
+          const_cast<void*>(lease.backend_private_device()));
+      if (device != nullptr) {
+        const HRESULT removed_reason = device->GetDeviceRemovedReason();
+        if (FAILED(removed_reason)) {
+          detail += " (removed_reason=" +
+                    std::to_string(
+                        static_cast<long long>(removed_reason)) +
+                    ")";
+        }
+      }
+    } catch (const std::exception&) {
+      // The device service may already be lost. The original HRESULT and
+      // stable diagnostic code remain sufficient for fail-closed evidence.
+    }
+    const auto health = device_service_.report_device_loss(detail);
     telemetry_.device_status = health.status;
     telemetry_.device_event_sequence = health.event_sequence;
-    return reject_device_loss(health);
+    auto result = reject_device_loss(health);
+    result.failure = kind;
+    result.code = std::move(code);
+    result.diagnostic = std::move(detail);
+    return result;
   }
 
   runtime::gpu::GpuDeviceService& device_service_;

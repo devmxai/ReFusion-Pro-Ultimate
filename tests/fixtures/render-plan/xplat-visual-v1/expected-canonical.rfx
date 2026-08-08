@@ -1,5 +1,6 @@
-rfx 4;
+rfx 5;
 registry digest("rfx-vp-fnv1a64:f6f8d1b88fe2d101");
+contributions digest("rfx-vc-fnv1a64:67e38c18c14ab42b");
 
 project id("prj_xplat_visual_v1") revision(12)
   name("Cross Platform Visual Conformance V1");
@@ -44,27 +45,32 @@ composition id("cmp_xplat_visual_v1") name("Visual Conformance") {
         start local_px(-125, -75);
         end local_px(125, 75);
         stop ratio(0) color rgba8("#FF3E58FF");
-        stop ratio(0.4) color rgba8("#8D5CFFE0");
+        stop ratio(0.40000000000000002) color rgba8("#8D5CFFE0");
         stop ratio(1) color rgba8("#20D0FFFF");
       };
       stroke width px(3) color rgba8("#FFFFFFA0");
     }
     mask rounded_rect id("mask_linear") enabled(true) inverted(false) {
-      position local_px(0, 0);
-      size px(230, 130);
-      corner_radius px(22);
+      parameter position_x number(0);
+      parameter position_y number(0);
+      parameter width number(230);
+      parameter height number(130);
+      parameter corner_radius number(22);
     }
     effect gaussian_blur id("fx_linear_blur") enabled(true) {
-      sigma px(2, 3);
+      parameter sigma_x number(2);
+      parameter sigma_y number(3);
     }
     effect drop_shadow id("fx_linear_shadow") enabled(true) {
-      offset px(7, 10);
-      sigma px(5, 6);
-      color rgba8("#000000A0");
+      parameter offset_x number(7);
+      parameter offset_y number(10);
+      parameter sigma_x number(5);
+      parameter sigma_y number(6);
+      parameter color color_rgba8("#000000A0");
     }
     effect glow id("fx_linear_glow") enabled(true) {
-      sigma px(9);
-      color rgba8("#8D5CFFB0");
+      parameter sigma number(9);
+      parameter color color_rgba8("#8D5CFFB0");
     }
     animate transform.position.x {
       key frame(0) value(205);
@@ -80,7 +86,7 @@ composition id("cmp_xplat_visual_v1") name("Visual Conformance") {
       anchor local_px(0, 0);
       scale ratio(1, 1);
       rotation degrees(0);
-      opacity ratio(0.76);
+      opacity ratio(0.76000000000000001);
     }
     blend(screen);
     content shape {
@@ -96,14 +102,18 @@ composition id("cmp_xplat_visual_v1") name("Visual Conformance") {
       stroke width px(1) color rgba8("#20D0FFFF");
     }
     mask rounded_rect id("mask_radial_inverted") enabled(true) inverted(true) {
-      position local_px(20, 0);
-      size px(54, 140);
-      corner_radius px(27);
+      parameter position_x number(20);
+      parameter position_y number(0);
+      parameter width number(54);
+      parameter height number(140);
+      parameter corner_radius number(27);
     }
     effect drop_shadow id("fx_radial_shadow") enabled(true) {
-      offset px(-6, 8);
-      sigma px(7, 7);
-      color rgba8("#10204090");
+      parameter offset_x number(-6);
+      parameter offset_y number(8);
+      parameter sigma_x number(7);
+      parameter sigma_y number(7);
+      parameter color color_rgba8("#10204090");
     }
     animate transform.rotation {
       key frame(0) value(0);
@@ -132,13 +142,13 @@ composition id("cmp_xplat_visual_v1") name("Visual Conformance") {
       vertical_align(center);
       wrap(no_wrap);
       overflow(clip);
-      line_height ratio(1.1);
+      line_height ratio(1.1000000000000001);
       letter_spacing local_px(0);
       fill rgba8("#FFFFFFFF");
     }
     effect glow id("fx_text_glow") enabled(true) {
-      sigma px(6);
-      color rgba8("#20D0FFC0");
+      parameter sigma number(6);
+      parameter color color_rgba8("#20D0FFC0");
     }
   }
 
@@ -156,14 +166,14 @@ composition id("cmp_xplat_visual_v1") name("Visual Conformance") {
       layer("lyr_radial_screen");
     }
     animate transform.scale.x {
-      key frame(0) value(0.96);
+      key frame(0) value(0.95999999999999996);
       key frame(60) value(1.04);
-      key frame(120) value(0.96);
+      key frame(120) value(0.95999999999999996);
     }
     animate transform.scale.y {
-      key frame(0) value(0.96);
+      key frame(0) value(0.95999999999999996);
       key frame(60) value(1.04);
-      key frame(120) value(0.96);
+      key frame(120) value(0.95999999999999996);
     }
   }
 

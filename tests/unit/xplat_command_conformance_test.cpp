@@ -5,6 +5,7 @@
 #include "refusion/core/ProjectClock.hpp"
 #include "refusion/core/ProjectRfx.hpp"
 
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <locale>
@@ -145,6 +146,33 @@ int main() {
           "accepted command output escaped the authored subpixel grid");
 
   const auto canonical = serialize_project_rfx(final);
+  if (const char* receipt_path =
+          std::getenv("REFUSION_XPLAT_COMMAND_RECEIPT_OUTPUT");
+      receipt_path != nullptr && receipt_path[0] != '\0') {
+    std::ofstream output(receipt_path, std::ios::trunc);
+    require(static_cast<bool>(output),
+            "cannot open requested xplat command receipt");
+    output << "schema=refusion.xplat-command-conformance.v1\n"
+           << "final_revision="
+           << canonical_uint64(final.revision_id.value) << "\n"
+           << "snapshot_digest=" << project_snapshot_digest(final) << "\n"
+           << "canonical_size=" << canonical_uint64(canonical.size()) << "\n"
+           << "solid_position_x="
+           << canonical_float64(solid->transform.position_x) << "\n"
+           << "solid_position_y="
+           << canonical_float64(solid->transform.position_y) << "\n"
+           << "solid_anchor_x="
+           << canonical_float64(solid->transform.anchor_x) << "\n"
+           << "solid_anchor_y="
+           << canonical_float64(solid->transform.anchor_y) << "\n"
+           << "solid_width=" << canonical_float64(solid_shape.width) << "\n"
+           << "radial_position_x="
+           << canonical_float64(radial->transform.position_x) << "\n"
+           << "radial_position_y="
+           << canonical_float64(radial->transform.position_y) << "\n";
+    require(static_cast<bool>(output),
+            "cannot write requested xplat command receipt");
+  }
   expect(receipt, "final_revision",
          canonical_uint64(final.revision_id.value));
   expect(receipt, "snapshot_digest", project_snapshot_digest(final));

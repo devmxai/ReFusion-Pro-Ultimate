@@ -23,6 +23,16 @@ VISUAL_BOUNDARY_EXCEPTIONS = (
 VISUAL_CAPABILITY_MATRIX = (
     ROOT / "contracts" / "visual" / "cross-platform-capability-matrix.json"
 )
+VISUAL_COLOR_CONTRACT = (
+    ROOT / "contracts" / "visual" / "desktop-v1-sdr-color.json"
+)
+VISUAL_PIXEL_TOLERANCE = (
+    ROOT / "contracts" / "visual" / "desktop-v1-pixel-tolerance.json"
+)
+VISUAL_QUALIFICATION_RECEIPT_SCHEMA = (
+    ROOT / "contracts" / "visual"
+    / "xplat-qualification-receipt-v1.schema.json"
+)
 
 # Frozen by XPF-WP00A. The manifest keeps the human-readable baseline; this
 # digest prevents silently adding or changing a baseline signature. Active
@@ -45,6 +55,9 @@ REQUIRED = [
     "docs/legal/QT_DISTRIBUTION_GATE.md",
     "docs/product/MEDIA_MATRIX.md",
     "contracts/visual/cross-platform-capability-matrix.json",
+    "contracts/visual/desktop-v1-sdr-color.json",
+    "contracts/visual/desktop-v1-pixel-tolerance.json",
+    "contracts/visual/xplat-qualification-receipt-v1.schema.json",
 ]
 
 
@@ -528,6 +541,236 @@ def mobile_contract_canary_problems(root: pathlib.Path) -> list[str]:
     return problems
 
 
+def visual_color_contract_problems(root: pathlib.Path) -> list[str]:
+    path = root / "contracts" / "visual" / "desktop-v1-sdr-color.json"
+    if not path.is_file():
+        return ["Desktop v1 SDR color contract is missing"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as error:
+        return [f"invalid Desktop v1 SDR color contract: {error}"]
+
+    problems: list[str] = []
+    expected = {
+        "schema_version": 1,
+        "contract_id": "refusion.color.desktop-v1-sdr.v1",
+        "decision": "ADR-0010",
+        "authored_encoding": "srgb-unorm8",
+        "primaries": "rec709-d65",
+        "transfer": "srgb",
+        "project_alpha": "straight",
+        "compositing_alpha": "premultiplied",
+        "blend_filter_working_space": "srgb-encoded",
+        "gradient_interpolation": "srgb-straight",
+        "filter_edge": "transparent-decal",
+        "target_format": "bgra8-unorm",
+        "output_transfer": "srgb",
+    }
+    for key, value in expected.items():
+        if payload.get(key) != value:
+            problems.append(
+                f"Desktop v1 SDR color contract {key} mismatch: "
+                f"{payload.get(key)!r} != {value!r}"
+            )
+    if payload.get("status") not in {"proposed", "accepted"}:
+        problems.append("Desktop v1 SDR color contract status is invalid")
+    canonical_keys = [
+        "contract_id", "schema_version", "authored_encoding", "primaries",
+        "transfer", "project_alpha", "compositing_alpha",
+        "blend_filter_working_space", "gradient_interpolation", "filter_edge",
+        "target_format", "output_transfer",
+    ]
+    canonical_names = {"contract_id": "profile_id"}
+    canonical = "".join(
+        f"{canonical_names.get(key, key)}={payload.get(key)}\n"
+        for key in canonical_keys
+    ).encode("ascii", errors="strict")
+    actual_digest = hashlib.sha256(canonical).hexdigest()
+    if payload.get("canonical_sha256") != actual_digest:
+        problems.append(
+            "Desktop v1 SDR color canonical digest mismatch: "
+            f"{payload.get('canonical_sha256')} != {actual_digest}"
+        )
+
+    required_source_tokens = {
+        "src/core/ColorContract.cpp": (
+            "refusion.color.desktop-v1-sdr.v1",
+            "desktop_v1_sdr_color_contract_digest",
+        ),
+        "src/runtime/render/RenderPlanCompiler.cpp": (
+            "plan.color_contract.profile_id",
+            "plan.color_contract_digest",
+        ),
+        "src/adapters/skia/SkiaSceneCompositor.cpp": (
+            "RFX-COLOR-CONTRACT-001",
+            "desktop_v1_sdr_color_contract_digest",
+        ),
+    }
+    for relative, tokens in required_source_tokens.items():
+        source = root / relative
+        if not source.is_file():
+            problems.append(f"color contract source is missing: {relative}")
+            continue
+        text = source.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                problems.append(
+                    f"color contract source {relative} is missing {token}"
+                )
+    return problems
+
+
+def visual_qualification_contract_problems(root: pathlib.Path) -> list[str]:
+    tolerance_path = (
+        root / "contracts" / "visual" / "desktop-v1-pixel-tolerance.json"
+    )
+    receipt_path = (
+        root / "contracts" / "visual"
+        / "xplat-qualification-receipt-v1.schema.json"
+    )
+    problems: list[str] = []
+    for path, label in (
+        (tolerance_path, "Desktop v1 pixel tolerance"),
+        (receipt_path, "cross-platform qualification receipt schema"),
+    ):
+        if not path.is_file():
+            problems.append(f"{label} is missing")
+            continue
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeError) as error:
+            problems.append(f"invalid {label}: {error}")
+    if problems:
+        return problems
+
+    tolerance = json.loads(tolerance_path.read_text(encoding="utf-8"))
+    expected_tolerance = {
+        "schema_version": 1,
+        "policy_id": "refusion.xplat-pixel-tolerance.desktop-v1.v1",
+        "decision": "ADR-0010",
+        "reference_profile": "macos-metal-desktop-v1",
+        "candidate_profile": "windows-d3d12-desktop-v1",
+        "capture_format": "rgb8-ppm-p6",
+        "dimensions_must_match": True,
+        "alpha_policy": "qualification-source-bgra-alpha-must-be-255",
+    }
+    for key, value in expected_tolerance.items():
+        if tolerance.get(key) != value:
+            problems.append(
+                f"Desktop v1 pixel tolerance {key} mismatch: "
+                f"{tolerance.get(key)!r} != {value!r}"
+            )
+    if tolerance.get("status") not in {"proposed", "accepted"}:
+        problems.append("Desktop v1 pixel tolerance status is invalid")
+    expected_metrics = {
+        "maximum_channel_delta": 8,
+        "mean_absolute_channel_delta": 0.75,
+        "pixels_over_delta_3_ratio": 0.005,
+        "minimum_ssim": 0.995,
+    }
+    if tolerance.get("metrics") != expected_metrics:
+        problems.append("Desktop v1 pixel tolerance metrics mismatch")
+
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if receipt.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+        problems.append("qualification receipt schema draft mismatch")
+    properties = receipt.get("properties")
+    if not isinstance(properties, dict):
+        problems.append("qualification receipt properties are missing")
+    else:
+        required_properties = {
+            "schema", "source_commit", "profile", "host", "toolchain",
+            "contracts", "conformance", "capture", "tests",
+            "claim_boundary",
+        }
+        if set(properties) != required_properties:
+            problems.append("qualification receipt property set mismatch")
+        schema_value = properties.get("schema", {})
+        if schema_value.get("const") != (
+            "refusion.xplat-visual-qualification-receipt.v1"
+        ):
+            problems.append("qualification receipt identity mismatch")
+        capture = properties.get("capture", {}).get("properties", {})
+        policy = capture.get("comparison_policy", {})
+        if policy.get("const") != expected_tolerance["policy_id"]:
+            problems.append("qualification receipt tolerance binding mismatch")
+
+    required_source_tokens = {
+        "src/runtime/presentation/include/refusion/runtime/presentation/ViewportPresentation.hpp": (
+            "VisualOutputConsumer", "interactive_preview",
+        ),
+        "src/adapters/skia/SkiaVisualProgramExecutor.cpp": (
+            "prepare_visual_output_frame", "output_consumer",
+        ),
+        "tests/integration/skia_fixture_renderer_test.mm": (
+            "offline_export", "offline_pixels == pixels",
+            "REFUSION_XPLAT_CAPTURE_PPM",
+        ),
+        "tests/integration/d3d12_fixture_renderer_test.cpp": (
+            "offline_export", "offline_pixels == preview_pixels",
+            "REFUSION_XPLAT_CAPTURE_PPM", "WaitForSingleObject",
+        ),
+        "tools/qualification/compare_visual_captures.py": (
+            "maximum_channel_delta", "pixels_over_delta_3_ratio",
+            "minimum_ssim", "RFX-XPLAT-PIXEL-TOLERANCE-001",
+        ),
+        "tools/qualification/write_visual_qualification_receipt.py": (
+            "refusion.xplat-visual-qualification-receipt.v1",
+            "canonical_project_sha256", "contribution_registry_digest",
+            "preview_offscreen_exact",
+        ),
+    }
+    for relative, tokens in required_source_tokens.items():
+        source = root / relative
+        if not source.is_file():
+            problems.append(f"qualification source is missing: {relative}")
+            continue
+        text = source.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                problems.append(
+                    f"qualification source {relative} is missing {token}"
+                )
+    return problems
+
+
+def windows_bringup_contract_problems(root: pathlib.Path) -> list[str]:
+    problems: list[str] = []
+    required_text = {
+        ".github/workflows/windows-graphics.yml": (
+            "windows-2025", "Invoke-ReFusionWindowsBringup.ps1",
+            "-Lane Graphics", "-FreshDependencies", "-CompileOnly",
+        ),
+        "tools/windows/Invoke-ReFusionWindowsBringup.ps1": (
+            "windows-core", "windows-graphics", "windows-visual",
+            "lock-skia-materialization", "windows-x64-d3d12",
+            "qualifying_source", "qt_release_entitlement_checked",
+            "refusion.d3d12_fixture_renderer",
+            "compare_visual_captures.py",
+            "write_visual_qualification_receipt.py", "execution_mode",
+        ),
+        "src/platform/windows/d3d12/DxgiViewportPresenter.cpp": (
+            "kFenceWaitTimeoutMs", "RFX-D3D12-FENCE-TIMEOUT",
+            "GetDeviceRemovedReason", "native_wait_timeouts",
+        ),
+    }
+    for relative, tokens in required_text.items():
+        path = root / relative
+        if not path.is_file():
+            problems.append(f"Windows bring-up contract file is missing: {relative}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token not in text:
+                problems.append(
+                    f"Windows bring-up contract {relative} is missing {token}"
+                )
+    presenter = root / "src/platform/windows/d3d12/DxgiViewportPresenter.cpp"
+    if presenter.is_file() and "INFINITE" in presenter.read_text(encoding="utf-8"):
+        problems.append("DXGI presenter contains a forbidden unbounded wait")
+    return problems
+
+
 SOURCE_SUFFIXES = {".h", ".hpp", ".c", ".cc", ".cpp", ".m", ".mm", ".ixx"}
 STUDIO_SOURCE_SUFFIXES = SOURCE_SUFFIXES | {".qml"}
 
@@ -1006,6 +1249,9 @@ def command_architecture_check() -> int:
     problems.extend(studio_authority_problems(ROOT))
     problems.extend(cross_platform_contract_problems(ROOT))
     problems.extend(mobile_contract_canary_problems(ROOT))
+    problems.extend(visual_color_contract_problems(ROOT))
+    problems.extend(visual_qualification_contract_problems(ROOT))
+    problems.extend(windows_bringup_contract_problems(ROOT))
     problems.extend(cross_platform_visual_boundary_problems(ROOT))
     problems.extend(visual_capability_matrix_problems(ROOT))
     checked = 0

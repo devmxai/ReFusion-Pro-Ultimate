@@ -2,6 +2,7 @@ add_library(refusion_core STATIC
   AgentIntrospection.cpp
   CanonicalCoordinates.cpp
   CanonicalText.cpp
+  ColorContract.cpp
   ContentDigest.cpp
   ProjectCreation.cpp
   ProjectDocument.cpp

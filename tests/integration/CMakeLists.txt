@@ -106,6 +106,23 @@ if(TARGET ReFusion::SkiaAdapter)
       REFUSION_TEST_SKIA_GPU_CONTEXTS=1)
 
     if(WIN32)
+      add_executable(refusion-d3d12-fixture-renderer-tests
+        d3d12_fixture_renderer_test.cpp)
+      target_link_libraries(refusion-d3d12-fixture-renderer-tests
+        PRIVATE
+          ReFusion::PlatformGpu
+          ReFusion::SkiaAdapter
+          d3d12
+          dxgi)
+      target_compile_definitions(refusion-d3d12-fixture-renderer-tests PRIVATE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        REFUSION_XPLAT_VISUAL_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx"
+        REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf")
+      refusion_enable_warnings(refusion-d3d12-fixture-renderer-tests)
+      add_test(NAME refusion.d3d12_fixture_renderer
+        COMMAND refusion-d3d12-fixture-renderer-tests)
+
       add_executable(refusion-d3d12-viewport-presenter-tests
         d3d12_viewport_presenter_test.cpp)
       target_link_libraries(refusion-d3d12-viewport-presenter-tests
@@ -131,7 +148,8 @@ if(TARGET ReFusion::SkiaAdapter)
         "-framework Metal")
     target_compile_options(refusion-skia-fixture-renderer-tests PRIVATE -fobjc-arc)
     target_compile_definitions(refusion-skia-fixture-renderer-tests PRIVATE
-      REFUSION_XPLAT_VISUAL_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx")
+      REFUSION_XPLAT_VISUAL_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx"
+      REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf")
     refusion_enable_warnings(refusion-skia-fixture-renderer-tests)
     add_test(NAME refusion.skia_fixture_renderer
       COMMAND refusion-skia-fixture-renderer-tests)

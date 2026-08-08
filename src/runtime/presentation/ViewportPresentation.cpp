@@ -68,6 +68,7 @@ const void* BackendFrameTargetLease::backend_private_target() const noexcept {
 
 bool PresentationFrameRequest::valid() const noexcept {
   return device.generation != 0 && !device.adapter_name.empty() &&
+         render::is_known_visual_output_consumer(output_consumer) &&
          render_program && render_program->valid();
 }
 
@@ -234,6 +235,7 @@ PresentationFrameRequest ViewportRenderSession::next_frame_locked(
       .loop_index = clock_snapshot.loop_index,
       .transport_epoch_id = clock_snapshot.epoch_id,
       .device = presenter_.device_identity(),
+      .output_consumer = render::VisualOutputConsumer::interactive_preview,
       .render_program = render_program_,
   };
 }
