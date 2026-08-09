@@ -1,6 +1,11 @@
 #include "AgentJson.hpp"
 #include "adapters/AtomicProjectFile.hpp"
 
+#if defined(REFUSION_CLI_MEDIA_COMMANDS)
+#include "MediaCommands.hpp"
+#include <QCoreApplication>
+#endif
+
 #include "refusion/application/ProjectCommandService.hpp"
 #include "refusion/core/AgentIntrospection.hpp"
 #include "refusion/core/ProjectClock.hpp"
@@ -54,7 +59,14 @@ void print_usage(const char* executable) {
       << "  " << executable
       << " commit align <Project.rfx> <subject-ref> <target-ref> <time-ns> "
          "<none|left|center|right> <none|top|center|bottom> "
-         "<geometry|logical|ink>\n";
+         "<geometry|logical|ink>\n"
+#if defined(REFUSION_CLI_MEDIA_COMMANDS)
+      << "  " << executable
+      << " commit import-video <Project.rfx> <source.mp4|mov> <time-ns>\n"
+      << "  " << executable
+      << " commit relink-exact <Project.rfx> <asset-id> <source.mp4|mov>\n"
+#endif
+      ;
 }
 
 [[nodiscard]] std::optional<std::string> read_file(
@@ -360,7 +372,10 @@ void describe(const ProjectSnapshot& project) {
 
 }  // namespace
 
-int main(const int argc, char** argv) {
+int main(int argc, char** argv) {
+#if defined(REFUSION_CLI_MEDIA_COMMANDS)
+  QCoreApplication native_arguments(argc, argv);
+#endif
   if (argc < 2) {
     print_usage(argv[0]);
     return 2;
@@ -371,6 +386,16 @@ int main(const int argc, char** argv) {
     return 0;
   }
   if (command == "commit") {
+#if defined(REFUSION_CLI_MEDIA_COMMANDS)
+    if (argc >= 3 &&
+        (std::string_view(argv[2]) == "import-video" ||
+         std::string_view(argv[2]) == "relink-exact")) {
+      const auto result =
+          refusion::cli::run_media_command(native_arguments.arguments());
+      if (result == 2) print_usage(argv[0]);
+      return result;
+    }
+#endif
     const auto result = commit(argc, argv);
     if (result == 2) print_usage(argv[0]);
     return result;

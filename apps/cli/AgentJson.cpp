@@ -508,6 +508,14 @@ void write_capabilities_json(std::ostream& output) {
   quoted(output, visual_property_registry_digest());
   output << ",\"contribution_registry_digest\":";
   quoted(output, visual_contribution_registry_digest());
+  output << ",\"media_commands\":{"
+            "\"import_video\":";
+#if defined(REFUSION_CLI_MEDIA_COMMANDS)
+  output << "true,\"relink_exact\":true";
+#else
+  output << "false,\"relink_exact\":false";
+#endif
+  output << '}';
   output << ",\"contributions\":[";
   const auto& contributions = visual_contribution_descriptors();
   for (std::size_t index = 0; index < contributions.size(); ++index) {

@@ -38,3 +38,28 @@ Audio, or substitute missing media with black/silence.
 The file under `Assets/Media/<asset-id>/` and `Project.rfx` are one import
 transaction. If an import is interrupted, use the engine recovery/relink tools;
 do not hand-edit cache or journal files.
+
+## Typed Desktop media commands
+
+First run `refusion-cli capabilities` and require
+`media_commands.import_video=true`. Import with:
+
+```text
+refusion-cli commit import-video <Project.rfx> <source.mp4|mov> <time-ns>
+```
+
+This command fingerprints and indexes the source, copies the verified original,
+publishes one linked Video/Audio Revision and atomically persists Project.rfx.
+Do not construct the RFX6 declarations yourself.
+
+If an accepted original is missing, require
+`media_commands.relink_exact=true`, obtain the stable Asset ID from `outline`,
+and restore only byte-identical content:
+
+```text
+refusion-cli commit relink-exact <Project.rfx> <asset-id> <source.mp4|mov>
+```
+
+Exact relink does not create a Revision or change Clips. An identity mismatch
+must remain unresolved; never substitute a similar file. If either command is
+reported unavailable, stop instead of editing project or cache files manually.

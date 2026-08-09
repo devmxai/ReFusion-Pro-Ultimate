@@ -24,6 +24,18 @@ add_test(NAME refusion.cli_agent_surface
     -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-agent-surface
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_agent_surface_test.cmake)
 
+get_target_property(refusion_cli_has_media_commands refusion-cli
+  REFUSION_MEDIA_COMMANDS)
+if(refusion_cli_has_media_commands)
+  add_test(NAME refusion.cli_media_import
+    COMMAND ${CMAKE_COMMAND}
+      -DCLI=$<TARGET_FILE:refusion-cli>
+      -DPROJECT=${CMAKE_SOURCE_DIR}/examples/projects/rfx-authoring-experiment-01/Project.rfx
+      -DSOURCE=${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4
+      -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-media-import
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_media_import_test.cmake)
+endif()
+
 if(TARGET ReFusion::FfmpegDemux)
   add_executable(refusion-ffmpeg-media-demux-tests
     ffmpeg_media_demux_test.cpp)

@@ -156,6 +156,15 @@ int main(int argc, char* argv[]) {
   require(agent_command_bytes.contains(registry_digest));
   require(agent_command_bytes.contains("commit align"));
   agent_commands.close();
+  QFile media_language(
+      root + QStringLiteral("/.agents/skills/refusion-project-authoring/"
+                            "references/language-v6.md"));
+  require(media_language.open(QIODevice::ReadOnly));
+  const auto media_language_bytes = media_language.readAll();
+  require(media_language_bytes.contains("commit import-video") &&
+          media_language_bytes.contains("commit relink-exact") &&
+          media_language_bytes.contains("media_commands.import_video"));
+  media_language.close();
   const auto opened =
       open_refusion_project(root + QStringLiteral("/Project.rfx"));
   require(opened.succeeded());

@@ -12,6 +12,11 @@ baseline, byte-backed FreeType shaping and ICU line breaks,
 scalar keyframes for position X/Y,
 scale X/Y, rotation and opacity, explicit root draw order, pass-through
 LayerGroups, ordered children, one-parent validation and Timeline drill-down.
+The qualified Desktop product build also exposes typed RFX6 Video import and
+exact Asset relink through `media_commands` in the CLI capability response.
+Import creates one content-addressed original plus linked, independently
+addressable Video and Audio Clips; exact relink accepts byte-identical content
+only and creates no semantic Revision.
 
 Topology-safe Core intents are available for grouping sibling nodes,
 reparenting nodes, adding one owner-local effect and one-shot measured node
@@ -20,7 +25,8 @@ time and horizontal/vertical relation; logical/ink Text alignment requires the
 engine measurement port and every accepted result is rechecked within 0.25 px.
 A static effect or alignment request must preserve Layer/Group/root counts.
 
-Unsupported: Video/Audio/Image/SVG layers, import, Glass/backdrop, procedural
+Unsupported: decoded Video Canvas playback, Audio output/waveform editing,
+Video/Audio Inspector editing, Image/SVG layers, Glass/backdrop, procedural
 textures/noise/paper, Motion Blur, color adjustment, arbitrary FX/shaders,
 plugins, nested compositions, group masks, group FX, group opacity/isolation
 and arbitrary C++ project code. Effect-property animation remains unsupported.

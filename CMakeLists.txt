@@ -60,6 +60,19 @@ if(REFUSION_BUILD_STUDIO)
   add_subdirectory(apps/studio)
 endif()
 
+if(TARGET refusion-cli AND TARGET ReFusion::FfmpegDemux AND
+   TARGET ReFusion::ProjectFileAdapter)
+  target_sources(refusion-cli PRIVATE
+    apps/cli/MediaCommands.cpp
+    apps/cli/MediaCommands.hpp)
+  target_link_libraries(refusion-cli PRIVATE
+    ReFusion::FfmpegDemux
+    ReFusion::ProjectFileAdapter)
+  target_compile_definitions(refusion-cli PRIVATE
+    REFUSION_CLI_MEDIA_COMMANDS=1)
+  set_property(TARGET refusion-cli PROPERTY REFUSION_MEDIA_COMMANDS ON)
+endif()
+
 if(BUILD_TESTING)
   add_subdirectory(tests/unit)
   add_subdirectory(tests/integration)

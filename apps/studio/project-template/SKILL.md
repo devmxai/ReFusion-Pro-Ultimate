@@ -26,6 +26,9 @@ Core snapshot. It is not C++, JSON or free-form text.
 5. For Group, static Glow or measured Align, use the typed `commit` operation
    from `agent-commands.md`; it performs revision CAS, validation and atomic
    publication through the same Core command type as UI authoring.
+   For Desktop Video import or exact relink, first require the corresponding
+   `media_commands` capability and use only the typed commands documented in
+   `language-v6.md`; never author media declarations or asset copies manually.
 6. For another supported declaration, create a candidate outside
    `Project.rfx`, preserve stable IDs, increment revision exactly once, run
    `validate <candidate> --json`, then inspect `diff <active> <candidate>`.
