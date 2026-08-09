@@ -298,73 +298,64 @@ Replace only the content between the markers. Use factual values; write
 
 | Field | Value |
 |---|---|
-| Report state | `Windows passed; cross-platform physical pixel comparison requires a same-commit macOS reference` |
-| UTC timestamp | `2026-08-09T05:26:40Z` |
-| Evidence branch | `evidence/windows-desktop-v1-20260808-desktop-91mgbu8` |
-| Tested source commit | `1e2dc898fdb50ce7871901159f4e51391350a337` |
+| Report state | `Play crash fixed; full Windows build, tests, live playback, looping and pause passed` |
+| UTC timestamp | `2026-08-09T17:34:24Z` |
+| Evidence branch | `feature/shared-machine-dependency-cache` |
+| Tested source commit | `1d2af7db8bce522f03a87f53266e53a992d95a17` |
 | Windows edition/build | `Windows 11 Pro 23H2, build 22631.6199 (NT kernel string 10.0.22631.0)` |
 | CPU/architecture | `13th Gen Intel Core i5-1335U / x64` |
 | GPU | `Intel(R) UHD Graphics` |
-| GPU driver | `32.0.101.5542` |
+| GPU driver | `32.0.101.5542, dated 2024-06-07` |
 | Visual Studio/MSVC | `Visual Studio 2022 Build Tools 17.14.33 / MSVC 19.44.35227.0` |
 | Windows SDK | `10.0.26100.0` |
 | CMake / Ninja / Python | `4.3.3 / 1.12.1 / 3.12.13` |
-| Qt kit/path | `Qt 6.11.1 MSVC 2022 x64 at out/toolchains/qt-engineering/6.11.1/msvc2022_64` |
-| Phase 1 Graphics compile-only | `passed; superseded by the complete clean physical Visual route` |
-| Windows Skia lock | `passed; 46 official transitive dependencies, SHA-256 312a68ce51a2f3c62bc4c8de90d8ec5aad683037cc1882d41e1f76a42110b7a0` |
-| Phase 2 physical Graphics | `passed; 38/38 tests on hardware D3D12` |
-| Phase 2 Visual build/tests | `passed; clean rebuild and 44/44 CTest tests` |
-| Studio manual launch | `passed with C:\Users\hp\Desktop\TEST\Project.rfx` |
-| WARP/software fallback observed | `no` |
-| CPU project-pixel fallback observed | `no` |
-| Final result | `Windows build, tests, D3D12 rendering and Studio playback passed; final Metal/D3D12 physical pixel qualification is blocked on a fresh macOS capture from this commit` |
+| Direct3D runtime | `inbox D3D12.dll, D3D12Core.dll and dxgi.dll 10.0.22621.5415; SDK D3DCompiler_47.dll 10.0.26100.7705` |
+| Machine-cache root | `%USERPROFILE%\.rfx\dc1` |
+| Qt cache identity | `Qt 6.11.1 MSVC 2022 x64; f9a2ae394a1062252ee612ba8274f0660d1027241416e38c58ade080c90162db` |
+| Skia cache identity | `revision 294d31e0b1aa295d585836ab41bd2fba170e0c5d; artifact SHA-256 878b859e11df5240fdff806e53057a60a49c0e36fe8e60c1f1d47e436` |
+| Windows Skia lock | `tracked and unchanged; deps_sha256 cf5e0309bfb2deb9d8ab030937bc2ed98c11d5adfc5531ee6b9721146ff450dd; file SHA-256 0d30f1a9b619ad2087366563fe5263337d065796a8175beb66ed2dd205bb24ac` |
+| Skia materialization | `passed; official roots plus 46 clean official transitive Git dependencies` |
+| Clean GitHub clone/cache proof | `passed at 8704e2a; no checkout-local dependency source/build/toolchain directories were created` |
+| Clean-clone dependency isolation | `passed; no out/deps-src, out/deps-build or out/toolchains after the Visual build` |
+| Clean-clone Visual compile | `passed in 327.1 seconds; refusion-studio.exe linked successfully` |
+| D3D12 presenter stress | `passed; 240 rendered/presented frames, live 640x360 to 800x450 resize, zero native wait timeouts and zero CPU pixel transfers` |
+| Windows Visual tests | `passed; 45/45 CTest tests in 38.79 seconds` |
+| Studio transport | `passed with C:\Users\hp\Desktop\TEST\Project.rfx; Play crossed the complete 30-second timeline and looped, Pause held a stable timecode for five seconds, process remained responsive, no new WER event, stdout/stderr empty` |
+| Final result | `the reproducible Windows Play crash is fixed at its resource-lifetime cause; no fallback renderer, legacy Windows 8.1 runtime or driver-specific approximation was introduced` |
 
 #### First causal failure
 
-- Failed step: `windows-visual-capture` in the physical bring-up orchestrator.
-- Exact command: `C:\Users\hp\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe tools/qualification/compare_visual_captures.py docs/evidence/reviews/artifacts/xplat-visual-v1-macos-metal-640x360.ppm C:\Users\hp\Desktop\RFr\ReFusion-Pro-Ultimate\out\evidence\xplat-visual-v1-windows-d3d12-640x360.ppm --output C:\Users\hp\Desktop\RFr\ReFusion-Pro-Ultimate\out\evidence\xplat-visual-v1-metal-vs-d3d12.json`.
-- Exit code: `1`.
-- First meaningful diagnostic: `maximum_channel_delta=24 (limit 8) and pixels_over_delta_3_ratio=0.0065928819 (limit 0.005); mean_absolute_channel_delta=0.1082696759 and SSIM=0.9996202039 passed their limits`.
-- Classification: `cross-platform reference/evidence mismatch after a shared raster-policy change; requires physical macOS confirmation`.
-- Why this is the causal failure: `repository policy, Core 30/30, official fonts, official Skia materialization, Graphics 38/38, hardware D3D12 capture, a separate clean Visual build, and Visual 44/44 all passed. The checked-in Metal image predates this tested commit and cannot qualify the changed shared raster policy. A same-commit Metal capture is required to distinguish reference invalidation from a remaining backend pixel difference; thresholds were not weakened`.
+- User-visible failure: `invoking Play terminated refusion-studio.exe with APPCRASH exception 0xc0000005`.
+- CDB first causal frame: `GrD3DTextureResource::Resource::freeGPUData()+0x5c attempted IUnknown::Release through an invalid COM object while Skia recycled a completed direct command list`.
+- Root cause 1: `SkiaGpuContextsD3D12 constructed GrD3DTextureResourceInfo from a swapchain-owned raw ID3D12Resource pointer. That constructor adopts a reference; it does not AddRef. Skia therefore released ownership that it never acquired and later retained a dangling resource identity`.
+- Root cause 2: `after correcting COM ownership, the resize stress test exposed DXGI_ERROR_INVALID_CALL (0x887A0001): completed Skia command lists still held swapchain-buffer references when ResizeBuffers invalidated those targets`.
+- Classification: `shared renderer/native-presenter resource-lifetime contract defect, exposed by the Windows D3D12/DXGI backend; not a QML transport defect, Intel-only rendering path, obsolete DLL, or evidence that project semantics are non-portable`.
 
 #### Evidence and artifacts
 
-- Main bring-up receipt: `out/evidence/windows-visual-physical-1e2dc89.json` (`qualifying_source=true`, clean initial/final source tree; stops at the comparison above).
-- D3D12 qualification receipt: `not-produced because the orchestrator correctly stopped at the first failed physical comparison`.
-- Visual comparison: `out/evidence/xplat-visual-v1-metal-vs-d3d12.json`.
-- D3D12 capture: `out/evidence/xplat-visual-v1-windows-d3d12-640x360.ppm`, SHA-256 `515341da22c360a919a0ef715375a54a3cbfc08c9ed9b03bf191e4f4cd85ea3d`.
-- Reference capture: `docs/evidence/reviews/artifacts/xplat-visual-v1-macos-metal-640x360.ppm`, SHA-256 `042200df6dee015c4065a1556049bf8a52798a8f78e9a617e47111bc38bc8d8b`.
-- Relevant log paths: `out/build/windows-visual/Testing/Temporary/LastTest.log`; `out/evidence/studio-fit-final-20260808-221251.stdout.log`; `out/evidence/studio-fit-final-20260808-221251.stderr.log` (both Studio logs are empty).
-- Screenshots: `out/evidence/studio-fit-final.png` (Intel hardware, Fit view, full portrait canvas, PLAYING/GPU READY, more than 1,200 presented frames).
-
-#### Manual Studio observations
-
-- Launcher/create/open: `opening the existing TEST/Project.rfx passed manually; create/reopen passed automated project workspace and launcher tests`.
-- Canvas/D3D12 presentation: `passed on Intel UHD Graphics; Fit preserves the 1080x1920 project aspect ratio and uses full-resolution shared Skia composition followed by staged GPU reduction`.
-- Timeline transport/playhead: `passed manually; Play remained responsive for more than 1,200 presented frames`.
-- Shape/Text/Group/background/FX: `the black/blue gradient background and centered spring text passed manually; broader shape/group/FX behavior passed shared render-plan and fixture tests, not a complete manual authoring sweep`.
-- Arabic/Latin packaged fonts: `official-font gate and Skia text-layout tests passed; the manual TEST project exercised Latin only`.
-- Resize/minimize/restore/occlusion: `D3D12 presenter recovery tests passed; not repeated as a complete manual window-state matrix`.
-- Last-Known-Good diagnostics: `live-reload and invalid-edit behavior passed automated tests; not repeated as a complete manual invalid-edit matrix`.
+- Crash debugger log: `out/evidence/studio-crash-cdb.log`; generated evidence remains ignored and is summarized here rather than committed.
+- Fixed launch logs: `out/evidence/studio-play-fixed.stdout.log` and `out/evidence/studio-play-fixed.stderr.log`, both empty.
+- Automated transport observation: `Play advanced through sampled timecodes at 1, 5, 10, 15, 20, 25 and 30 seconds, looped to the next cycle, and remained responsive. Pause then held 00:00:14:58 for five seconds`.
+- Presenter regression: `d3d12_viewport_presenter_test rendered 120 frames, retired/resized the target, then rendered another 120 frames successfully`.
+- Repository checks: `full Windows build passed; CTest 45/45; docs-doctor 111 documents/0 problems; architecture-check 116 files/0 problems/0 boundary debt`.
+- Dependency reuse proof: `out/evidence/clean-clone-machine-cache.json passed all nine steps with cache resolve in 9.087 seconds and a Visual compile in 327.1 seconds`.
 
 #### Changes made on Windows
 
-- Build/test policy: `CMakePresets.json`, `apps/cli/CMakeLists.txt`, `apps/studio/CMakeLists.txt`, and `tests/integration/CMakeLists.txt` preserve strict MSVC builds, deploy required Skia runtime data, and prepend the resolved Qt runtime for Qt-backed CTest processes. This fixes the `Qt6Core.dll was not found` test-launch error without embedding a machine-specific Qt path.
-- Live reload: `apps/studio/ProjectLiveReloadController.cpp` and `tests/integration/project_live_reload_test.cpp` make Windows directory/file replacement observation and Last-Known-Good diagnostics deterministic while retaining the portable controller contract.
-- Official Skia supply chain: `cmake/deps/Skia.cmake`, `deps/locks/skia-transitive-windows-x64.lock.json`, `deps/patches/skia/windows-dynamic-crt.patch`, `deps/profiles/skia/profiles.json`, `deps/profiles/skia/windows-x64-d3d12.gn`, `tools/bootstrap.py`, and `tools/rfdev.py` add a reviewed Windows D3D12 lock, Release `/MD` build, temporary verified Dawn CRT patch, runtime-data checks, and clean materialization verification. No built Skia files are committed.
-- Shared cross-platform raster path: `src/adapters/skia/CMakeLists.txt`, `SkiaGpuContextsD3D12.cpp`, `SkiaGpuContextsMetal.mm`, `SkiaSceneCompositor.cpp`, `SkiaSceneCompositor.hpp`, `SkiaSurfacePolicy.cpp`, `SkiaSurfacePolicy.hpp`, `SkiaVisualProgramExecutor.cpp`, and `SkiaVisualProgramExecutor.hpp` use common color/surface/font policy, full-resolution F16 composition, and explicit staged GPU downsampling. The backend-dependent mipmap path that crashed the Intel D3D12 Play route was removed.
-- Native presentation: `src/platform/apple/metal/MetalViewportPresenter.mm` and `src/platform/windows/d3d12/DxgiViewportPresenter.cpp` declare equivalent sRGB output intent at the thin platform boundary.
-- Portable viewport/digest behavior: `src/runtime/presentation/ViewportPresentation.cpp`, `src/runtime/presentation/include/refusion/runtime/presentation/ViewportPresentation.hpp`, `src/runtime/render/CMakeLists.txt`, `src/runtime/render/RenderPlanCompiler.cpp`, `src/runtime/render/ViewportMapping.cpp`, and `src/runtime/render/include/refusion/runtime/render/ViewportMapping.hpp` centralize Fit/zoom mapping, keep display state out of project persistence, and canonicalize render-plan numeric hashing across toolchains.
-- Fixtures/tests: `tests/fixtures/render-plan/xplat-visual-v1/expected-render-plan.txt`, `tests/integration/d3d12_fixture_renderer_test.cpp`, `tests/integration/d3d12_viewport_presenter_test.cpp`, `tests/integration/skia_fixture_renderer_test.mm`, `tests/unit/viewport_presentation_test.cpp`, `tests/unit/visual_render_plan_test.cpp`, and `tests/unit/xplat_render_plan_conformance_test.cpp` cover the new shared mapping, staged reduction, native output contract, and digest.
-- Architecture record: `docs/decisions/REGISTER.md` and `docs/decisions/adrs/ADR-0011-full-resolution-canvas-fit-preview.md` document the portable design as `proposed` until same-commit macOS evidence exists.
-- Checks rerun after changes: `repository-policy passed; Core 30/30; Graphics 38/38; Visual 44/44; architecture-check 116 files/0 problems/0 boundary debt; docs-doctor 108 docs/0 problems; 46 Skia dependencies verified with clean source trees; manual Intel Studio playback passed`.
-- Pushed evidence/fix commit: `1e2dc898fdb50ce7871901159f4e51391350a337; this report is in the containing follow-up commit on the same evidence branch`.
+- `ViewportFrameRenderer` now exposes a portable `retire_frame_targets()` lifecycle operation. The contract contains no D3D12, Metal, Qt or project-semantic behavior.
+- `SkiaGpuContextsD3D12.cpp` explicitly retains the swapchain resource for Skia and synchronously retires completed Ganesh target references when a presenter invalidates them.
+- `SkiaGpuContextsMetal.mm` implements the same renderer contract for cross-platform source completeness; existing Metal presentation behavior is otherwise unchanged. The Vulkan canary accepts the contract without inventing a backend path.
+- `DxgiViewportPresenter.cpp` waits for native GPU idle and retires renderer target references before buffer resize or detach. Per-frame rendering remains asynchronous; synchronization is limited to target retirement.
+- `d3d12_viewport_presenter_test.cpp` now pumps Win32 messages and verifies sustained presentation across a real swapchain resize with actionable failure diagnostics.
+- The verified machine-cache implementation remains in commit `8704e2a82d8d4cd4ac21bceb29d0c7cd72fe238d`; this fix does not alter dependency identities or the reviewed Windows Skia lock.
+- No Qt/Skia binaries, `.exe`, CMake cache, debugger log or `out/` content is committed.
 
 #### Diagnosis and next action
 
-- Root-cause assessment: `three independent issues were confirmed. (1) Fit rendered directly at viewport dimensions with independent X/Y scaling and target-resolution text, producing soft/distorted canvas output; it now uses one portable aspect-preserving mapping and a full-resolution shared source surface. (2) Skia's backend mipmap generation crashed the Intel D3D12 Play path with 0xc0000409; explicit reusable GPU reduction passes remove that backend-specific failure. (3) the Qt6Core.dll dialog came from direct CTest executables lacking the Qt runtime directory in PATH, not from a non-cross-platform application architecture; CTest now receives the resolved kit path. Shared behavior remains in RuntimeRender/SkiaCommon, with only device creation, target wrapping and presentation in Metal/D3D12 adapters`.
-- Remaining unqualified areas: `same-commit physical macOS Metal capture/comparison; full manual authoring/window-state matrix; performance profiling; Windows Media Foundation video import/decode remains outside this Canvas run`.
-- Exact recommended next action: `on physical macOS, check out this evidence branch/report commit, build the same source and pinned Skia revision, regenerate xplat-visual-v1-macos-metal-640x360.ppm, and rerun compare_visual_captures.py with the existing thresholds. If it passes, produce the final qualification receipt and advance ADR-0011 through normal review; if it fails, investigate the measured shared/backend difference without weakening thresholds or adding a Windows-only visual approximation`.
+- Runtime assessment: `the loaded Direct3D and compiler DLLs are modern Windows 11/SDK components. No Windows 8.1-era application runtime was loaded. Updating dependencies blindly would not have repaired the COM lifetime violation`.
+- Driver assessment: `Intel 32.0.101.5542 is older than the current Intel 11th-14th Gen package 32.0.101.7088. Updating through HP OEM support, or the Intel generic package after checking OEM compatibility, is recommended independently; the complete fixed run passed on 5542, so the driver is not the causal fix`.
+- Cross-platform boundary: `the shared lifecycle contract and both Skia implementations were reviewed, but this Windows host cannot physically compile or execute Metal. macOS must build and run this exact commit before integration to main`.
+- Visual qualification boundary: `the prior Metal/D3D12 comparison remains unqualified until a same-commit physical macOS reference is produced; no pixel threshold was weakened in this repair`.
+- Next action: `fetch this branch on the official macOS host, run the full Metal build/tests and transport/resize checks at 1d2af7db8bce522f03a87f53266e53a992d95a17, regenerate the physical Metal comparison, then review through the documented integration workflow. Do not merge this branch directly into main`.
 
 <!-- WINDOWS_AGENT_REPORT:END -->
