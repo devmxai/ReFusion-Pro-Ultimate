@@ -113,6 +113,23 @@ int main(int argc, char* argv[]) {
           .composition = timeline_composition(),
       });
   StudioBridge bridge(*commands);
+  require(bridge.compositionWidth() == 1080U);
+  require(bridge.compositionHeight() == 1920U);
+  require(bridge.portraitWorkspace());
+
+  auto landscape = timeline_composition();
+  landscape.canvas = {.width_pixels = 1920, .height_pixels = 1080};
+  auto landscape_commands = refusion::application::create_application_host(
+      refusion::core::ProjectSnapshot{
+          .project_id = refusion::core::ProjectId{"prj_landscape_workspace"},
+          .revision_id = refusion::core::RevisionId{1},
+          .display_name = "Landscape",
+          .composition = std::move(landscape),
+      });
+  StudioBridge landscape_bridge(*landscape_commands);
+  require(landscape_bridge.compositionWidth() == 1920U);
+  require(landscape_bridge.compositionHeight() == 1080U);
+  require(!landscape_bridge.portraitWorkspace());
 
   int snapshot_notifications = 0;
   int diagnostic_notifications = 0;
@@ -386,6 +403,7 @@ int main(int argc, char* argv[]) {
           timeline_composition()));
   require(!transport_bridge.running());
   require(transport_bridge.durationFrames() == 900);
+  require(transport_bridge.durationSeconds() == 30.0);
   require(transport_bridge.positionFrame() == 0);
   require(transport_bridge.positionTimecode() ==
           QStringLiteral("00:00:00:00"));
@@ -398,6 +416,8 @@ int main(int argc, char* argv[]) {
   require(group_index.data(TimelineTrackModel::nodeIdRole).toString() ==
           QStringLiteral("grp_title"));
   require(group_index.data(TimelineTrackModel::isGroupRole).toBool());
+  require(group_index.data(TimelineTrackModel::visualKindRole).toString() ==
+          QStringLiteral("group"));
   require(group_index.data(TimelineTrackModel::childCountRole).toULongLong() ==
           1);
   require(transport_bridge.timelinePath() == QStringLiteral("Transport"));
@@ -452,6 +472,8 @@ int main(int argc, char* argv[]) {
   const auto title_index = transport_bridge.tracks()->index(0, 0);
   require(title_index.data(TimelineTrackModel::nodeIdRole).toString() ==
           QStringLiteral("lyr_title"));
+  require(title_index.data(TimelineTrackModel::visualKindRole).toString() ==
+          QStringLiteral("text"));
   require(title_index.data(TimelineTrackModel::startFrameRole).toULongLong() ==
           150);
   require(title_index.data(TimelineTrackModel::durationFramesRole).toULongLong() ==

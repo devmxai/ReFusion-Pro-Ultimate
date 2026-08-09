@@ -339,6 +339,23 @@ qulonglong StudioBridge::revision() const {
   return commands_->active_snapshot().revision_id.value;
 }
 
+uint StudioBridge::compositionWidth() const noexcept {
+  const auto snapshot = commands_->active_snapshot();
+  return snapshot.composition ? snapshot.composition->canvas.width_pixels : 0U;
+}
+
+uint StudioBridge::compositionHeight() const noexcept {
+  const auto snapshot = commands_->active_snapshot();
+  return snapshot.composition ? snapshot.composition->canvas.height_pixels : 0U;
+}
+
+bool StudioBridge::portraitWorkspace() const noexcept {
+  const auto snapshot = commands_->active_snapshot();
+  return snapshot.composition &&
+         snapshot.composition->canvas.height_pixels >
+             snapshot.composition->canvas.width_pixels;
+}
+
 QString StudioBridge::diagnostic() const { return diagnostic_; }
 
 const refusion::core::Transform2D* StudioBridge::selectedTransform(

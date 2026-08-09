@@ -87,6 +87,13 @@ namespace {
              : QString::fromStdString(descriptor->display_name);
 }
 
+[[nodiscard]] QString layer_visual_kind(
+    const refusion::core::LayerContent& content) {
+  return std::holds_alternative<refusion::core::TextLayerContent>(content)
+             ? QStringLiteral("text")
+             : QStringLiteral("shape");
+}
+
 }  // namespace
 
 TimelineTrackModel::TimelineTrackModel(
@@ -113,7 +120,8 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
   tracks.reserve(composition.layers.size() + composition.groups.size());
   const auto append_track = [&](QString node_id, QString display_name,
                                 const refusion::core::TimeRangeNs& range,
-                                QString row_kind, QString owner_node_id,
+                                QString row_kind, QString visual_kind,
+                                QString owner_node_id,
                                 const bool is_group,
                                 const bool owner_is_group,
                                 const bool is_property_row,
@@ -132,6 +140,7 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
         .start_frame = start_frame,
         .end_frame = std::max(start_frame, end_frame),
         .row_kind = std::move(row_kind),
+        .visual_kind = std::move(visual_kind),
         .owner_node_id = std::move(owner_node_id),
         .is_group = is_group,
         .owner_is_group = owner_is_group,
@@ -148,7 +157,8 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
       append_track(animation_property_id(animation.property),
                    QStringLiteral("Animate · ") +
                        animation_property_name(animation.property),
-                   range, QStringLiteral("animation"), owner_id, false,
+                   range, QStringLiteral("animation"),
+                   QStringLiteral("animation"), owner_id, false,
                    owner_is_group, true, 1,
                    static_cast<qulonglong>(animation.keyframes.size()));
     }
@@ -163,22 +173,25 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
       const auto property_count = layer->masks.size() + layer->effects.size() +
                                   layer->animations.size();
       append_track(owner_id, QString::fromStdString(layer->display_name),
-                   layer->active_range, QStringLiteral("layer"), owner_id,
-                   false, false, false, 0,
+                   layer->active_range, QStringLiteral("layer"),
+                   layer_visual_kind(layer->content), owner_id, false, false,
+                   false, 0,
                    static_cast<qulonglong>(property_count));
       for (const auto& mask : layer->masks) {
         append_track(QString::fromStdString(mask.mask_id.value),
                      QStringLiteral("Mask · ") + contribution_name(
                          refusion::core::visual_mask_kind(mask)),
-                     layer->active_range, QStringLiteral("mask"), owner_id,
-                     false, false, true, 1, 0);
+                     layer->active_range, QStringLiteral("mask"),
+                     QStringLiteral("mask"), owner_id, false, false, true, 1,
+                     0);
       }
       for (const auto& effect : layer->effects) {
         append_track(QString::fromStdString(effect.effect_id.value),
                      QStringLiteral("FX · ") + contribution_name(
                          refusion::core::visual_effect_kind(effect)),
-                     layer->active_range, QStringLiteral("effect"), owner_id,
-                     false, false, true, 1, 0);
+                     layer->active_range, QStringLiteral("effect"),
+                     QStringLiteral("effect"), owner_id, false, false, true,
+                     1, 0);
       }
       append_animations(owner_id, false, layer->active_range,
                         layer->animations);
@@ -191,8 +204,8 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
       }
       const auto owner_id = QString::fromStdString(group->group_id.value);
       append_track(owner_id, QString::fromStdString(group->display_name),
-                   group->active_range, QStringLiteral("group"), owner_id,
-                   true, true, false, 0,
+                   group->active_range, QStringLiteral("group"),
+                   QStringLiteral("group"), owner_id, true, true, false, 0,
                    static_cast<qulonglong>(group->children.size()));
       append_animations(owner_id, true, group->active_range,
                         group->animations);
@@ -230,6 +243,8 @@ QVariant TimelineTrackModel::data(const QModelIndex& index, const int role) cons
       return QVariant::fromValue(track.end_frame - track.start_frame);
     case nodeKindRole:
       return track.row_kind;
+    case visualKindRole:
+      return track.visual_kind;
     case isGroupRole:
       return track.is_group;
     case childCountRole:
@@ -255,6 +270,7 @@ QHash<int, QByteArray> TimelineTrackModel::roleNames() const {
       {endFrameRole, "endFrame"},
       {durationFramesRole, "durationFrames"},
       {nodeKindRole, "nodeKind"},
+      {visualKindRole, "visualKind"},
       {isGroupRole, "isGroup"},
       {childCountRole, "childCount"},
       {ownerNodeIdRole, "ownerNodeId"},
@@ -293,6 +309,10 @@ refusion::core::ProjectTimeNs StudioTransportBridge::compositionTimeNs() const
 
 qulonglong StudioTransportBridge::durationFrames() const noexcept {
   return playback_spec_.frame_count();
+}
+
+double StudioTransportBridge::durationSeconds() const noexcept {
+  return static_cast<double>(playback_spec_.duration_ns) / 1'000'000'000.0;
 }
 
 double StudioTransportBridge::positionRatio() const noexcept {

@@ -88,6 +88,6 @@ class EngineViewportWindow final : public QWindow {
   refusion::runtime::presentation::ViewportRenderSession& render_session_;
   QString diagnostic_;
   bool attached_{false};
-  bool playback_started_{false};
+  bool initial_frame_presented_{false};
   std::atomic_bool telemetry_update_pending_{false};
 };

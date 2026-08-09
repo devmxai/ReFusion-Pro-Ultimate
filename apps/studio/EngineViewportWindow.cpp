@@ -158,9 +158,9 @@ void EngineViewportWindow::exposeEvent(QExposeEvent* event) {
   emit telemetryChanged();
   if (isExposed() && attached_) {
     update_extent();
-    if (!playback_started_) {
-      render_session_.start_playback();
-      playback_started_ = true;
+    if (!initial_frame_presented_) {
+      const auto result = render_session_.render_once();
+      initial_frame_presented_ = result.succeeded();
     }
   }
 }

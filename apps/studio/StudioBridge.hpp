@@ -18,6 +18,9 @@ class StudioBridge final : public QObject {
   Q_PROPERTY(QString projectId READ projectId CONSTANT)
   Q_PROPERTY(QString projectName READ projectName NOTIFY snapshotChanged)
   Q_PROPERTY(qulonglong revision READ revision NOTIFY snapshotChanged)
+  Q_PROPERTY(uint compositionWidth READ compositionWidth NOTIFY snapshotChanged)
+  Q_PROPERTY(uint compositionHeight READ compositionHeight NOTIFY snapshotChanged)
+  Q_PROPERTY(bool portraitWorkspace READ portraitWorkspace NOTIFY snapshotChanged)
   Q_PROPERTY(QString diagnostic READ diagnostic NOTIFY diagnosticChanged)
   Q_PROPERTY(bool hasVisualSelection READ hasVisualSelection NOTIFY snapshotChanged)
   Q_PROPERTY(QString selectedNodeId READ selectedNodeId NOTIFY snapshotChanged)
@@ -51,6 +54,9 @@ class StudioBridge final : public QObject {
   [[nodiscard]] QString projectId() const;
   [[nodiscard]] QString projectName() const;
   [[nodiscard]] qulonglong revision() const;
+  [[nodiscard]] uint compositionWidth() const noexcept;
+  [[nodiscard]] uint compositionHeight() const noexcept;
+  [[nodiscard]] bool portraitWorkspace() const noexcept;
   [[nodiscard]] QString diagnostic() const;
   [[nodiscard]] bool hasVisualSelection() const;
   [[nodiscard]] QString selectedNodeId() const;

@@ -10,14 +10,18 @@ ApplicationWindow {
     minimumHeight: 680
     visible: true
     title: "ReFusion Studio — Open Project"
-    color: "#0b0d12"
+    color: "#252b36"
 
     readonly property color panel: "#12151c"
     readonly property color panelRaised: "#181c25"
-    readonly property color border: "#2a3040"
+    readonly property color border: "#252b36"
     readonly property color textMain: "#f2f4f8"
     readonly property color textMuted: "#8891a4"
     readonly property color accent: "#7c5cff"
+    readonly property bool portraitWorkspace: studioBridge.portraitWorkspace
+    readonly property real portraitInspectorWidth: width < 1500 ? 280 : 320
+    readonly property real portraitTimelineWidth:
+        Math.max(380, Math.min(520, width * 0.34))
 
     function playbackTime(milliseconds) {
         const totalSeconds = Math.floor(milliseconds / 1000)
@@ -25,6 +29,55 @@ ApplicationWindow {
         const seconds = totalSeconds % 60
         return String(minutes).padStart(2, "0") + ":"
                 + String(seconds).padStart(2, "0")
+    }
+
+    function trackColor(kind, selected) {
+        switch (kind) {
+        case "video": return "#3975c6"
+        case "audio": return "#2b9c72"
+        case "image": return "#8a63c7"
+        case "text": return "#d8873f"
+        case "shape": return "#765bd6"
+        case "background": return "#4658a8"
+        case "svg": return "#3e9a9a"
+        case "group": return "#5d4aa6"
+        default: return root.accent
+        }
+    }
+
+    function trackIcon(kind) {
+        switch (kind) {
+        case "video": return "▶"
+        case "audio": return "♪"
+        case "image": return "▧"
+        case "text": return "T"
+        case "shape": return "◇"
+        case "background": return "▰"
+        case "svg": return "◈"
+        case "group": return "▣"
+        default: return "◆"
+        }
+    }
+
+    function niceRulerStep(rawSeconds) {
+        if (!isFinite(rawSeconds) || rawSeconds <= 1)
+            return 1
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawSeconds)))
+        const normalized = rawSeconds / magnitude
+        const nice = normalized <= 1 ? 1
+                   : normalized <= 2 ? 2
+                   : normalized <= 5 ? 5 : 10
+        return nice * magnitude
+    }
+
+    function textEditorHasFocus() {
+        const item = root.activeFocusItem
+        return item !== null
+                && (item instanceof TextInput
+                    || item instanceof TextEdit
+                    || item instanceof TextField
+                    || item instanceof TextArea
+                    || item instanceof SpinBox)
     }
 
     function syncTransformInspector() {
@@ -65,10 +118,29 @@ ApplicationWindow {
         function onSnapshotChanged() { root.syncTransformInspector() }
     }
 
+    Shortcut {
+        sequence: "Space"
+        context: Qt.WindowShortcut
+        autoRepeat: false
+        enabled: transportBridge !== null
+        onActivated: {
+            if (!root.textEditorHasFocus())
+                transportBridge.togglePlayback()
+        }
+    }
+
     header: Rectangle {
         height: 52
         color: root.panel
-        border.color: root.border
+        border.width: 0
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: root.border
+        }
 
         RowLayout {
             anchors.fill: parent
@@ -90,15 +162,21 @@ ApplicationWindow {
         }
     }
 
-    RowLayout {
+    GridLayout {
         anchors.fill: parent
-        spacing: 1
+        columns: root.portraitWorkspace ? 4 : 3
+        rows: root.portraitWorkspace ? 1 : 2
+        columnSpacing: 1
+        rowSpacing: 1
 
         Rectangle {
-            Layout.preferredWidth: 74
+            Layout.row: 0
+            Layout.column: 0
+            Layout.rowSpan: root.portraitWorkspace ? 1 : 2
+            Layout.preferredWidth: 64
             Layout.fillHeight: true
             color: root.panel
-            border.color: root.border
+            border.width: 0
 
             ColumnLayout {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -121,31 +199,33 @@ ApplicationWindow {
             }
         }
 
-        ColumnLayout {
+        Rectangle {
+            id: canvasPanel
+            Layout.row: 0
+            Layout.column: root.portraitWorkspace ? 2 : 1
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 1
+            color: "#090b10"
+            border.width: 0
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                color: "#090b10"
-                border.color: root.border
-
-                Rectangle {
-                    id: viewportFrame
-                    anchors.centerIn: parent
-                    readonly property real compositionAspect:
-                        engineViewportWindow
-                        ? engineViewportWindow.compositionWidth
-                          / engineViewportWindow.compositionHeight
-                        : 16 / 9
-                    width: Math.min(parent.width * 0.78,
-                                    parent.height * 0.80 * compositionAspect)
-                    height: width / compositionAspect
-                    color: "#05060a"
-                    border.color: "#343b4d"
-                    border.width: 1
+                id: viewportFrame
+                anchors.centerIn: parent
+                readonly property real compositionAspect:
+                    studioBridge.compositionHeight > 0
+                    ? studioBridge.compositionWidth
+                      / studioBridge.compositionHeight
+                    : 16 / 9
+                width: root.portraitWorkspace
+                       ? Math.min(Math.max(1, parent.width - 24),
+                                  Math.max(1, parent.height - 72)
+                                  * compositionAspect)
+                       : Math.min(parent.width * 0.78,
+                                  parent.height * 0.80 * compositionAspect)
+                height: width / compositionAspect
+                color: "#05060a"
+                border.color: "#343b4d"
+                border.width: 1
 
                     WindowContainer {
                         anchors.fill: parent
@@ -172,88 +252,98 @@ ApplicationWindow {
                         }
                     }
 
-                    Rectangle {
-                        id: viewportStatusBadge
-                        anchors.left: parent.left
-                        anchors.top: parent.bottom
-                        anchors.topMargin: 8
-                        width: viewportStatus.implicitWidth + 18
-                        height: 28
-                        radius: 8
-                        color: "#cc12151c"
-                        border.color: root.border
-                        visible: engineViewportAvailable
+                }
 
-                        Label {
-                            id: viewportStatus
-                            anchors.centerIn: parent
-                            text: engineViewportWindow
-                                  ? engineViewportWindow.adapterName
-                                    + "  •  GPU frames "
-                                    + engineViewportWindow.presentedFrames
-                                    + "  •  "
-                                    + (engineViewportWindow.playbackRunning
-                                       ? "PLAYING" : "PAUSED")
-                                    + "  •  GPU "
-                                    + engineViewportWindow.deviceStatus
-                                  : "GPU viewport unavailable"
-                            color: engineViewportWindow && engineViewportWindow.zeroCopy
-                                   ? "#7ee787" : "#ff6f7d"
-                            font.pixelSize: 11
+                Row {
+                    id: canvasTransport
+                    anchors.top: viewportFrame.bottom
+                    anchors.topMargin: 6
+                    anchors.horizontalCenter: viewportFrame.horizontalCenter
+                    height: 28
+                    spacing: 9
+                    visible: root.portraitWorkspace
+
+                    ToolButton {
+                        id: canvasPlaybackToggle
+                        width: 30
+                        height: 26
+                        enabled: transportBridge !== null
+                        text: transportBridge && transportBridge.running
+                              ? "❚❚" : "▶"
+                        font.pixelSize: 12
+                        onClicked: transportBridge.togglePlayback()
+                        ToolTip.visible: hovered
+                        ToolTip.text: transportBridge && transportBridge.running
+                                      ? "Pause" : "Play"
+                        background: Rectangle {
+                            radius: 6
+                            color: canvasPlaybackToggle.hovered
+                                   ? "#242a35" : "transparent"
+                            border.width: canvasPlaybackToggle.hovered ? 1 : 0
+                            border.color: root.border
+                        }
+                        contentItem: Label {
+                            text: canvasPlaybackToggle.text
+                            color: canvasPlaybackToggle.enabled
+                                   ? root.textMain : root.textMuted
+                            font: canvasPlaybackToggle.font
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
                     }
 
                     Label {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: viewportStatusBadge.bottom
-                        anchors.topMargin: 4
-                        visible: engineViewportDiagnostic.length > 0
-                                 || (engineViewportWindow
-                                     && engineViewportWindow.diagnostic.length > 0)
-                        text: engineViewportDiagnostic.length > 0
-                              ? engineViewportDiagnostic
-                              : (engineViewportWindow
-                                 ? engineViewportWindow.diagnostic : "")
-                        color: "#ff6f7d"
-                        wrapMode: Text.Wrap
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: transportBridge
+                              ? transportBridge.positionTimecode + "  /  "
+                                + transportBridge.durationTimecode
+                              : "00:00:00:00  /  00:00:00:00"
+                        color: root.textMuted
+                        font.family: "Menlo"
+                        font.pixelSize: 10
                     }
+                }
+
+                Label {
+                    anchors.left: viewportFrame.left
+                    anchors.right: viewportFrame.right
+                    anchors.top: root.portraitWorkspace
+                                 ? canvasTransport.bottom : viewportFrame.bottom
+                    anchors.topMargin: 4
+                    visible: engineViewportDiagnostic.length > 0
+                             || (engineViewportWindow
+                                 && engineViewportWindow.diagnostic.length > 0)
+                    text: engineViewportDiagnostic.length > 0
+                          ? engineViewportDiagnostic
+                          : (engineViewportWindow
+                             ? engineViewportWindow.diagnostic : "")
+                    color: "#ff6f7d"
+                    wrapMode: Text.Wrap
+                    font.pixelSize: 10
                 }
             }
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 260
+                id: timelinePanel
+                Layout.row: root.portraitWorkspace ? 0 : 1
+                Layout.column: root.portraitWorkspace ? 3 : 1
+                Layout.preferredWidth: root.portraitWorkspace
+                                       ? root.portraitTimelineWidth : -1
+                Layout.minimumWidth: root.portraitWorkspace ? 380 : 0
+                Layout.fillWidth: !root.portraitWorkspace
+                Layout.preferredHeight: root.portraitWorkspace ? -1 : 260
+                Layout.fillHeight: root.portraitWorkspace
                 color: root.panel
-                border.color: root.border
+                border.width: 0
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 8
+                    anchors.margins: root.portraitWorkspace ? 0 : 8
+                    spacing: root.portraitWorkspace ? 0 : 6
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 34
-
-                        Row {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
-                            Label {
-                                text: "TIMELINE"
-                                color: root.textMuted
-                                font.bold: true
-                            }
-                            Label {
-                                text: engineViewportWindow
-                                      ? engineViewportWindow.compositionName
-                                        + "  •  "
-                                        + engineViewportWindow.compositionWidth
-                                        + "×" + engineViewportWindow.compositionHeight
-                                      : "No composition"
-                                color: root.textMuted
-                            }
-                        }
+                        Layout.preferredHeight: root.portraitWorkspace ? 0 : 34
+                        visible: !root.portraitWorkspace
 
                         ToolButton {
                             id: playbackToggle
@@ -319,25 +409,29 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: root.panelRaised
-                        border.color: root.border
+                        border.width: 0
 
-                        readonly property real trackLabelWidth: 150
-                        readonly property int rulerTicks: 7
+                        readonly property real trackLabelWidth:
+                            root.portraitWorkspace ? 40 : 150
+                        readonly property int rulerHeight: 28
+                        readonly property real rulerDurationSeconds:
+                            transportBridge
+                            ? Math.max(1, transportBridge.durationSeconds) : 1
 
                         Column {
                             anchors.fill: parent
-                            anchors.margins: 1
+                            anchors.margins: 0
                             spacing: 0
 
                             Item {
                                 width: parent.width
-                                height: 25
+                                height: timelineBody.rulerHeight
 
                                 Rectangle {
                                     width: timelineBody.trackLabelWidth
                                     height: parent.height
                                     color: "#171b24"
-                                    border.color: root.border
+                                    border.width: 0
 
                                     Row {
                                         anchors.fill: parent
@@ -360,6 +454,7 @@ ApplicationWindow {
                                         Label {
                                             width: parent.width - 27
                                             anchors.verticalCenter: parent.verticalCenter
+                                            visible: !root.portraitWorkspace
                                             text: transportBridge
                                                   ? transportBridge.timelinePath
                                                   : "LAYERS"
@@ -369,6 +464,13 @@ ApplicationWindow {
                                             elide: Text.ElideLeft
                                         }
                                     }
+
+                                    Rectangle {
+                                        anchors.right: parent.right
+                                        width: 1
+                                        height: parent.height
+                                        color: root.border
+                                    }
                                 }
 
                                 Item {
@@ -376,34 +478,65 @@ ApplicationWindow {
                                     x: timelineBody.trackLabelWidth
                                     width: parent.width - x
                                     height: parent.height
+                                    readonly property int secondTicks:
+                                        Math.max(1, Math.floor(
+                                                     timelineBody.rulerDurationSeconds))
+                                    readonly property int labelStepSeconds:
+                                        Math.max(1, root.niceRulerStep(
+                                                     timelineBody.rulerDurationSeconds
+                                                     * 28 / Math.max(1, width)))
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: transportBridge !== null
+                                        hoverEnabled: true
+                                        cursorShape: pressed
+                                                     ? Qt.ClosedHandCursor
+                                                     : Qt.SplitHCursor
+                                        z: 10
+                                        onPressed: function(mouse) {
+                                            transportBridge.seekFromTimelinePosition(
+                                                        mouse.x, width)
+                                        }
+                                        onPositionChanged: function(mouse) {
+                                            if (pressed) {
+                                                transportBridge.seekFromTimelinePosition(
+                                                            mouse.x, width)
+                                            }
+                                        }
+                                    }
 
                                     Repeater {
-                                        model: timelineBody.rulerTicks
+                                        model: rulerLane.secondTicks + 1
                                         delegate: Item {
                                             required property int index
+                                            readonly property bool majorTick:
+                                                index % rulerLane.labelStepSeconds === 0
                                             x: index * (rulerLane.width - 1)
-                                               / (timelineBody.rulerTicks - 1)
+                                               / rulerLane.secondTicks
                                             width: 1
                                             height: rulerLane.height
                                             Rectangle {
                                                 anchors.bottom: parent.bottom
+                                                anchors.bottomMargin: 4
                                                 width: 1
-                                                height: index % 2 === 0 ? 9 : 6
-                                                color: root.border
+                                                height: majorTick ? 5 : 2
+                                                radius: majorTick ? 0 : 1
+                                                color: majorTick
+                                                       ? "#454d5e" : "#303745"
                                             }
                                             Label {
                                                 anchors.top: parent.top
+                                                anchors.topMargin: 3
                                                 x: index === 0 ? 4
-                                                   : index === timelineBody.rulerTicks - 1
+                                                   : index === rulerLane.secondTicks
                                                      ? -implicitWidth - 4
                                                      : -implicitWidth / 2
-                                                text: transportBridge
-                                                      ? transportBridge.timecodeAtRatio(
-                                                            index / (timelineBody.rulerTicks - 1))
-                                                      : "00:00:00:00"
-                                                color: root.textMuted
+                                                visible: majorTick
+                                                text: String(index)
+                                                color: "#929bad"
                                                 font.family: "Menlo"
-                                                font.pixelSize: 8
+                                                font.pixelSize: 9
                                             }
                                         }
                                     }
@@ -419,6 +552,7 @@ ApplicationWindow {
                                     required property var startFrame
                                     required property var durationFrames
                                     required property string nodeKind
+                                    required property string visualKind
                                     required property bool isGroup
                                     required property var childCount
                                     required property string ownerNodeId
@@ -430,33 +564,46 @@ ApplicationWindow {
                                         && studioBridge.selectedNodeId === nodeId
                                     readonly property bool ownerSelected:
                                         studioBridge.selectedNodeId === ownerNodeId
-                                    width: timelineBody.width - 2
-                                    height: 24
+                                    visible: !isPropertyRow
+                                    width: timelineBody.width
+                                    height: visible ? 32 : 0
+                                    readonly property color semanticColor:
+                                        root.trackColor(visualKind, selected)
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        z: 10
+                                        acceptedButtons: Qt.LeftButton
+                                        onClicked: studioBridge.selectVisualNode(
+                                                       ownerNodeId,
+                                                       ownerIsGroup)
+                                        onDoubleClicked: function(mouse) {
+                                            if (isGroup) {
+                                                transportBridge.enterGroup(nodeId)
+                                            }
+                                        }
+                                    }
 
                                     Rectangle {
                                         width: timelineBody.trackLabelWidth
                                         height: parent.height
-                                        color: selected ? "#30275a"
-                                                       : isPropertyRow && ownerSelected
-                                                         ? "#24203a"
-                                                       : isGroup ? "#211d36"
-                                                       : index % 2 === 0
-                                                         ? "#191e28" : "#171b24"
-                                        border.color: selected ? root.accent : root.border
+                                        color: index % 2 === 0
+                                               ? "#191e28" : "#171b24"
+                                        border.width: 0
 
                                         Label {
                                             anchors.left: parent.left
-                                            anchors.leftMargin: 8 + depth * 12
+                                            anchors.leftMargin: root.portraitWorkspace
+                                                                ? (parent.width - width) / 2
+                                                                : 8 + depth * 12
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: isGroup ? "▸"
-                                                  : nodeKind === "effect" ? "ƒ"
-                                                  : nodeKind === "mask" ? "◩"
-                                                  : nodeKind === "animation" ? "◆"
-                                                  : ""
-                                            color: root.accent
-                                            font.pixelSize: 11
+                                            text: root.trackIcon(visualKind)
+                                            color: semanticColor
+                                            font.pixelSize: visualKind === "text" ? 12 : 11
+                                            font.bold: true
                                         }
                                         Label {
+                                            visible: !root.portraitWorkspace
                                             anchors.left: parent.left
                                             anchors.leftMargin: 9 + depth * 12
                                                                 + (isGroup
@@ -484,17 +631,11 @@ ApplicationWindow {
                                                           + ownerNodeId
                                                         : nodeId
                                         HoverHandler { id: trackHover }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            acceptedButtons: Qt.LeftButton
-                                            onClicked: studioBridge.selectVisualNode(
-                                                           ownerNodeId,
-                                                           ownerIsGroup)
-                                            onDoubleClicked: function(mouse) {
-                                                if (isGroup && !isPropertyRow) {
-                                                    transportBridge.enterGroup(nodeId)
-                                                }
-                                            }
+                                        Rectangle {
+                                            anchors.right: parent.right
+                                            width: 1
+                                            height: parent.height
+                                            color: root.border
                                         }
                                     }
 
@@ -507,10 +648,19 @@ ApplicationWindow {
                                         Rectangle {
                                             anchors.fill: parent
                                             color: index % 2 === 0 ? "#151923" : "#131720"
-                                            border.color: "#222837"
+                                            border.width: 0
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.bottom: parent.bottom
+                                                height: 1
+                                                color: "#202633"
+                                            }
                                         }
 
                                         Rectangle {
+                                            id: trackClip
                                             x: transportBridge && transportBridge.durationFrames > 0
                                                ? Number(startFrame)
                                                  / transportBridge.durationFrames
@@ -523,22 +673,45 @@ ApplicationWindow {
                                                        * trackLane.width)
                                                    : 0
                                             anchors.verticalCenter: parent.verticalCenter
-                                            height: isPropertyRow ? 6 : 12
-                                            radius: 3
-                                            color: selected ? "#9d87ff"
-                                                            : isPropertyRow
-                                                              ? nodeKind === "effect"
-                                                                ? "#ff8a65"
-                                                                : nodeKind === "mask"
-                                                                  ? "#55d6be"
-                                                                  : "#f4c95d"
-                                                            : isGroup ? "#5f46bf"
-                                                                      : root.accent
-                                            border.color: selected ? "#ffffff"
-                                                                   : isPropertyRow
-                                                                     ? "#343c50"
-                                                                   : isGroup ? "#b8a9ff"
-                                                                             : "#987fff"
+                                            height: 20
+                                            radius: 5
+                                            color: semanticColor
+                                            opacity: 0.88
+                                            border.width: 1
+                                            border.color: selected
+                                                          ? "#b8ffffff"
+                                                          : Qt.lighter(semanticColor, 1.18)
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                anchors.margins: 2
+                                                width: 3
+                                                radius: 2
+                                                color: "#b8ffffff"
+                                            }
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.leftMargin: 7
+                                                anchors.rightMargin: 4
+                                                anchors.topMargin: 2
+                                                height: 1
+                                                color: "#36ffffff"
+                                            }
+
+                                            Rectangle {
+                                                anchors.right: parent.right
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                anchors.rightMargin: 4
+                                                width: 2
+                                                height: 8
+                                                radius: 1
+                                                color: "#66ffffff"
+                                            }
                                         }
                                     }
                                 }
@@ -559,7 +732,7 @@ ApplicationWindow {
                                    ? Math.round(transportBridge.positionRatio
                                                 * (playheadLane.width - width))
                                    : 0
-                                y: 18
+                                y: timelineBody.rulerHeight - 5
                                 width: 2
                                 height: playheadLane.height - y
                                 color: "#47d7ff"
@@ -575,24 +748,6 @@ ApplicationWindow {
                                 }
                             }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                enabled: transportBridge !== null
-                                hoverEnabled: true
-                                cursorShape: pressed
-                                             ? Qt.ClosedHandCursor
-                                             : Qt.SplitHCursor
-                                onPressed: function(mouse) {
-                                    transportBridge.seekFromTimelinePosition(
-                                                mouse.x, width)
-                                }
-                                onPositionChanged: function(mouse) {
-                                    if (pressed) {
-                                        transportBridge.seekFromTimelinePosition(
-                                                    mouse.x, width)
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -607,13 +762,17 @@ ApplicationWindow {
                     }
                 }
             }
-        }
 
         Rectangle {
-            Layout.preferredWidth: 320
+            id: inspectorPanel
+            Layout.row: 0
+            Layout.column: root.portraitWorkspace ? 1 : 2
+            Layout.rowSpan: root.portraitWorkspace ? 1 : 2
+            Layout.preferredWidth: root.portraitWorkspace
+                                   ? root.portraitInspectorWidth : 320
             Layout.fillHeight: true
             color: root.panel
-            border.color: root.border
+            border.width: 0
 
             ColumnLayout {
                 anchors.fill: parent

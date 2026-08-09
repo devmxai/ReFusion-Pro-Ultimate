@@ -22,6 +22,7 @@ class TimelineTrackModel final : public QAbstractListModel {
     qulonglong start_frame{0};
     qulonglong end_frame{0};
     QString row_kind;
+    QString visual_kind;
     QString owner_node_id;
     bool is_group{false};
     bool owner_is_group{false};
@@ -37,6 +38,7 @@ class TimelineTrackModel final : public QAbstractListModel {
     endFrameRole,
     durationFramesRole,
     nodeKindRole,
+    visualKindRole,
     isGroupRole,
     childCountRole,
     ownerNodeIdRole,
@@ -74,6 +76,7 @@ class StudioTransportBridge final : public QObject {
   Q_PROPERTY(bool running READ running NOTIFY snapshotChanged)
   Q_PROPERTY(qulonglong positionFrame READ positionFrame NOTIFY snapshotChanged)
   Q_PROPERTY(qulonglong durationFrames READ durationFrames CONSTANT)
+  Q_PROPERTY(double durationSeconds READ durationSeconds CONSTANT)
   Q_PROPERTY(double positionRatio READ positionRatio NOTIFY snapshotChanged)
   Q_PROPERTY(QString positionTimecode READ positionTimecode NOTIFY snapshotChanged)
   Q_PROPERTY(QString durationTimecode READ durationTimecode CONSTANT)
@@ -99,6 +102,7 @@ class StudioTransportBridge final : public QObject {
   [[nodiscard]] refusion::core::ProjectTimeNs compositionTimeNs() const
       noexcept;
   [[nodiscard]] qulonglong durationFrames() const noexcept;
+  [[nodiscard]] double durationSeconds() const noexcept;
   [[nodiscard]] double positionRatio() const noexcept;
   [[nodiscard]] QString positionTimecode() const;
   [[nodiscard]] QString durationTimecode() const;
