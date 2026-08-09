@@ -56,7 +56,7 @@ class TestWindow final {
       DestroyWindow(window_);
     }
     if (atom_ != 0) {
-      UnregisterClassW(MAKEINTATOM(atom_), instance_);
+      UnregisterClassW(L"ReFusion.D3D12PresenterTest", instance_);
     }
   }
 

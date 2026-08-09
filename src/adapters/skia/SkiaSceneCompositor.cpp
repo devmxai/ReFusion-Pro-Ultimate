@@ -186,8 +186,7 @@ void draw_text(SkCanvas& canvas, SkiaTextLayoutEngine& text_layout_engine,
 
 void draw_visual_render_plan(
     SkCanvas& canvas, SkiaTextLayoutEngine& text_layout_engine,
-    const runtime::render::VisualRenderPlan& plan, const float target_width,
-    const float target_height) {
+    const runtime::render::VisualRenderPlan& plan) {
   if (!plan.valid()) {
     throw std::invalid_argument(
         "RFX-RENDER-PLAN-003: Skia received an invalid VisualRenderPlan");
@@ -201,13 +200,8 @@ void draw_visual_render_plan(
     throw std::invalid_argument(
         "RFX-COLOR-CONTRACT-001: unsupported visual color contract");
   }
-  canvas.clear(to_sk_color(plan.clear_color, 1.0));
-  const float scale_x =
-      target_width / static_cast<float>(plan.canvas_width_pixels);
-  const float scale_y =
-      target_height / static_cast<float>(plan.canvas_height_pixels);
+  canvas.drawColor(to_sk_color(plan.clear_color, 1.0), SkBlendMode::kSrc);
   canvas.save();
-  canvas.scale(scale_x, scale_y);
 
   for (const auto& layer : plan.layers) {
     canvas.save();

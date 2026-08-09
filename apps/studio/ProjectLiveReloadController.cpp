@@ -165,6 +165,8 @@ ProjectLiveReloadController::ProjectLiveReloadController(
 
   connect(&watcher_, &QFileSystemWatcher::fileChanged,
           this, &ProjectLiveReloadController::projectFileChanged);
+  connect(&watcher_, &QFileSystemWatcher::directoryChanged,
+          this, &ProjectLiveReloadController::projectFileChanged);
   ensureWatch();
   const auto initial = commands_->active_snapshot();
   writeJournal(initial, last_accepted_source_);
@@ -191,14 +193,31 @@ ProjectLiveReloadController::~ProjectLiveReloadController() {
 }
 
 void ProjectLiveReloadController::projectFileChanged(const QString&) {
-  processCandidate();
+  try {
+    processCandidate();
+  } catch (const std::exception& error) {
+    const auto diagnostic = QString::fromUtf8(error.what());
+    bridge_->publishExternalDiagnostic(diagnostic);
+    appendDiagnostic(QStringLiteral("rejected"),
+                     QStringLiteral("RFX-PROJECT-WATCH-EXCEPTION"),
+                     diagnostic,
+                     0,
+                     commands_->active_snapshot().revision_id.value);
+    QTimer::singleShot(50, this, &ProjectLiveReloadController::ensureWatch);
+  }
 }
 
 void ProjectLiveReloadController::ensureWatch() {
-  if (QFileInfo::exists(project_path_) &&
-      !watcher_.files().contains(project_path_)) {
-    watcher_.addPath(project_path_);
+  if (!watcher_.directories().contains(project_directory_)) {
+    watcher_.addPath(project_directory_);
   }
+  if (!QFileInfo::exists(project_path_)) {
+    return;
+  }
+  if (watcher_.files().contains(project_path_)) {
+    watcher_.removePath(project_path_);
+  }
+  watcher_.addPath(project_path_);
 }
 
 void ProjectLiveReloadController::processCandidate() {

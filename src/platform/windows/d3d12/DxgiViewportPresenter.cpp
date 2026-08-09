@@ -401,6 +401,35 @@ class DxgiViewportPresenter final : public ViewportPresenter {
       }
     }
 
+    constexpr auto color_space =
+        DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+    UINT color_space_support = 0;
+    const HRESULT color_space_query =
+        swapchain_state_->swapchain->CheckColorSpaceSupport(
+            color_space, &color_space_support);
+    if (FAILED(color_space_query)) {
+      return report_native_failure(
+          "RFX-DXGI-COLOR-QUERY",
+          "CheckColorSpaceSupport failed for the Desktop-v1 SDR profile",
+          color_space_query);
+    }
+    if ((color_space_support &
+         DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == 0) {
+      ++telemetry_.rejected_frames;
+      return rejected(
+          "DXGI output does not support the required sRGB/Rec.709 SDR color "
+          "space",
+          FrameFailureKind::incompatible, "RFX-DXGI-COLOR-UNSUPPORTED");
+    }
+    const HRESULT color_space_set =
+        swapchain_state_->swapchain->SetColorSpace1(color_space);
+    if (FAILED(color_space_set)) {
+      return report_native_failure(
+          "RFX-DXGI-COLOR-SET",
+          "SetColorSpace1 failed for the Desktop-v1 SDR profile",
+          color_space_set);
+    }
+
     for (UINT index = 0; index < kBufferCount; ++index) {
       if (FAILED(swapchain_state_->swapchain->GetBuffer(
               index, IID_PPV_ARGS(&swapchain_state_->buffers[index])))) {

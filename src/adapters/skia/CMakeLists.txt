@@ -28,6 +28,7 @@ set(refusion_skia_common_sources
   SkiaRuntime.cpp
   SkiaGpuComposition.cpp
   SkiaSceneCompositor.cpp
+  SkiaSurfacePolicy.cpp
   SkiaTextLayout.cpp
   SkiaVisualProgramExecutor.cpp
 )

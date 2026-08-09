@@ -4,6 +4,7 @@
 #include "refusion/core/VisualContributionRegistry.hpp"
 
 #include <bit>
+#include <cmath>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -217,7 +218,13 @@ void hash_value(std::uint64_t& hash, const Value value) noexcept {
 }
 
 void hash_value(std::uint64_t& hash, const double value) noexcept {
-  hash_value(hash, std::bit_cast<std::uint64_t>(value));
+  constexpr double kSemanticScale = 1'000'000.0;
+  const double scaled = value * kSemanticScale;
+  const double canonical = std::isfinite(scaled)
+                               ? std::round(scaled) / kSemanticScale
+                               : value;
+  hash_value(hash, std::bit_cast<std::uint64_t>(
+                       canonical == 0.0 ? 0.0 : canonical));
 }
 
 void hash_color(std::uint64_t& hash, const ColorRgba8& color) noexcept {
@@ -359,7 +366,7 @@ void hash_string(std::uint64_t& hash, const std::string_view value) noexcept {
         },
         layer.content);
   }
-  return "rfx-render-plan-v2-fnv1a64:" + core::canonical_hex64(hash);
+  return "rfx-render-plan-v3-fnv1a64:" + core::canonical_hex64(hash);
 }
 
 }  // namespace

@@ -248,6 +248,25 @@ void qualify_pixels(const std::vector<std::uint8_t>& pixels) {
           "D3D12 qualification foreground coverage is too small");
 }
 
+void qualify_downsampled_pixels(const std::vector<std::uint8_t>& pixels) {
+  std::size_t opaque = 0;
+  std::size_t changed = 0;
+  for (std::size_t index = 0; index + 3 < pixels.size(); index += 4) {
+    const auto blue = pixels[index];
+    const auto green = pixels[index + 1];
+    const auto red = pixels[index + 2];
+    opaque += pixels[index + 3] == 255 ? 1U : 0U;
+    const auto delta = std::abs(static_cast<int>(red) - 10) +
+                       std::abs(static_cast<int>(green) - 16) +
+                       std::abs(static_cast<int>(blue) - 32);
+    changed += delta > 18 ? 1U : 0U;
+  }
+  require(opaque == pixels.size() / 4,
+          "D3D12 downsampled Canvas is not fully opaque");
+  require(changed > 3'000,
+          "D3D12 full-resolution Canvas downsample lost foreground detail");
+}
+
 void write_reference_ppm(const std::string& path,
                          const std::vector<std::uint8_t>& pixels,
                          const std::uint32_t width,
@@ -307,6 +326,25 @@ int main() {
   const auto preview_pixels =
       read_bgra(*device, *queue, *preview_texture.Get(), width, height);
   qualify_pixels(preview_pixels);
+  constexpr std::uint32_t fit_width = 320;
+  constexpr std::uint32_t fit_height = 180;
+
+  const auto fit_texture = create_target_texture(*device, fit_width, fit_height);
+  const auto fit_target = target_lease(device_service->identity(), 3,
+                                       fit_width, fit_height, fit_texture);
+  const auto fit_result = renderer->render(
+      fit_target,
+      PresentationFrameRequest{
+          .request_sequence = 61,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = VisualOutputConsumer::interactive_preview,
+          .render_program = program,
+      });
+  require(fit_result.succeeded(), fit_result.diagnostic);
+  qualify_downsampled_pixels(
+      read_bgra(*device, *queue, *fit_texture.Get(), fit_width, fit_height));
 
   const auto offline_texture = create_target_texture(*device, width, height);
   const auto offline_target = target_lease(

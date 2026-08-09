@@ -1,0 +1,26 @@
+diff --git a/third_party/dawn/BUILD.gn b/third_party/dawn/BUILD.gn
+--- a/third_party/dawn/BUILD.gn
++++ b/third_party/dawn/BUILD.gn
+@@ -164,7 +164,6 @@ config("dawn_api_config") {
+       "user32.lib",
+       "delayimp.lib",
+       "dxguid.lib",
+-      "libcpmt.lib",
+     ]
+   } else {
+     libs = []
+diff --git a/third_party/dawn/cmake_utils.py b/third_party/dawn/cmake_utils.py
+--- a/third_party/dawn/cmake_utils.py
++++ b/third_party/dawn/cmake_utils.py
+@@ -324,6 +324,6 @@
+-  # We want to build Dawn (and its dependencies) with /MT so we can statically
+-  # link it into Skia.
+-  win_cfgs.append("-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded")
+-  win_cfgs.append("-DABSL_MSVC_STATIC_RUNTIME=ON")
++  # ReFusion links Skia into the dynamic Qt SDK, so the complete Windows
++  # process must use the DLL runtime consistently.
++  win_cfgs.append("-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL")
++  win_cfgs.append("-DABSL_MSVC_STATIC_RUNTIME=OFF")
+-
++
+   return win_cfgs, win_cxx, win_ld

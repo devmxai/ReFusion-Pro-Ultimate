@@ -69,7 +69,7 @@ const void* BackendFrameTargetLease::backend_private_target() const noexcept {
 bool PresentationFrameRequest::valid() const noexcept {
   return device.generation != 0 && !device.adapter_name.empty() &&
          render::is_known_visual_output_consumer(output_consumer) &&
-         render_program && render_program->valid();
+         canvas_view.valid() && render_program && render_program->valid();
 }
 
 bool PlaybackSpec::valid() const noexcept {
@@ -236,6 +236,7 @@ PresentationFrameRequest ViewportRenderSession::next_frame_locked(
       .transport_epoch_id = clock_snapshot.epoch_id,
       .device = presenter_.device_identity(),
       .output_consumer = render::VisualOutputConsumer::interactive_preview,
+      .canvas_view = canvas_view_,
       .render_program = render_program_,
   };
 }
@@ -341,6 +342,22 @@ PlaybackState ViewportRenderSession::playback_state() const {
       .last_frame_status = last_frame_status_,
       .diagnostic = diagnostic_,
   };
+}
+
+render::CanvasViewportState ViewportRenderSession::canvas_view() const noexcept {
+  std::scoped_lock lock(mutex_);
+  return canvas_view_;
+}
+
+bool ViewportRenderSession::set_canvas_view(
+    const render::CanvasViewportState canvas_view) noexcept {
+  if (!canvas_view.valid()) {
+    return false;
+  }
+  std::scoped_lock lock(mutex_);
+  canvas_view_ = canvas_view;
+  wake_.notify_all();
+  return true;
 }
 
 void ViewportRenderSession::set_frame_observer(FrameObserver observer) {

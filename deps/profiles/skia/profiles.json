@@ -20,6 +20,7 @@
     "windows-x64-d3d12": {
       "host": "windows-x64",
       "gn_args": "windows-x64-d3d12.gn",
+      "source_patch": "deps/patches/skia/windows-dynamic-crt.patch",
       "targets": ["skia", "modules/skshaper", "fontmgr_custom_embedded"],
       "bundle_artifact": "refusion_skia_bundle.lib",
       "purpose": "G1 D3D12/Ganesh visual candidate; source wiring exists and physical Windows qualification is required",

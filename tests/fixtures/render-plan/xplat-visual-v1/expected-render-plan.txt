@@ -1,7 +1,7 @@
 # schema=refusion.xplat-render-plan-conformance.v2
 # color_contract=sha256:50a4acc6cc8d7092b5aa10d4f70bc24aa93aaf4e71413617c5ec297e5547af78
 # frame semantic_digest
-0 rfx-render-plan-v2-fnv1a64:7e35bba138440e05
-30 rfx-render-plan-v2-fnv1a64:445accf806d297f1
-60 rfx-render-plan-v2-fnv1a64:8448b6351adb9e68
-119 rfx-render-plan-v2-fnv1a64:2198204046988c36
+0 rfx-render-plan-v3-fnv1a64:11eba9eac544372c
+30 rfx-render-plan-v3-fnv1a64:ee607f3172b8e11d
+60 rfx-render-plan-v3-fnv1a64:d9ef59900d3d3b9f
+119 rfx-render-plan-v3-fnv1a64:ecaf24a2b887da79

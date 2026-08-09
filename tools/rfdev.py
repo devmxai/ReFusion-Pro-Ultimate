@@ -195,7 +195,7 @@ def command_context() -> int:
     )
     unique_paths = list(dict.fromkeys(paths))
     manifest = [{
-        "path": str(path.relative_to(ROOT)),
+        "path": path.relative_to(ROOT).as_posix(),
         "sha256": sha256(path),
         "reason": "active authority context",
     } for path in unique_paths]

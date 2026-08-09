@@ -8,6 +8,7 @@
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 
 #include "SkiaTextLayoutInternal.hpp"
+#include "SkiaSurfacePolicy.hpp"
 #include "SkiaVisualProgramExecutor.hpp"
 
 #include <d3d12.h>
@@ -16,6 +17,7 @@
 
 #include "include/core/SkColorSpace.h"
 #include "include/core/SkSurface.h"
+#include "include/gpu/ganesh/GrBackendSurface.h"
 #include "include/gpu/ganesh/GrDirectContext.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "include/gpu/ganesh/d3d/GrD3DBackendContext.h"
@@ -102,6 +104,7 @@ struct SkiaGpuContexts::Implementation final {
   ComPtr<IDXGIAdapter1> adapter;
   sk_sp<GrDirectContext> ganesh;
   std::unique_ptr<SkiaTextLayoutEngine> text_layout_engine;
+  SkiaVisualProgramExecutor visual_executor;
   std::shared_ptr<runtime::gpu::GpuObservabilityService> observability;
   std::unique_ptr<runtime::gpu::GpuObservedResourceLease> observed_context;
 };
@@ -181,7 +184,7 @@ std::unique_ptr<SkiaGpuContexts> SkiaGpuContexts::create(
           .text_layout_engine = std::move(text_layout_engine),
           .observability = std::move(observability),
           .observed_context = std::move(observed_context),
-      }))));
+      })));
 }
 
 bool SkiaGpuContexts::ganesh_ready() const noexcept {
@@ -252,18 +255,17 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   auto surface = SkSurfaces::WrapBackendRenderTarget(
       implementation_->ganesh.get(), backend_target,
       kTopLeft_GrSurfaceOrigin, kBGRA_8888_SkColorType,
-      SkColorSpace::MakeSRGB(), nullptr);
+      SkColorSpace::MakeSRGB(), &visual_surface_props());
   if (!surface) {
     return rejected("Skia could not wrap the DXGI back buffer");
   }
 
   try {
-    execute_visual_render_program(
-        *surface->getCanvas(), *implementation_->text_layout_engine,
+    implementation_->visual_executor.execute(
+        *surface, *implementation_->text_layout_engine,
         *frame.render_program, frame.project_time_ns,
         frame.transport_epoch_id, frame.output_consumer,
-        static_cast<float>(target.width_pixels),
-        static_cast<float>(target.height_pixels));
+        frame.canvas_view, target.width_pixels, target.height_pixels);
   } catch (const std::exception& error) {
     return rejected(error.what());
   }

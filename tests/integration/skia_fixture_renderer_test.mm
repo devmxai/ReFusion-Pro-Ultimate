@@ -177,6 +177,53 @@ int main() {
               pixels[3] == 255,
           "pixel qualification: base corner color changed");
 
+  MTLTextureDescriptor* fit_descriptor = [MTLTextureDescriptor
+      texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                width:320
+                               height:180
+                            mipmapped:NO];
+  fit_descriptor.usage = MTLTextureUsageRenderTarget;
+  fit_descriptor.storageMode = MTLStorageModeShared;
+  id<MTLTexture> fit_texture = [device newTextureWithDescriptor:fit_descriptor];
+  require(fit_texture != nil);
+  const BackendFrameTargetLease fit_target{
+      .device = device_service->identity(),
+      .pixel_format = PixelFormat::bgra8_unorm,
+      .target_id = 3,
+      .width_pixels = 320,
+      .height_pixels = 180,
+      .backend_private_state = std::shared_ptr<const void>(
+          CFBridgingRetain(fit_texture),
+          [](const void* value) { CFRelease(value); }),
+  };
+  const auto fit_rendered = contexts->render(
+      fit_target,
+      PresentationFrameRequest{
+          .request_sequence = 61,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = refusion::runtime::render::VisualOutputConsumer::interactive_preview,
+          .render_program = render_program,
+      });
+  require(fit_rendered.succeeded(), fit_rendered.diagnostic);
+
+  id<MTLCommandBuffer> fit_barrier = [command_queue commandBuffer];
+  require(fit_barrier != nil);
+  [fit_barrier commit];
+  [fit_barrier waitUntilCompleted];
+  require(fit_barrier.status == MTLCommandBufferStatusCompleted);
+  std::vector<std::uint8_t> fit_pixels(320U * 180U * bytes_per_pixel);
+  [fit_texture getBytes:fit_pixels.data()
+             bytesPerRow:320U * bytes_per_pixel
+              fromRegion:MTLRegionMake2D(0, 0, 320, 180)
+             mipmapLevel:0];
+  const auto fit_qualification = qualify_pixels(fit_pixels);
+  require(fit_qualification.opaque_pixels == 320U * 180U,
+          "downsampled Canvas is not fully opaque");
+  require(fit_qualification.changed_from_background > 3'000,
+          "full-resolution Canvas downsample lost foreground detail");
+
   // Offline qualification is a distinct output consumer but must execute the
   // same immutable program, exact ProjectTime, lowering and Skia compositor.
   // A second offscreen GPU target proves that the consumer identity does not

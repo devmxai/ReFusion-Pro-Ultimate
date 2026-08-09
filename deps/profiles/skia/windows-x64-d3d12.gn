@@ -3,6 +3,7 @@ is_debug = false
 target_os = "win"
 target_cpu = "x64"
 is_trivial_abi = false
+extra_cflags = [ "/MD" ]
 
 skia_enable_tools = false
 skia_enable_gpu_debug_layers = false

@@ -117,9 +117,18 @@ class MetalViewportPresenter final : public ViewportPresenter {
     }
 
     CAMetalLayer* metal_layer = [CAMetalLayer layer];
+    CGColorSpaceRef srgb_color_space =
+        CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    if (srgb_color_space == nullptr) {
+      ++telemetry_.rejected_frames;
+      return rejected(
+          "Metal presenter could not create the Desktop-v1 sRGB color space");
+    }
     metal_layer.name = @"ReFusion.EngineViewport";
     metal_layer.device = device;
     metal_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    metal_layer.colorspace = srgb_color_space;
+    CGColorSpaceRelease(srgb_color_space);
     metal_layer.framebufferOnly = YES;
     metal_layer.opaque = YES;
     metal_layer.backgroundColor = NSColor.blackColor.CGColor;

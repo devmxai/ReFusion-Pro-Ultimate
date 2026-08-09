@@ -44,6 +44,22 @@ endif()
 
 qt_standard_project_setup(REQUIRES 6.11)
 
+if(WIN32)
+  get_target_property(refusion_qt_core_runtime
+    Qt6::Core IMPORTED_LOCATION_RELEASE)
+  if(NOT refusion_qt_core_runtime)
+    get_target_property(refusion_qt_core_runtime
+      Qt6::Core IMPORTED_LOCATION)
+  endif()
+  if(NOT refusion_qt_core_runtime)
+    message(FATAL_ERROR "Qt6::Core does not expose a Windows runtime location")
+  endif()
+  cmake_path(GET refusion_qt_core_runtime PARENT_PATH
+    refusion_qt_runtime_directory)
+  set_property(GLOBAL PROPERTY REFUSION_QT_RUNTIME_DIRECTORY
+    "${refusion_qt_runtime_directory}")
+endif()
+
 add_library(refusion_studio_bridge STATIC
   StudioBridge.cpp
   StudioBridge.hpp
@@ -234,6 +250,7 @@ if(refusion_studio_visual_runtime)
       ReFusion::PlatformGpu
       ReFusion::SkiaAdapter
   )
+  refusion_deploy_skia_runtime(refusion-studio)
 endif()
 
 refusion_enable_warnings(refusion-studio)

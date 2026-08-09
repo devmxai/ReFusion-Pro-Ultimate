@@ -70,6 +70,7 @@ if(TARGET ReFusion::SkiaAdapter)
   add_executable(refusion-skia-text-layout-tests skia_text_layout_test.cpp)
   target_link_libraries(refusion-skia-text-layout-tests
     PRIVATE ReFusion::SkiaAdapter)
+  refusion_deploy_skia_runtime(refusion-skia-text-layout-tests)
   target_compile_definitions(refusion-skia-text-layout-tests PRIVATE
     REFUSION_NOTO_SANS_LATIN_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/font.ttf"
     REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf"
@@ -92,6 +93,7 @@ if(TARGET ReFusion::SkiaAdapter)
     exp006g_visual_regression_test.cpp)
   target_link_libraries(refusion-exp006g-visual-regression-tests
     PRIVATE ReFusion::SkiaAdapter)
+  refusion_deploy_skia_runtime(refusion-exp006g-visual-regression-tests)
   target_compile_definitions(refusion-exp006g-visual-regression-tests PRIVATE
     REFUSION_EXP006G_PROJECT_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/project/exp006g-reels/Project.rfx")
   refusion_enable_warnings(refusion-exp006g-visual-regression-tests)
@@ -100,6 +102,7 @@ if(TARGET ReFusion::SkiaAdapter)
 
   add_executable(refusion-skia-adapter-tests skia_adapter_test.cpp)
   target_link_libraries(refusion-skia-adapter-tests PRIVATE ReFusion::SkiaAdapter)
+  refusion_deploy_skia_runtime(refusion-skia-adapter-tests)
   if((APPLE OR WIN32) AND TARGET ReFusion::PlatformGpu)
     target_link_libraries(refusion-skia-adapter-tests PRIVATE ReFusion::PlatformGpu)
     target_compile_definitions(refusion-skia-adapter-tests PRIVATE
@@ -114,6 +117,7 @@ if(TARGET ReFusion::SkiaAdapter)
           ReFusion::SkiaAdapter
           d3d12
           dxgi)
+      refusion_deploy_skia_runtime(refusion-d3d12-fixture-renderer-tests)
       target_compile_definitions(refusion-d3d12-fixture-renderer-tests PRIVATE
         WIN32_LEAN_AND_MEAN
         NOMINMAX
@@ -131,6 +135,7 @@ if(TARGET ReFusion::SkiaAdapter)
           ReFusion::SkiaAdapter
           d3d12
           dxgi)
+      refusion_deploy_skia_runtime(refusion-d3d12-viewport-presenter-tests)
       target_compile_definitions(refusion-d3d12-viewport-presenter-tests
         PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
       refusion_enable_warnings(refusion-d3d12-viewport-presenter-tests)
@@ -266,4 +271,19 @@ if(TARGET ReFusion::ProjectLiveReload)
   refusion_enable_warnings(refusion-project-live-reload-tests)
   add_test(NAME refusion.project_live_reload
     COMMAND refusion-project-live-reload-tests)
+endif()
+
+get_property(refusion_qt_runtime_directory GLOBAL
+  PROPERTY REFUSION_QT_RUNTIME_DIRECTORY)
+if(WIN32 AND refusion_qt_runtime_directory)
+  set_tests_properties(
+    refusion.studio_bridge
+    refusion.exp006g_authoring_parity
+    refusion.project_file_adapter
+    refusion.project_workspace_creator
+    refusion.project_launcher
+    refusion.project_live_reload
+    PROPERTIES
+      ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:${refusion_qt_runtime_directory}")
 endif()

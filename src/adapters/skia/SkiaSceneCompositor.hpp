@@ -13,8 +13,6 @@ class SkiaTextLayoutEngine;
 void draw_visual_render_plan(
     SkCanvas& canvas,
     SkiaTextLayoutEngine& text_layout_engine,
-    const runtime::render::VisualRenderPlan& plan,
-    float target_width,
-    float target_height);
+    const runtime::render::VisualRenderPlan& plan);
 
 }  // namespace refusion::adapters::skia

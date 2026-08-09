@@ -1,6 +1,7 @@
 add_library(refusion_runtime_render STATIC
   RenderPlanCompiler.cpp
   VisualOutputContract.cpp
+  ViewportMapping.cpp
 )
 
 add_library(ReFusion::RuntimeRender ALIAS refusion_runtime_render)

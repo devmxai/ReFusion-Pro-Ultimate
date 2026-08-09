@@ -13,5 +13,6 @@ if(TARGET ReFusion::SkiaAdapter)
   target_link_libraries(refusion-cli PRIVATE ReFusion::SkiaAdapter)
   target_compile_definitions(refusion-cli PRIVATE
     REFUSION_CLI_SKIA_MEASUREMENT=1)
+  refusion_deploy_skia_runtime(refusion-cli)
 endif()
 refusion_enable_warnings(refusion-cli)

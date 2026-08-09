@@ -1,6 +1,7 @@
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 
 #include "SkiaTextLayoutInternal.hpp"
+#include "SkiaSurfacePolicy.hpp"
 #include "SkiaVisualProgramExecutor.hpp"
 
 #if defined(REFUSION_SKIA_APPLE_MEDIA)
@@ -48,6 +49,7 @@ struct SkiaGpuContexts::Implementation final {
   runtime::gpu::BackendDeviceLease lease;
   sk_sp<GrDirectContext> ganesh;
   std::unique_ptr<SkiaTextLayoutEngine> text_layout_engine;
+  SkiaVisualProgramExecutor visual_executor;
   std::shared_ptr<const runtime::media::DecodedSurfaceQueue> decoded_video_queue;
   std::vector<DecodedVideoFrame> decoded_video_frames;
   std::shared_ptr<runtime::gpu::GpuObservabilityService> observability;
@@ -287,7 +289,8 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
       static_cast<int>(target.width_pixels), static_cast<int>(target.height_pixels), texture_info);
   auto surface = SkSurfaces::WrapBackendRenderTarget(
       implementation_->ganesh.get(), backend_target, kTopLeft_GrSurfaceOrigin,
-      kBGRA_8888_SkColorType, SkColorSpace::MakeSRGB(), nullptr);
+      kBGRA_8888_SkColorType, SkColorSpace::MakeSRGB(),
+      &visual_surface_props());
   if (!surface) {
     return FrameResult{
         .status = FrameStatus::rejected,
@@ -295,14 +298,12 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     };
   }
 
-  auto &canvas = *surface->getCanvas();
   try {
-    execute_visual_render_program(
-        canvas, *implementation_->text_layout_engine, *frame.render_program,
+    implementation_->visual_executor.execute(
+        *surface, *implementation_->text_layout_engine, *frame.render_program,
         frame.project_time_ns, frame.transport_epoch_id,
         frame.output_consumer,
-        static_cast<float>(target.width_pixels),
-        static_cast<float>(target.height_pixels));
+        frame.canvas_view, target.width_pixels, target.height_pixels);
   } catch (const std::exception &error) {
     return FrameResult{
         .status = FrameStatus::rejected,
@@ -333,7 +334,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
             .diagnostic = "Skia could not resolve the PTS-selected decoded surface",
         };
       }
-      draw_decoded_video_fixture(canvas, *selected_image->image,
+      draw_decoded_video_fixture(*surface->getCanvas(), *selected_image->image,
                                  static_cast<float>(target.width_pixels),
                                  static_cast<float>(target.height_pixels));
       implementation_->selected_video_source_frame_index->store(selected_image->source_frame_index);

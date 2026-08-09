@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <locale>
 #include <sstream>
@@ -109,7 +110,7 @@ class HostileNumericPunctuation final : public std::numpunct<char> {
 
 }  // namespace
 
-int main() {
+int run_test() {
   using namespace refusion;
   const auto compiled = core::compile_project_rfx(fixture_source());
   require(compiled.succeeded(), "xplat visual Project.rfx did not compile");
@@ -211,4 +212,14 @@ int main() {
               plan.layers[1].masks.front().capability_id ==
                   "visual.mask.rounded_rect.v1",
           "registered contribution identity was not lowered into RenderPlan");
+  return 0;
+}
+
+int main() {
+  try {
+    return run_test();
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
 }

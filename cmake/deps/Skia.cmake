@@ -1,5 +1,41 @@
 include_guard(GLOBAL)
 
+function(refusion_deploy_skia_runtime target)
+  if(NOT WIN32)
+    return()
+  endif()
+  if(NOT TARGET "${target}" OR NOT TARGET Skia::Skia)
+    message(FATAL_ERROR
+      "Skia runtime deployment requires existing ${target} and Skia::Skia targets")
+  endif()
+  get_target_property(skia_icu_data Skia::Skia REFUSION_ICU_DATA_FILE)
+  if(NOT skia_icu_data)
+    message(FATAL_ERROR "Skia::Skia does not expose its verified ICU data file")
+  endif()
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(d3dcompiler_arch x64)
+  else()
+    set(d3dcompiler_arch x86)
+  endif()
+  find_file(refusion_d3dcompiler_runtime
+    NAMES d3dcompiler_47.dll
+    PATHS
+      "$ENV{WindowsSdkDir}/Redist/D3D/${d3dcompiler_arch}"
+      "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/Redist/D3D/${d3dcompiler_arch}"
+    NO_DEFAULT_PATH)
+  if(NOT refusion_d3dcompiler_runtime)
+    message(FATAL_ERROR
+      "Windows SDK redistributable d3dcompiler_47.dll is required for Skia D3D12")
+  endif()
+  add_custom_command(TARGET "${target}" POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${skia_icu_data}" "$<TARGET_FILE_DIR:${target}>/icudtl.dat"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${refusion_d3dcompiler_runtime}"
+            "$<TARGET_FILE_DIR:${target}>/d3dcompiler_47.dll"
+    VERBATIM)
+endfunction()
+
 function(refusion_import_skia)
   if(TARGET Skia::Skia)
     return()
@@ -117,6 +153,29 @@ function(refusion_import_skia)
   endif()
   file(READ "${CMAKE_SOURCE_DIR}/deps/profiles/skia/profiles.json"
        skia_profile_catalog)
+  if(WIN32)
+    string(JSON expected_source_patch GET "${skia_profile_catalog}"
+           profiles "${built_profile}" source_patch)
+    string(JSON built_source_patch GET "${skia_build_record}" source_patch)
+    string(JSON expected_source_patch_sha256 GET "${skia_build_record}"
+           source_patch_sha256)
+    if(NOT built_source_patch STREQUAL expected_source_patch)
+      message(FATAL_ERROR "Skia build used an unexpected Windows source patch")
+    endif()
+    file(REAL_PATH "${CMAKE_SOURCE_DIR}/${built_source_patch}"
+         built_source_patch_real)
+    file(REAL_PATH "${CMAKE_SOURCE_DIR}/deps/patches/skia"
+         skia_source_patch_root)
+    cmake_path(IS_PREFIX skia_source_patch_root "${built_source_patch_real}"
+               NORMALIZE built_source_patch_is_local)
+    if(NOT built_source_patch_is_local)
+      message(FATAL_ERROR "Skia source patch is outside the admitted patch root")
+    endif()
+    file(SHA256 "${built_source_patch_real}" actual_source_patch_sha256)
+    if(NOT actual_source_patch_sha256 STREQUAL expected_source_patch_sha256)
+      message(FATAL_ERROR "Skia Windows source patch changed after the build")
+    endif()
+  endif()
   string(JSON expected_target_count LENGTH "${skia_profile_catalog}"
          profiles "${built_profile}" targets)
   string(JSON built_target_count LENGTH "${skia_build_record}" targets)
@@ -224,8 +283,21 @@ function(refusion_import_skia)
     set_property(TARGET Skia::Skia APPEND PROPERTY
       INTERFACE_COMPILE_DEFINITIONS SK_METAL)
   elseif(WIN32)
+    set(skia_icu_data "${REFUSION_SKIA_BUILD_DIR}/icudtl.dat")
+    set(skia_icu_source
+        "${REFUSION_SKIA_SOURCE_DIR}/third_party/externals/icu/common/icudtl.dat")
+    if(NOT EXISTS "${skia_icu_data}" OR NOT EXISTS "${skia_icu_source}")
+      message(FATAL_ERROR "Verified Skia ICU runtime data is missing")
+    endif()
+    file(SHA256 "${skia_icu_data}" skia_icu_data_sha256)
+    file(SHA256 "${skia_icu_source}" skia_icu_source_sha256)
+    if(NOT skia_icu_data_sha256 STREQUAL skia_icu_source_sha256)
+      message(FATAL_ERROR "Skia ICU runtime data differs from the pinned source")
+    endif()
+    set_property(TARGET Skia::Skia PROPERTY
+      REFUSION_ICU_DATA_FILE "${skia_icu_data}")
     set_property(TARGET Skia::Skia PROPERTY INTERFACE_LINK_LIBRARIES
-      "d3d12;dxgi;dxguid")
+      "d3d12;d3dcompiler;dxgi;dxguid")
     set_property(TARGET Skia::Skia APPEND PROPERTY
       INTERFACE_COMPILE_DEFINITIONS SK_DIRECT3D)
   endif()

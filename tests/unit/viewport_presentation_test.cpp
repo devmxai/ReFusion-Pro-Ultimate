@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <source_location>
 #include <stdexcept>
@@ -78,6 +79,40 @@ int main() {
   require(retina_extent.height_pixels() == 720);
   require(!ViewportExtent{}.valid());
 
+  const auto fit_mapping =
+      refusion::runtime::render::resolve_viewport_mapping({
+          .canvas_width_pixels = 1080,
+          .canvas_height_pixels = 1920,
+          .target_width_pixels = 236,
+          .target_height_pixels = 423,
+      });
+  require(std::abs(fit_mapping.canvas_to_target_scale -
+                   (236.0 / 1080.0)) < 0.000001);
+  require(std::abs(fit_mapping.destination_width - 236.0) < 0.000001);
+  require(fit_mapping.destination_height < 423.0);
+  require(fit_mapping.requires_full_resolution_intermediate);
+
+  const auto pixel_true_mapping =
+      refusion::runtime::render::resolve_viewport_mapping({
+          .canvas_width_pixels = 1080,
+          .canvas_height_pixels = 1920,
+          .target_width_pixels = 236,
+          .target_height_pixels = 423,
+          .viewport =
+              refusion::runtime::render::CanvasViewportState{
+                  .mode = refusion::runtime::render::CanvasViewportMode::custom_zoom,
+                  .zoom = 1.0,
+              },
+      });
+  require(pixel_true_mapping.canvas_to_target_scale == 1.0);
+  require(pixel_true_mapping.destination_width == 1080.0);
+  require(pixel_true_mapping.destination_height == 1920.0);
+  require(!pixel_true_mapping.requires_full_resolution_intermediate);
+
+  auto invalid_view = refusion::runtime::render::CanvasViewportState{};
+  invalid_view.zoom = 0.0;
+  require(!invalid_view.valid());
+
   require(NativeViewportHostLease{
       .window_system = NativeWindowSystem::cocoa_view,
       .host_id = 1,
@@ -137,10 +172,17 @@ int main() {
 
   FakePresenter fake_presenter;
   ViewportRenderSession session(fake_presenter, playback);
+  require(!session.set_canvas_view(invalid_view));
+  require(session.set_canvas_view({
+      .mode = refusion::runtime::render::CanvasViewportMode::custom_zoom,
+      .zoom = 1.0,
+  }));
   require(session.render_once().succeeded());
   require(session.render_once().succeeded());
   require(fake_presenter.last_frame.request_sequence == 1);
   require(fake_presenter.last_frame.device.generation == 1);
+  require(fake_presenter.last_frame.canvas_view.mode ==
+          refusion::runtime::render::CanvasViewportMode::custom_zoom);
   require(session.telemetry().present_submissions == 2);
   session.start_playback();
   fake_presenter.reject_next_frame = true;

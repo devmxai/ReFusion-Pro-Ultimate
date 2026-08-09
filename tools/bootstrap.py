@@ -298,7 +298,7 @@ def git_dependency_inventory(root: pathlib.Path) -> list[dict[str, str]]:
         if dirty:
             raise RuntimeError(f"Skia dependency worktree is modified: {dependency}")
         inventory.append({
-            "path": str(dependency.relative_to(root)),
+            "path": dependency.relative_to(root).as_posix(),
             "origin": origin,
             "revision": head,
             "clean": True,
@@ -379,7 +379,7 @@ def lock_skia_materialization(cache: pathlib.Path) -> int:
     print(json.dumps({
         "locked": True,
         "host": host_key(),
-        "path": str(path.relative_to(ROOT)),
+        "path": path.relative_to(ROOT).as_posix(),
         "sha256": sha256_file(path),
     }, indent=2))
     return 0
@@ -396,6 +396,12 @@ def hydrate_skia(cache: pathlib.Path) -> int:
     environment["PATH"] = str(depot_tools) + os.pathsep + environment.get("PATH", "")
     run([sys.executable, "tools/git-sync-deps"], cwd=skia, env=environment)
     run([sys.executable, "bin/fetch-ninja"], cwd=skia, env=environment)
+    if os.name == "nt":
+        emsdk_environment = (
+            skia / "third_party" / "externals" / "emsdk" / "emsdk_set_env.bat"
+        )
+        if emsdk_environment.is_file():
+            emsdk_environment.unlink()
 
     record = {
         "schema_version": 2,
@@ -407,11 +413,11 @@ def hydrate_skia(cache: pathlib.Path) -> int:
         "git_dependencies": git_dependency_inventory(skia),
         "tools": {
             name: {
-                "path": str(path.relative_to(skia)),
+                "path": path.relative_to(skia).as_posix(),
                 "sha256": sha256_file(path),
             }
             for name, path in {
-                "gn": skia / "bin" / "gn",
+                "gn": skia / "bin" / ("gn.exe" if os.name == "nt" else "gn"),
                 "ninja": skia / "third_party" / "ninja" /
                 ("ninja.exe" if os.name == "nt" else "ninja"),
             }.items()
@@ -444,7 +450,7 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
         raise RuntimeError("refusing to build unverified Skia sources")
     materialization = verify_skia_materialization(cache, emit=False)
 
-    gn = skia / "bin" / "gn"
+    gn = skia / "bin" / ("gn.exe" if os.name == "nt" else "gn")
     ninja = (skia / "third_party" / "ninja" /
              ("ninja.exe" if os.name == "nt" else "ninja"))
     if not gn.is_file() or not ninja.is_file():
@@ -452,12 +458,61 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
 
     args_path = SKIA_PROFILES.parent / profile["gn_args"]
     args = args_path.read_text(encoding="utf-8")
+    source_patch = profile.get("source_patch")
+    source_patch_path = ROOT / source_patch if source_patch else None
+    if source_patch_path is not None and not source_patch_path.is_file():
+        raise RuntimeError(f"Skia source patch is missing: {source_patch_path}")
+    patched_file_times: dict[pathlib.Path, tuple[int, int]] = {}
+    if source_patch_path is not None:
+        for line in source_patch_path.read_text(encoding="utf-8").splitlines():
+            if not line.startswith("+++ b/"):
+                continue
+            patched_file = (skia / line.removeprefix("+++ b/")).resolve()
+            if not patched_file.is_relative_to(skia) or not patched_file.is_file():
+                raise RuntimeError(
+                    f"Skia patch references an invalid source: {patched_file}"
+                )
+            stat = patched_file.stat()
+            patched_file_times[patched_file] = (stat.st_atime_ns, stat.st_mtime_ns)
     if build_root.resolve() != SKIA_BUILD_ROOT.resolve():
         raise RuntimeError(f"Skia builds must remain inside ReFusion: {SKIA_BUILD_ROOT}")
     output = build_root.resolve() / profile_name
     output.mkdir(parents=True, exist_ok=True)
-    run([str(gn), "gen", str(output), f"--args={args}"], cwd=skia)
-    run([str(ninja), "-C", str(output), *profile["targets"]], cwd=skia)
+    recorded_patch_matches = False
+    previous_record_path = output / "refusion-build.json"
+    if source_patch_path is not None and previous_record_path.is_file():
+        try:
+            previous_record = json.loads(
+                previous_record_path.read_text(encoding="utf-8")
+            )
+            recorded_patch_matches = (
+                previous_record.get("profile") == profile_name
+                and previous_record.get("source_revision")
+                == component("skia")["revision"]
+                and previous_record.get("gn_args_sha256") == sha256_file(args_path)
+                and previous_record.get("source_patch_sha256")
+                == sha256_file(source_patch_path)
+            )
+        except (json.JSONDecodeError, OSError):
+            recorded_patch_matches = False
+    patch_applied = False
+    try:
+        if source_patch_path is not None:
+            run(["git", "apply", "--check", str(source_patch_path)], cwd=skia)
+            run(["git", "apply", str(source_patch_path)], cwd=skia)
+            patch_applied = True
+            if recorded_patch_matches:
+                for patched_file, times in patched_file_times.items():
+                    os.utime(patched_file, ns=times)
+        run([str(gn), "gen", str(output), f"--args={args}"], cwd=skia)
+        run([str(ninja), "-C", str(output), *profile["targets"]], cwd=skia)
+    finally:
+        if patch_applied:
+            run(["git", "apply", "--reverse", str(source_patch_path)], cwd=skia)
+            for patched_file, times in patched_file_times.items():
+                os.utime(patched_file, ns=times)
+    if verify_git("skia", skia) != 0:
+        raise RuntimeError("Skia source patch cleanup did not restore clean sources")
 
     bundle = output / profile["bundle_artifact"]
     if bundle.exists():
@@ -494,13 +549,13 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
         raise RuntimeError("no admitted Skia archive bundler for this host")
 
     artifact = {
-        "path": str(bundle.relative_to(ROOT)),
+        "path": bundle.relative_to(ROOT).as_posix(),
         "size": bundle.stat().st_size,
         "sha256": sha256_file(bundle),
     }
     archive_records = [
         {
-            "path": str(path.relative_to(ROOT)),
+            "path": path.relative_to(ROOT).as_posix(),
             "size": path.stat().st_size,
             "sha256": sha256_file(path),
         }
@@ -512,13 +567,17 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
         "profile": profile_name,
         "source_origin": component("skia")["official_origin"],
         "source_revision": component("skia")["revision"],
-        "gn_args": str(args_path.relative_to(ROOT)),
+        "gn_args": args_path.relative_to(ROOT).as_posix(),
         "gn_args_sha256": sha256_file(args_path),
-        "dependency_record": str(SKIA_DEPENDENCY_RECORD.relative_to(ROOT)),
-        "dependency_record_sha256": materialization["record_sha256"],
-        "tracked_dependency_lock": str(
-            pathlib.Path(materialization["tracked_lock"]).relative_to(ROOT)
+        "source_patch": source_patch,
+        "source_patch_sha256": (
+            sha256_file(source_patch_path) if source_patch_path else None
         ),
+        "dependency_record": SKIA_DEPENDENCY_RECORD.relative_to(ROOT).as_posix(),
+        "dependency_record_sha256": materialization["record_sha256"],
+        "tracked_dependency_lock": pathlib.Path(
+            materialization["tracked_lock"]
+        ).relative_to(ROOT).as_posix(),
         "tracked_dependency_lock_sha256": materialization["tracked_lock_sha256"],
         "dependency_count": materialization["dependency_count"],
         "host": {

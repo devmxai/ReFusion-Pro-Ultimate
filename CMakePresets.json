@@ -146,6 +146,8 @@
       "inherits": "windows-core",
       "displayName": "Windows engine-owned D3D12 and Skia foundation",
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_ENABLE_SKIA": "ON",
         "REFUSION_SKIA_PROFILE": "windows-x64-d3d12",

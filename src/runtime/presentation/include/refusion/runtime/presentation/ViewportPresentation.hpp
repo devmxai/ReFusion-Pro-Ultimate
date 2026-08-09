@@ -12,6 +12,7 @@
 #include "refusion/core/ProjectClock.hpp"
 #include "refusion/runtime/gpu/GpuDeviceService.hpp"
 #include "refusion/runtime/render/VisualOutputContract.hpp"
+#include "refusion/runtime/render/ViewportMapping.hpp"
 
 namespace refusion::runtime::presentation {
 
@@ -90,6 +91,7 @@ struct PresentationFrameRequest final {
   gpu::DeviceIdentity device;
   render::VisualOutputConsumer output_consumer{
       render::VisualOutputConsumer::interactive_preview};
+  render::CanvasViewportState canvas_view;
   std::shared_ptr<const render::VisualRenderProgram> render_program;
 
   [[nodiscard]] bool valid() const noexcept;
@@ -233,6 +235,9 @@ class ViewportRenderSession final {
   [[nodiscard]] FrameResult render_once();
   [[nodiscard]] PresentationTelemetry telemetry() const noexcept;
   [[nodiscard]] PlaybackState playback_state() const;
+  [[nodiscard]] render::CanvasViewportState canvas_view() const noexcept;
+  [[nodiscard]] bool set_canvas_view(
+      render::CanvasViewportState canvas_view) noexcept;
   void set_frame_observer(FrameObserver observer);
   void publish_render_program(
       std::shared_ptr<const render::VisualRenderProgram> render_program) noexcept;
@@ -252,6 +257,7 @@ class ViewportRenderSession final {
   std::condition_variable_any wake_;
   ClockNow clock_now_;
   std::uint64_t next_frame_index_{0};
+  render::CanvasViewportState canvas_view_;
   std::shared_ptr<const render::VisualRenderProgram> render_program_;
   FrameStatus last_frame_status_{FrameStatus::skipped};
   std::string diagnostic_;

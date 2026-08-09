@@ -1,5 +1,6 @@
 #include "refusion/runtime/render/RenderPlanCompiler.hpp"
 
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -103,7 +104,7 @@ class NoTextLayout final : public refusion::core::TextLayoutPort {
 
 }  // namespace
 
-int main() {
+int run_test() {
   using namespace refusion::runtime::render;
   NoTextLayout layout;
   const auto program = compile_visual_render_program(project_fixture());
@@ -125,7 +126,7 @@ int main() {
   require(first.semantic_digest == repeated.semantic_digest,
           "same accepted revision/time must produce one digest");
   require(first.semantic_digest ==
-              "rfx-render-plan-v2-fnv1a64:bfe6cb16e05d238e",
+              "rfx-render-plan-v3-fnv1a64:bfe6cb16e05d238e",
           "cross-toolchain digest fixture: " + first.semantic_digest);
   require(first.layers.size() == 1, "one visible layer expected");
   require(first.layers.front().effects.size() == 3,
@@ -163,4 +164,14 @@ int main() {
     rejected = true;
   }
   require(rejected, "out-of-domain ProjectTime must fail closed");
+  return 0;
+}
+
+int main() {
+  try {
+    return run_test();
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
 }
