@@ -1,6 +1,7 @@
 add_library(refusion_application STATIC
   AgentAuthoringGuide.cpp
   ApplicationHost.cpp
+  ExactAssetRelinkService.cpp
   ImportVideoService.cpp
   MediaIndexingService.cpp
   ProjectCreationService.cpp

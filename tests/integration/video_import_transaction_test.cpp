@@ -1,12 +1,14 @@
 #include "adapters/QtMediaImportWorkspace.hpp"
 
 #include "refusion/adapters/media/FfmpegMediaDemuxer.hpp"
+#include "refusion/application/ExactAssetRelinkService.hpp"
 #include "refusion/application/ImportVideoService.hpp"
 #include "refusion/core/ProjectCreation.hpp"
 #include "refusion/core/ProjectRfx.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
 
@@ -86,6 +88,24 @@ int main(int argc, char* argv[]) {
               static_cast<std::uint64_t>(QFileInfo(asset_path).size()) ==
                   source.source->byte_size(),
           "verified original was not materialized inside the project package");
+
+  require(QFile::remove(asset_path),
+          "could not simulate a missing accepted project Asset");
+  ExactAssetRelinkService relink(*commands, workspace);
+  const auto relinked = relink.execute(RelinkExactAssetIntent{
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_physical_relink_001"},
+          .expected_revision = active.revision_id,
+          .idempotency_key = IdempotencyKey{"physical-relink-001"},
+      },
+      .asset_id = active.assets.front().asset_id,
+      .source = source.source,
+  });
+  require(relinked.succeeded() &&
+              relinked.active_revision == active.revision_id &&
+              commands->active_snapshot() == active &&
+              QFileInfo(asset_path).isFile(),
+          relinked.code + ": " + relinked.diagnostic);
   const auto canonical = serialize_project_rfx(active);
   const auto reopened = compile_project_rfx(canonical);
   require(reopened.succeeded() && *reopened.project == active,

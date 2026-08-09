@@ -1,4 +1,5 @@
 #include "refusion/application/ImportVideoService.hpp"
+#include "refusion/application/ExactAssetRelinkService.hpp"
 
 #include "refusion/core/ContentDigest.hpp"
 #include "refusion/core/ProjectCreation.hpp"
@@ -7,6 +8,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <span>
@@ -28,7 +30,8 @@ void require(const bool condition, const std::string& message) {
 
 class MemorySource final : public ImmutableCompressedSourceLease {
  public:
-  MemorySource() : bytes_(4096, 0x51), digest_(sha256_content_digest(bytes_)) {}
+  explicit MemorySource(const std::uint8_t value = 0x51)
+      : bytes_(4096, value), digest_(sha256_content_digest(bytes_)) {}
 
   [[nodiscard]] std::string content_digest() const override { return digest_; }
   [[nodiscard]] std::uint64_t byte_size() const noexcept override {
@@ -166,8 +169,11 @@ struct WorkspaceState final {
 class FakePrepared final : public PreparedMediaAsset {
  public:
   FakePrepared(MediaAssetMaterializationReceipt receipt,
-               std::shared_ptr<WorkspaceState> state)
-      : receipt_(std::move(receipt)), state_(std::move(state)) {}
+               std::shared_ptr<WorkspaceState> state,
+               std::function<void()> on_commit)
+      : receipt_(std::move(receipt)),
+        state_(std::move(state)),
+        on_commit_(std::move(on_commit)) {}
   ~FakePrepared() override {
     if (!retained_) ++state_->rollbacks;
   }
@@ -179,6 +185,7 @@ class FakePrepared final : public PreparedMediaAsset {
   [[nodiscard]] bool commit() noexcept override {
     ++state_->commits;
     committed_ = true;
+    if (on_commit_) on_commit_();
     return true;
   }
   void retain() noexcept override {
@@ -190,6 +197,7 @@ class FakePrepared final : public PreparedMediaAsset {
  private:
   MediaAssetMaterializationReceipt receipt_;
   std::shared_ptr<WorkspaceState> state_;
+  std::function<void()> on_commit_;
   bool committed_{false};
   bool retained_{false};
 };
@@ -207,8 +215,12 @@ class FakeWorkspace final : public MediaImportWorkspacePort {
     require(source.content_digest() == expected.content_digest &&
                 source.byte_size() == expected.byte_size,
             "workspace received the wrong immutable source");
-    return std::make_unique<FakePrepared>(expected, state_);
+    auto callback = std::move(on_next_commit);
+    return std::make_unique<FakePrepared>(expected, state_,
+                                          std::move(callback));
   }
+
+  std::function<void()> on_next_commit;
 
  private:
   std::shared_ptr<WorkspaceState> state_;
@@ -327,13 +339,88 @@ int main() {
               state->prepares == 1,
           "byte-identical duplicate import was not an idempotent replay");
 
+  ExactAssetRelinkService relink(*commands, workspace);
+  const auto relinked = relink.execute(RelinkExactAssetIntent{
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_relink_001"},
+          .expected_revision = active.revision_id,
+          .idempotency_key = IdempotencyKey{"relink-test-001"},
+      },
+      .asset_id = active.assets.front().asset_id,
+      .source = source,
+  });
+  require(relinked.succeeded() &&
+              relinked.active_revision == active.revision_id &&
+              commands->active_snapshot() == active && state->prepares == 2 &&
+              state->commits == 2 && state->retains == 2 &&
+              state->rollbacks == 0,
+          "exact relink did not restore bytes without a semantic Revision");
+
+  auto different_source = std::make_shared<MemorySource>(0x52);
+  const auto mismatched = relink.execute(RelinkExactAssetIntent{
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_relink_002"},
+          .expected_revision = active.revision_id,
+          .idempotency_key = IdempotencyKey{"relink-test-002"},
+      },
+      .asset_id = active.assets.front().asset_id,
+      .source = different_source,
+  });
+  require(mismatched.status == RelinkExactAssetStatus::rejected &&
+              mismatched.code == "RFX-MEDIA-RELINK-IDENTITY-MISMATCH" &&
+              state->prepares == 2 && commands->active_snapshot() == active,
+          "different bytes were not rejected before exact relink staging");
+
+  const auto stale = relink.execute(RelinkExactAssetIntent{
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_relink_003"},
+          .expected_revision = initial.revision_id,
+          .idempotency_key = IdempotencyKey{"relink-test-003"},
+      },
+      .asset_id = active.assets.front().asset_id,
+      .source = source,
+  });
+  require(stale.status == RelinkExactAssetStatus::rejected &&
+              stale.code == "RFX-MEDIA-RELINK-STALE-REVISION" &&
+              state->prepares == 2,
+          "stale exact relink intent reached the filesystem adapter");
+
+  workspace.on_next_commit = [&] {
+    const auto current = commands->active_snapshot();
+    const auto changed = commands->submit(RenameProjectCommand{
+        .envelope = CommandEnvelope{
+            .command_id = CommandId{"cmd_relink_concurrent_change"},
+            .expected_revision = current.revision_id,
+            .idempotency_key =
+                IdempotencyKey{"relink-concurrent-change"},
+        },
+        .requested_name = "Concurrent Revision",
+    });
+    require(changed.accepted(), "could not inject concurrent Revision");
+  };
+  const auto concurrent = relink.execute(RelinkExactAssetIntent{
+      .envelope = CommandEnvelope{
+          .command_id = CommandId{"cmd_relink_004"},
+          .expected_revision = active.revision_id,
+          .idempotency_key = IdempotencyKey{"relink-test-004"},
+      },
+      .asset_id = active.assets.front().asset_id,
+      .source = source,
+  });
+  require(concurrent.status == RelinkExactAssetStatus::rejected &&
+              concurrent.code == "RFX-MEDIA-RELINK-STALE-AFTER-COPY" &&
+              state->prepares == 3 && state->commits == 3 &&
+              state->retains == 2 && state->rollbacks == 1,
+          "concurrent Revision did not roll back staged relink bytes");
+
+  const auto after_concurrent = commands->active_snapshot();
   auto cancellation = std::make_shared<Cancellation>();
   cancellation->value = true;
   auto other_source = std::make_shared<MemorySource>();
   const auto cancelled_result =
-      service.execute(intent(active, other_source, cancellation));
+      service.execute(intent(after_concurrent, other_source, cancellation));
   require(cancelled_result.status == ImportVideoStatus::cancelled &&
-              commands->active_snapshot() == active,
+              commands->active_snapshot() == after_concurrent,
           "pre-cancelled import changed project truth");
 
   auto rejected_initial = blank_project();
