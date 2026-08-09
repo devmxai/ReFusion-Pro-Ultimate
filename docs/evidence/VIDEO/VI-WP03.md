@@ -3,7 +3,7 @@ id: EVID-VIDEO-VI-WP03
 kind: atomic-video-import-transaction-evidence
 plan: PLAN-VIDEO-VS-001
 work_package: VI-WP03
-status: macos-studio-client-persistence-passed-relink-cli-msvc-pending
+status: macos-studio-client-exact-relink-passed-cli-msvc-pending
 source_branch: feature/shared-video-import-v1
 last_verified: 2026-08-09
 ---
@@ -13,8 +13,8 @@ last_verified: 2026-08-09
 ## Honest claim
 
 The shared atomic ImportVideo transaction, Desktop Qt filesystem adapter and
-product Studio file-portal client are implemented and physically passed on
-macOS. Typed exact-byte relink, CLI client parity and matching MSVC execution
+product Studio file-portal client and typed exact-byte relink are implemented
+and physically passed on macOS. CLI client parity and matching MSVC execution
 remain pending; VI-WP03 is therefore active, not closed.
 
 No video decoder, decoded pixel, Canvas Video operation, Audio output or QML
@@ -96,12 +96,26 @@ buffer is now heap-resident and the same test passes. Studio exposes progress,
 cancellation and the typed final diagnostic while remaining free of container,
 copy or project authority.
 
+## Exact relink receipt
+
+Source commit `872d36b` adds `ExactAssetRelinkService` over the same immutable
+source lease and rollback-owned materialization port. It admits only the
+accepted `AssetId`, SHA-256 digest, byte size and canonical relative original.
+Different bytes fail before staging and are explicitly reserved for the future
+`ReplaceMediaSource` ChangeSet. Relink creates no project Revision and does not
+touch MediaSource, Clip identity, ranges or stream timing.
+
+The service rechecks accepted Asset truth after committing the staged file. A
+concurrent Revision causes rollback rather than retaining bytes against stale
+truth. The physical transaction test deletes the imported original, restores
+it from the exact fixture and verifies that project Revision and canonical RFX6
+remain unchanged. Full macOS Visual remains 61/61.
+
 ## Remaining exit evidence
 
-1. Add typed exact-byte relink through the same materialization contract.
-2. Add the CLI client over the same shared service and record UI/file/CLI
+1. Add the CLI client over the same shared service and record UI/file/CLI
    parity; future MCP calls the same typed intent.
-3. Run the same RFX6, service, real-copy, client and interruption tests under
+2. Run the same RFX6, service, real-copy, client, relink and interruption tests under
    MSVC.
 
 VI-WP04 must not reinterpret Clip/source timing or bypass this transaction.

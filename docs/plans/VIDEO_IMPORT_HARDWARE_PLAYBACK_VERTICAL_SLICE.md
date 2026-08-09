@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP03-studio-client-persistence-macos-passed-relink-cli-msvc-pending
-version: 8
+execution_state: VI-WP03-studio-client-exact-relink-macos-passed-cli-msvc-pending
+version: 9
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -378,9 +378,12 @@ accepted-workflow observer, and exposes typed progress, cancellation and final
 diagnostics. A worker-stack overflow found by the physical client test was
 fixed by heap-allocating the bounded 1 MiB transfer chunk.
 
-VI-WP03 is not closed yet: the typed exact-byte relink operation, CLI client
-parity and matching MSVC transaction/client receipt remain. These must use this
-service/port and may not introduce another import or persistence path. See
+The typed exact-byte relink workflow is also implemented: it restores only the
+accepted Asset ID, SHA-256, byte size and canonical relative location, creates
+no semantic Revision, and rolls back if accepted Asset truth changes during
+copy. VI-WP03 is not closed yet: CLI client parity and matching MSVC
+transaction/client/relink receipts remain. These must use the same services and
+ports and may not introduce another import or persistence path. See
 [`EVID-VIDEO-VI-WP03`](../evidence/VIDEO/VI-WP03.md).
 
 ## VI-WP04 — Exact playback scheduler and RenderPlan video operation
@@ -646,10 +649,10 @@ requires:
 ## Exact next action
 
 Keep all work on `feature/shared-video-import-v1`. Complete VI-WP03 through the
-single media workflow boundary: add typed exact-byte relink and CLI client
-parity receipts without duplicating copy, index, persistence or Revision
-authority. Do not put file copying, MediaIndex construction or project mutation
-in QML. In parallel, Windows must
+single media workflow boundary: add CLI client parity receipts without
+duplicating copy, index, persistence or Revision authority. Do not put file
+copying, MediaIndex construction or project mutation in QML. In parallel,
+Windows must
 run the updated VI-WP01–03 MSVC conformance/transaction tests and reproduce the
 new RFX6 receipt before these packages may close. VI-WP04 exact playback and
 `DrawVideoFrame` start only after this VI-WP03 boundary is green.

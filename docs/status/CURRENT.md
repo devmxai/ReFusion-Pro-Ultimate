@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: 3df1719
-last_checkpoint: CP-G1-0013
+last_green_commit: 872d36b
+last_checkpoint: CP-G1-0014
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -58,16 +58,17 @@ native file portal, runs the shared index/copy transaction off the UI thread,
 publishes only through Application authority, and persists canonical RFX6
 through the existing accepted observer. Its physical client test imports the
 same fixture and reopens the accepted file. `macos-demux` passes 38/38 and the
-product-shaped `macos-visual` lane passes 61/61. Typed exact-byte relink, CLI
-parity and matching MSVC receipts remain pending; therefore this does not yet
+product-shaped `macos-visual` lane passes 61/61. Typed exact-byte relink now
+restores only the accepted Asset digest/size/location without creating a
+Revision and rolls back on concurrent truth changes. CLI parity and matching
+MSVC receipts remain pending; therefore this does not yet
 claim Timeline/Canvas Video playback, Windows decode or G4 exit.
 
 ## Exact resume point
 
-Continue `VI-WP03` on `feature/shared-video-import-v1` by adding typed
-exact-byte relink through the same materialization/admission boundary and a CLI
-client over the shared service. QML remains intent-only; it may not copy files,
-index media or mutate project truth.
+Continue `VI-WP03` on `feature/shared-video-import-v1` by adding a CLI client
+over the same shared import/relink services and persistence authority. QML
+remains intent-only; it may not copy files, index media or mutate project truth.
 The Windows host must reproduce the updated RFX6 and transaction receipts under
 MSVC before VI-WP01–03 close. Only then begin VI-WP04 exact ProjectTime-to-PTS
 scheduling and the common `DrawVideoFrame` RenderPlan operation.
