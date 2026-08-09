@@ -149,6 +149,7 @@ class DxgiViewportPresenter final : public ViewportPresenter {
   void detach() noexcept override {
     if (swapchain_state_) {
       static_cast<void>(wait_for_gpu_idle());
+      static_cast<void>(frame_renderer_.retire_frame_targets());
       swapchain_state_.reset();
     }
     host_ = {};
@@ -388,6 +389,11 @@ class DxgiViewportPresenter final : public ViewportPresenter {
       auto waited = wait_for_gpu_idle();
       if (!waited.succeeded()) {
         return waited;
+      }
+      auto retired = frame_renderer_.retire_frame_targets();
+      if (!retired.succeeded()) {
+        ++telemetry_.rejected_frames;
+        return retired;
       }
       for (auto& buffer : swapchain_state_->buffers) {
         buffer.Reset();

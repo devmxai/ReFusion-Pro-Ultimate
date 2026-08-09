@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -363,6 +364,25 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     };
   }
   return FrameResult{.status = FrameStatus::presented};
+}
+
+runtime::presentation::FrameResult SkiaGpuContexts::retire_frame_targets() {
+  if (!implementation_ || !implementation_->ganesh) {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic = "Skia Metal context is unavailable during target retirement",
+    };
+  }
+  static_cast<void>(implementation_->ganesh->submit(GrSyncCpu::kYes));
+  implementation_->ganesh->performDeferredCleanup(
+      std::chrono::milliseconds::zero());
+  if (implementation_->ganesh->abandoned()) {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic = "Skia Metal context was abandoned during target retirement",
+    };
+  }
+  return FrameResult{.status = FrameStatus::accepted};
 }
 
 }  // namespace refusion::adapters::skia

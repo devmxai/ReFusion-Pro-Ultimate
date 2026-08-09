@@ -24,6 +24,7 @@
 #include "include/gpu/ganesh/d3d/GrD3DBackendSurface.h"
 #include "include/gpu/ganesh/d3d/GrD3DDirectContext.h"
 
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -245,10 +246,13 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     return rejected("Skia received an incompatible DXGI back buffer");
   }
 
-  const GrD3DTextureResourceInfo resource_info(
-      resource, nullptr, D3D12_RESOURCE_STATE_PRESENT,
+  GrD3DTextureResourceInfo resource_info(
+      nullptr, nullptr, D3D12_RESOURCE_STATE_PRESENT,
       DXGI_FORMAT_B8G8R8A8_UNORM, 1, 1,
       DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN);
+  // The raw-pointer constructor adopts a COM reference. The swapchain owns the
+  // pointer supplied by the target lease, so Skia must retain its own reference.
+  resource_info.fResource.retain(resource);
   const auto backend_target = GrBackendRenderTargets::MakeD3D(
       static_cast<int>(target.width_pixels),
       static_cast<int>(target.height_pixels), resource_info);
@@ -289,6 +293,19 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
         "Skia D3D12 context was abandoned during viewport submission");
   }
   return FrameResult{.status = FrameStatus::presented};
+}
+
+runtime::presentation::FrameResult SkiaGpuContexts::retire_frame_targets() {
+  if (!implementation_ || !implementation_->ganesh) {
+    return rejected("Skia D3D12 context is unavailable during target retirement");
+  }
+  static_cast<void>(implementation_->ganesh->submit(GrSyncCpu::kYes));
+  implementation_->ganesh->performDeferredCleanup(
+      std::chrono::milliseconds::zero());
+  if (implementation_->ganesh->abandoned()) {
+    return rejected("Skia D3D12 context was abandoned during target retirement");
+  }
+  return FrameResult{.status = FrameStatus::accepted};
 }
 
 }  // namespace refusion::adapters::skia

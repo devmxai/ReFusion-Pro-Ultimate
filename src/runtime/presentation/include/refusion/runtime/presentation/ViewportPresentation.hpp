@@ -189,6 +189,9 @@ class ViewportFrameRenderer {
   [[nodiscard]] virtual FrameResult render(
       const BackendFrameTargetLease& target,
       const PresentationFrameRequest& frame) = 0;
+  // Presenters call this after native GPU completion and before invalidating
+  // frame targets. The renderer must release completed backend references.
+  [[nodiscard]] virtual FrameResult retire_frame_targets() = 0;
 };
 
 class ViewportPresenter {
