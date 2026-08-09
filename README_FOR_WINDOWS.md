@@ -298,14 +298,16 @@ Replace only the content between the markers. Use factual values; write
 
 | Field | Value |
 |---|---|
-| Report state | `Play crash fixed; full Windows build, tests, live playback, looping and pause passed` |
-| UTC timestamp | `2026-08-09T17:34:24Z` |
+| Report state | `Cross-platform high-precision Canvas presentation implemented; full Windows build, tests, pixel mapping, pan and live Play passed` |
+| UTC timestamp | `2026-08-09T18:48:27Z` |
 | Evidence branch | `feature/shared-machine-dependency-cache` |
-| Tested source commit | `1d2af7db8bce522f03a87f53266e53a992d95a17` |
+| Tested source commit | `38536e54fb748d6fa57cc2c54086f5a3672bd0f6` |
+| Observed origin/main | `718346cd88e835696d258533660ac5e7f7f48fa0; unchanged and not merged` |
 | Windows edition/build | `Windows 11 Pro 23H2, build 22631.6199 (NT kernel string 10.0.22631.0)` |
 | CPU/architecture | `13th Gen Intel Core i5-1335U / x64` |
 | GPU | `Intel(R) UHD Graphics` |
 | GPU driver | `32.0.101.5542, dated 2024-06-07` |
+| Windows display path | `SDR DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709; HDR supported but not enabled; internal AUO499F EDID reports 6 bits per color primary` |
 | Visual Studio/MSVC | `Visual Studio 2022 Build Tools 17.14.33 / MSVC 19.44.35227.0` |
 | Windows SDK | `10.0.26100.0` |
 | CMake / Ninja / Python | `4.3.3 / 1.12.1 / 3.12.13` |
@@ -318,44 +320,46 @@ Replace only the content between the markers. Use factual values; write
 | Clean GitHub clone/cache proof | `passed at 8704e2a; no checkout-local dependency source/build/toolchain directories were created` |
 | Clean-clone dependency isolation | `passed; no out/deps-src, out/deps-build or out/toolchains after the Visual build` |
 | Clean-clone Visual compile | `passed in 327.1 seconds; refusion-studio.exe linked successfully` |
-| D3D12 presenter stress | `passed; 240 rendered/presented frames, live 640x360 to 800x450 resize, zero native wait timeouts and zero CPU pixel transfers` |
-| Windows Visual tests | `passed; 45/45 CTest tests in 38.79 seconds` |
-| Studio transport | `passed with C:\Users\hp\Desktop\TEST\Project.rfx; Play crossed the complete 30-second timeline and looped, Pause held a stable timecode for five seconds, process remained responsive, no new WER event, stdout/stderr empty` |
-| Final result | `the reproducible Windows Play crash is fixed at its resource-lifetime cause; no fallback renderer, legacy Windows 8.1 runtime or driver-specific approximation was introduced` |
+| Selected presentation profile | `RGBA16F / linear sRGB on the physical Intel D3D12 adapter; BGRA8/sRGB remains the admitted capability fallback` |
+| D3D12 presenter stress | `passed; 240 rendered/presented frames across live resize, a real R16G16B16A16_FLOAT Skia target, safe retirement, zero native wait timeouts and zero CPU pixel transfers` |
+| Windows Visual tests | `passed; final full build and CTest 45/45 in 15.90 seconds; docs-doctor 112/0; architecture-check 116/0/0` |
+| Studio transport | `passed with C:\Users\hp\Desktop\TEST\Project.rfx; UI Play ran beyond the complete 30-second timeline, returned naturally to Play, process stayed responsive, and no Crash/Hang/WER event was recorded` |
+| Final result | `Windows now uses the same full-resolution common Skia Canvas policy as Metal source, prefers a high-precision linear carrier, exposes true Fit and 100% mapping with pan, and introduces no Intel-only renderer or project-semantic fork` |
 
-#### First causal failure
+#### Canvas and color diagnosis
 
-- User-visible failure: `invoking Play terminated refusion-studio.exe with APPCRASH exception 0xc0000005`.
-- CDB first causal frame: `GrD3DTextureResource::Resource::freeGPUData()+0x5c attempted IUnknown::Release through an invalid COM object while Skia recycled a completed direct command list`.
-- Root cause 1: `SkiaGpuContextsD3D12 constructed GrD3DTextureResourceInfo from a swapchain-owned raw ID3D12Resource pointer. That constructor adopts a reference; it does not AddRef. Skia therefore released ownership that it never acquired and later retained a dangling resource identity`.
-- Root cause 2: `after correcting COM ownership, the resize stress test exposed DXGI_ERROR_INVALID_CALL (0x887A0001): completed Skia command lists still held swapchain-buffer references when ResizeBuffers invalidated those targets`.
-- Classification: `shared renderer/native-presenter resource-lifetime contract defect, exposed by the Windows D3D12/DXGI backend; not a QML transport defect, Intel-only rendering path, obsolete DLL, or evidence that project semantics are non-portable`.
+- The test project is a 1080x1920 Composition with a valid straight-sRGB dark blue linear gradient. Its authored data was not the cause of the visible lines.
+- The old Fit mapping preserved aspect ratio, but its small physical target necessarily discarded source samples. The missing user-facing Actual Pixels mode made 100% impossible to verify and encouraged interpreting Fit as a resolution defect.
+- The previous display boundary quantized the final preview to BGRA8 before DWM and used Skia's fixed 8x8 ordered dither. On this dark gradient and 6-bit/FRC internal panel, that repeated screen-space pattern could be perceived as lines or a swirl.
+- A first high-precision-only probe removed the fixed pattern but left sparse 8-bit capture levels. A first replacement dither was rejected because measured correlation at offset 8,8 was about 0.83 and could create diagonal structure. The accepted nonlinear float hash has no directional correlation peak.
+- Classification: `presentation precision, quantization and viewport-control defects at the shared Canvas/native-carrier boundary; not a malformed project, X/Y coordinate distortion, obsolete Windows 8.1 DLL, Intel-only semantic path or proof that ReFusion is not cross-platform`.
 
 #### Evidence and artifacts
 
-- Crash debugger log: `out/evidence/studio-crash-cdb.log`; generated evidence remains ignored and is summarized here rather than committed.
-- Fixed launch logs: `out/evidence/studio-play-fixed.stdout.log` and `out/evidence/studio-play-fixed.stderr.log`, both empty.
-- Automated transport observation: `Play advanced through sampled timecodes at 1, 5, 10, 15, 20, 25 and 30 seconds, looped to the next cycle, and remained responsive. Pause then held 00:00:14:58 for five seconds`.
-- Presenter regression: `d3d12_viewport_presenter_test rendered 120 frames, retired/resized the target, then rendered another 120 frames successfully`.
-- Repository checks: `full Windows build passed; CTest 45/45; docs-doctor 111 documents/0 problems; architecture-check 116 files/0 problems/0 boundary debt`.
-- Dependency reuse proof: `out/evidence/clean-clone-machine-cache.json passed all nine steps with cache resolve in 9.087 seconds and a Visual compile in 327.1 seconds`.
+- The physical Intel run selected `RGBA16F / LINEAR sRGB`; the UI telemetry did not infer this from the adapter name.
+- The common D3D12 fixture proved Actual Pixels with a 640x360 source rendered into a 320x180 target: output matched the centered 1:1 source crop with maximum channel delta 2, allowing only the shared final dither.
+- UI automation switched Fit/100%, paused on one project frame and captured both modes. Fit displayed the complete Composition; 100% displayed the expected centered 1:1 crop. A synthetic 80x48 drag produced the corresponding Canvas displacement and reset correctly.
+- Clean dark-gradient analysis increased captured channel levels from `7/20/40` without final dither to `13/25/46` with the shared pass. The former directional 8,8 peak disappeared; correlations became directionally flat with no fixed 8x8 peak.
+- The responsive Studio window used `1536x816` Qt workspace points and a `1440x786` client after native frame measurement. DWM's extra invisible resize border was excluded from the content assessment; no Studio content was behind the taskbar.
+- Generated screenshots, pixel analysis and runtime logs remain under ignored `out/evidence/`; they are summarized here and are not committed.
+- The first full CTest run had one timing-sensitive `project_live_reload` temporary-file observation failure. That unrelated test passed immediately in isolation and the final full run passed 45/45; no live-reload source was changed to conceal it.
 
 #### Changes made on Windows
 
-- `ViewportFrameRenderer` now exposes a portable `retire_frame_targets()` lifecycle operation. The contract contains no D3D12, Metal, Qt or project-semantic behavior.
-- `SkiaGpuContextsD3D12.cpp` explicitly retains the swapchain resource for Skia and synchronously retires completed Ganesh target references when a presenter invalidates them.
-- `SkiaGpuContextsMetal.mm` implements the same renderer contract for cross-platform source completeness; existing Metal presentation behavior is otherwise unchanged. The Vulkan canary accepts the contract without inventing a backend path.
-- `DxgiViewportPresenter.cpp` waits for native GPU idle and retires renderer target references before buffer resize or detach. Per-frame rendering remains asynchronous; synchronization is limited to target retirement.
-- `d3d12_viewport_presenter_test.cpp` now pumps Win32 messages and verifies sustained presentation across a real swapchain resize with actionable failure diagnostics.
-- The verified machine-cache implementation remains in commit `8704e2a82d8d4cd4ac21bceb29d0c7cd72fe238d`; this fix does not alter dependency identities or the reviewed Windows Skia lock.
-- No Qt/Skia binaries, `.exe`, CMake cache, debugger log or `out/` content is committed.
+- Portable presentation leases now carry one validated storage/transfer profile: preferred RGBA16F/linear-sRGB or fallback BGRA8/sRGB. Unknown and mixed pairs fail closed and the selected profile is observable telemetry.
+- DXGI probes the real format and color-space present support, selects `R16G16B16A16_FLOAT + G10/P709` on this Intel adapter and keeps a complete BGRA8/G22 fallback. CAMetalLayer source performs the equivalent RGBA16Float/extended-linear-sRGB probe and fallback.
+- Both Skia backends wrap the admitted native profile with the matching color type and color space. The common executor retains full-resolution F16 raster, staged Fit reduction, Mitchell sampling and one nonlinear non-periodic encoded-domain final dither before the selected carrier transfer.
+- Studio exposes a compact Fit/100% segmented control. Actual Pixels maps one Composition pixel to one physical target pixel and supports direct pan; Fit resets pan and preserves aspect ratio.
+- Initial window sizing now uses Qt screen available geometry plus the settled native frame geometry instead of assuming a 1440x900 client fits every DPI/work-area combination.
+- ADR-0013 explicitly separates the accepted ADR-0010 project/color semantics from the interactive high-precision display carrier. The Windows and Metal fixtures cover both carrier profiles and true 100% crop behavior.
+- The reviewed Windows Skia lock and all dependency identities are unchanged. No Qt/Skia binaries, `.exe`, CMake cache, runtime log, screenshot or `out/` content is committed.
 
 #### Diagnosis and next action
 
-- Runtime assessment: `the loaded Direct3D and compiler DLLs are modern Windows 11/SDK components. No Windows 8.1-era application runtime was loaded. Updating dependencies blindly would not have repaired the COM lifetime violation`.
-- Driver assessment: `Intel 32.0.101.5542 is older than the current Intel 11th-14th Gen package 32.0.101.7088. Updating through HP OEM support, or the Intel generic package after checking OEM compatibility, is recommended independently; the complete fixed run passed on 5542, so the driver is not the causal fix`.
-- Cross-platform boundary: `the shared lifecycle contract and both Skia implementations were reviewed, but this Windows host cannot physically compile or execute Metal. macOS must build and run this exact commit before integration to main`.
-- Visual qualification boundary: `the prior Metal/D3D12 comparison remains unqualified until a same-commit physical macOS reference is produced; no pixel threshold was weakened in this repair`.
-- Next action: `fetch this branch on the official macOS host, run the full Metal build/tests and transport/resize checks at 1d2af7db8bce522f03a87f53266e53a992d95a17, regenerate the physical Metal comparison, then review through the documented integration workflow. Do not merge this branch directly into main`.
+- Application guarantee: `the preferred path postpones quantization to the operating-system display boundary, removes the old fixed ordered pattern, keeps full-resolution project raster and makes Fit versus 1:1 mapping explicit`.
+- Display limitation: `the AUO499F panel still reports 6 bits per primary and Windows HDR is disabled. Software cannot make that panel native 10-bit or guarantee identical appearance on an uncalibrated external monitor; fine panel/FRC texture may remain`.
+- Cross-platform boundary: `the profile, dither, scaling and Actual Pixels logic are shared, and Metal source/fixtures were updated in the same commit. This Windows host cannot physically compile or execute Metal, so macOS qualification remains mandatory`.
+- Git boundary: `origin/main remained at 718346cd88e835696d258533660ac5e7f7f48fa0. This branch must be reviewed on the official macOS host and must not be merged or pushed directly to main from Windows`.
+- Next action: `fetch feature/shared-machine-dependency-cache on the official macOS host, build and run the full Metal suite at 38536e54fb748d6fa57cc2c54086f5a3672bd0f6, verify RGBA16F selection or documented fallback, repeat Fit/100%/pan and physical gradient review, then reconcile through the documented integration workflow`.
 
 <!-- WINDOWS_AGENT_REPORT:END -->
