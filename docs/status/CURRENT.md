@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: 0d0badc
-last_checkpoint: CP-G1-0015
+last_green_commit: 20202db
+last_checkpoint: CP-G1-0016
 blocking_risks:
   - RISK-002
   - RISK-003
