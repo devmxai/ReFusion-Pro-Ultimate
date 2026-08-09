@@ -1,0 +1,111 @@
+{
+  "format": {
+    "duration": "0.200000",
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "size": "94538",
+    "start_time": "0.000000"
+  },
+  "kind": "provider-assisted-media-index-oracle",
+  "packets_decode_order": [
+    {
+      "dts": 0,
+      "duration": 3072,
+      "flags": "K__",
+      "pos": "1410",
+      "pts": 0,
+      "size": "4",
+      "stream_index": 1
+    },
+    {
+      "dts": -1024,
+      "duration": 512,
+      "flags": "K__",
+      "pos": "1414",
+      "pts": 0,
+      "size": "53755",
+      "stream_index": 0
+    },
+    {
+      "dts": -512,
+      "duration": 512,
+      "flags": "___",
+      "pos": "55169",
+      "pts": 1536,
+      "size": "13451",
+      "stream_index": 0
+    },
+    {
+      "dts": 0,
+      "duration": 512,
+      "flags": "___",
+      "pos": "68620",
+      "pts": 512,
+      "size": "9994",
+      "stream_index": 0
+    },
+    {
+      "dts": 512,
+      "duration": 512,
+      "flags": "___",
+      "pos": "78614",
+      "pts": 1024,
+      "size": "9635",
+      "stream_index": 0
+    },
+    {
+      "dts": 1024,
+      "duration": 512,
+      "flags": "___",
+      "pos": "88249",
+      "pts": 2560,
+      "size": "3321",
+      "stream_index": 0
+    },
+    {
+      "dts": 1536,
+      "duration": 512,
+      "flags": "___",
+      "pos": "91570",
+      "pts": 2048,
+      "size": "2968",
+      "stream_index": 0
+    }
+  ],
+  "payload_sha256": "d389c5fea01ca727b9ff967eac4955b04f643de58aed6e858a517ede5c088d2a",
+  "schema_version": 1,
+  "streams": [
+    {
+      "avg_frame_rate": "30/1",
+      "codec_name": "h264",
+      "codec_tag_string": "avc1",
+      "color_primaries": "bt709",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "duration": "0.200000",
+      "duration_ts": 3072,
+      "height": 3840,
+      "index": 0,
+      "level": 51,
+      "nb_frames": "6",
+      "pix_fmt": "yuv420p",
+      "profile": "High",
+      "r_frame_rate": "30/1",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "time_base": "1/15360",
+      "width": 2160
+    },
+    {
+      "avg_frame_rate": "15360/512",
+      "codec_tag_string": "tmcd",
+      "duration": "0.200000",
+      "duration_ts": 3072,
+      "index": 1,
+      "nb_frames": "1",
+      "r_frame_rate": "0/0",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "time_base": "1/15360"
+    }
+  ]
+}

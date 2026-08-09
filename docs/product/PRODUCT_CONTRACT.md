@@ -26,7 +26,9 @@ Install -> Create/Open -> Import Video/Image/Audio
 ## Desktop v1 candidate scope
 
 - macOS Apple Silicon and Windows x64 from the first installable trunk;
-- SDR Rec.709, 1080p reference profile until higher profiles qualify;
+- SDR Rec.709 with a 1080p playback reference; shared H.264 intake admits the
+  bounded portrait/landscape 4K profile in ADR-0018 while 4K hardware playback
+  remains unqualified until the Video vertical-slice device gates pass;
 - narrow published media matrix, initially targeting hardware-supported
   H.264/AAC MP4 plus PNG/JPEG and WAV, subject to licensing and hardware gates;
 - Video, Audio, Image, Text, Shape, Group, and bounded Adjustment layers;

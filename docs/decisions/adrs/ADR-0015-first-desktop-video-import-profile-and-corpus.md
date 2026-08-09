@@ -126,3 +126,10 @@ The first supported row is intentionally narrow but real: it includes Reels,
 landscape, VFR, B-frames, AAC and rotation. Files outside it remain readable
 only after a later profile is explicitly admitted; they do not activate a
 software fallback or platform-only approximation.
+
+## Amendment
+
+[`ADR-0018`](ADR-0018-desktop-sdr-h264-4k-intake-amendment.md) widens only the
+shared SDR H.264 intake bounds to portrait/landscape 4K through Level 5.2 and
+defines one receipt-bearing missing-transfer normalization. All other
+fail-closed and zero-CPU-video-pixel decisions in this ADR remain active.

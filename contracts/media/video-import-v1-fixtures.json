@@ -37,6 +37,16 @@
       "oracle_sha256": "8b68c930453f541e342045b864a7b0439fcca53116c1b573f05cf86af33f5b7f"
     },
     {
+      "id": "mp4-portrait-4k30-partial-bt709",
+      "purpose": "admitted 4K portrait Level 5.1 and bounded missing-transfer BT.709 normalization",
+      "expected": "admitted",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-portrait-4k30-partial-bt709/source.mp4",
+      "sha256": "d389c5fea01ca727b9ff967eac4955b04f643de58aed6e858a517ede5c088d2a",
+      "byte_size": 94538,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-portrait-4k30-partial-bt709/expected-index-or-diagnostic.json",
+      "oracle_sha256": "e333fc651981c11ee1c9b7c09a8ba32fb2b9ac7ad29b347866cab12b807c2dc0"
+    },
+    {
       "id": "mp4-unsupported-hevc",
       "purpose": "valid-container unsupported-codec rejection",
       "expected": "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",

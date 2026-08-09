@@ -17,7 +17,7 @@ last_checkpoint: CP-G1-0015
 blocking_risks:
   - RISK-002
   - RISK-003
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # Current program status
@@ -38,8 +38,9 @@ for a bounded macOS-first Video import/hardware-playback slice followed by a
 same-commit Windows Media Foundation/D3D qualification. Execution has `VI-WP00`
 passed, `VI-WP01–02` locally passed on macOS, and the shared atomic portion of
 `VI-WP03` physically passed on macOS as of 2026-08-09. The owner accepted
-ADR-0012 through ADR-0015;
-the six-row synthetic corpus and normalized oracles are materialized and
+ADR-0012 through ADR-0015 and the bounded ADR-0018 Desktop SDR H.264 intake
+amendment on 2026-08-10;
+the seven-row synthetic corpus and normalized oracles are materialized and
 verified; official FFmpeg `n8.0.3` source is pinned; and the macOS shared build
 receipt proves exactly one enabled demuxer (`MOV`) with zero decoders, encoders,
 muxers, filters, parsers, protocols or bitstream filters. RFX6 now round-trips
@@ -57,8 +58,13 @@ transaction and canonical reopen test. The Studio `VID` client now opens the
 native file portal, runs the shared index/copy transaction off the UI thread,
 publishes only through Application authority, and persists canonical RFX6
 through the existing accepted observer. Its physical client test imports the
-same fixture and reopens the accepted file. `macos-demux` passes 38/38 and the
-product-shaped `macos-visual` lane passes 62/62. Typed exact-byte relink now
+same fixture and reopens the accepted file. The intake now accepts shared
+H.264 8-bit 4:2:0 SDR through Level 5.2 and 3840x2160 coded pixels in either
+orientation, recovers bounded AVC VUI metadata, records guarded BT.709 transfer
+normalization and ignores unencrypted ancillary `tmcd`. The physical
+98,158,612-byte 2160x3840 source that exposed the rejection now imports and
+reopens as canonical RFX6 with one VideoClip. `macos-core` passes 37/37 and the
+product-shaped `macos-visual` lane passes 63/63. Typed exact-byte relink now
 restores only the accepted Asset digest/size/location without creating a
 Revision and rolls back on concurrent truth changes. Product CLI now exposes
 typed import/relink clients over the same services and its physical test proves
@@ -69,11 +75,13 @@ claim Timeline/Canvas Video playback, Windows decode or G4 exit.
 ## Exact resume point
 
 Continue `VI-WP03` on `feature/shared-video-import-v1` by reproducing the fixed
-RFX6, shared ImportVideo transaction, exact Relink, Studio client and typed CLI
-receipts under real MSVC/Windows. QML remains intent-only; it may not copy
+RFX6, seven-row corpus including the bounded 4K/Timecode/VUI case, shared
+ImportVideo transaction, exact Relink, Studio client and typed CLI receipts
+under real MSVC/Windows. QML remains intent-only; it may not copy
 files, index media or mutate project truth. No Windows-only schema, timing,
 semantic, filesystem or persistence fork is permitted. Record the exact source
-commit and receipts before VI-WP01–03 close. Only then begin VI-WP04 exact
+commit and receipts before VI-WP01–03 close. The accepted 4K import does not
+yet imply a decoded Canvas frame. Only then begin VI-WP04 exact
 ProjectTime-to-PTS scheduling and the common `DrawVideoFrame` RenderPlan
 operation.
 

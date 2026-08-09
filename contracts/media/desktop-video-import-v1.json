@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
-  "id": "refusion.media.desktop-video-import.v1",
+  "schema_version": 2,
+  "id": "refusion.media.desktop-video-import.v1.1",
   "status": "accepted",
-  "decision": "ADR-0015",
+  "decision": "ADR-0015+ADR-0018",
   "container": {
     "families": ["iso-bmff-mp4", "quicktime-mov"],
     "seekable_local_source_required": true,
@@ -11,16 +11,18 @@
     "external_data_references": false,
     "selected_video_tracks": 1,
     "selected_audio_tracks_maximum": 1,
+    "ignored_ancillary_track_tags": ["tmcd"],
     "legal_edits": ["single-normal-rate-media-edit", "optional-leading-empty-edit"]
   },
   "video": {
     "codec": "h264-avc",
     "profiles": ["baseline", "main", "high"],
-    "maximum_level": "4.2",
+    "maximum_level": "5.2",
     "bit_depth": 8,
     "chroma": "4:2:0",
     "scan": "progressive",
-    "maximum_coded_pixels": 2073600,
+    "maximum_coded_dimension": 3840,
+    "maximum_coded_pixels": 8294400,
     "maximum_presentation_rate": {"numerator": 60, "denominator": 1},
     "maximum_bitrate_bits_per_second": 50000000,
     "decoded_surface": "native-nv12-video-range-two-plane",
@@ -30,7 +32,18 @@
       "transfer": "bt709",
       "matrix": "bt709",
       "range": "video",
-      "metadata_required": true
+      "metadata_required": true,
+      "bounded_normalization": {
+        "missing_transfer": "bt709",
+        "preconditions": [
+          "8-bit-4:2:0",
+          "video-range",
+          "explicit-bt709-primaries",
+          "explicit-bt709-matrix",
+          "transfer-unspecified"
+        ],
+        "receipt": "bt709_transfer_defaulted"
+      }
     },
     "sample_aspect_ratio": {"numerator": 1, "denominator": 1},
     "orientations_degrees": [0, 90, 180, 270],
@@ -51,7 +64,7 @@
   "runtime_limits": {
     "maximum_native_video_surfaces": 12,
     "maximum_queued_compressed_samples": 32,
-    "maximum_active_video_surface_bytes": 134217728,
+    "maximum_active_video_surface_bytes": 201326592,
     "frame_deadline_nanoseconds_at_60fps": 16666667,
     "maximum_missed_or_repeated_fraction_after_warmup": 0.001,
     "first_visible_frame_p95_nanoseconds": 250000000,

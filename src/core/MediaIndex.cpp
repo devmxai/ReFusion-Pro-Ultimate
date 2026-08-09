@@ -82,6 +82,15 @@ namespace {
   throw std::invalid_argument("unknown sample dependency value");
 }
 
+[[nodiscard]] std::string_view notice_name(
+    const MediaIndexNoticeKind kind) {
+  switch (kind) {
+    case MediaIndexNoticeKind::bt709_transfer_defaulted:
+      return "bt709_transfer_defaulted";
+  }
+  throw std::invalid_argument("unknown MediaIndex notice kind");
+}
+
 template <typename Integer>
 void append_integer(std::string& output, const Integer value) {
   char buffer[32]{};
@@ -147,6 +156,19 @@ CompositionValidation validate_media_index(const MediaIndex& index) {
                       "MediaIndex Stream and track IDs must be unique");
     }
     streams.emplace(stream.stream_id.value, &stream);
+  }
+  std::unordered_set<std::string> notice_keys;
+  for (const auto& notice : index.notices) {
+    const auto stream = streams.find(notice.stream_id.value);
+    const auto key = notice.stream_id.value + ":" +
+                     std::string{notice_name(notice.kind)};
+    if (stream == streams.end() ||
+        stream->second->kind != MediaStreamKind::video ||
+        !notice_keys.emplace(key).second) {
+      return rejected(
+          "RFX-MEDIA-INDEX-011",
+          "MediaIndex notices must be unique and reference a Video stream");
+    }
   }
   constexpr std::size_t kMaximumCodecConfigurationBytes = 1024U * 1024U;
   for (std::size_t offset = 0; offset < index.codec_configurations.size();
@@ -315,6 +337,14 @@ std::string canonical_media_index_bytes(const MediaIndex& index) {
       output.push_back(' ');
       append_integer(output, static_cast<unsigned>(audio.channels));
     }
+    output.push_back('\n');
+  }
+
+  for (const auto& notice : index.notices) {
+    output += "notice ";
+    append_token(output, notice.stream_id.value);
+    output.push_back(' ');
+    append_token(output, notice_name(notice.kind));
     output.push_back('\n');
   }
 

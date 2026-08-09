@@ -34,6 +34,13 @@ if(refusion_cli_has_media_commands)
       -DSOURCE=${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4
       -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-media-import
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_media_import_test.cmake)
+  add_test(NAME refusion.cli_media_import_4k
+    COMMAND ${CMAKE_COMMAND}
+      -DCLI=$<TARGET_FILE:refusion-cli>
+      -DPROJECT=${CMAKE_SOURCE_DIR}/examples/projects/rfx-authoring-experiment-01/Project.rfx
+      -DSOURCE=${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-portrait-4k30-partial-bt709/source.mp4
+      -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-media-import-4k
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_media_import_test.cmake)
 endif()
 
 if(TARGET ReFusion::FfmpegDemux)
@@ -315,7 +322,8 @@ if(TARGET ReFusion::StudioMediaImport AND TARGET ReFusion::ProjectLiveReload)
   target_link_libraries(refusion-studio-media-import-bridge-tests
     PRIVATE ReFusion::StudioMediaImport ReFusion::ProjectLiveReload)
   target_compile_definitions(refusion-studio-media-import-bridge-tests PRIVATE
-    REFUSION_VIDEO_IMPORT_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4")
+    REFUSION_VIDEO_IMPORT_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4"
+    REFUSION_VIDEO_IMPORT_REJECTED_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-unsupported-hevc/source.mp4")
   refusion_enable_warnings(refusion-studio-media-import-bridge-tests)
   add_test(NAME refusion.studio_media_import_bridge
     COMMAND refusion-studio-media-import-bridge-tests)

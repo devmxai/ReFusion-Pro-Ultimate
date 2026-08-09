@@ -135,6 +135,16 @@ struct SelectedStreams final {
   return selected;
 }
 
+[[nodiscard]] bool defaulted_bt709_transfer(
+    const core::MediaIndex& index) {
+  return std::any_of(
+      index.notices.begin(), index.notices.end(),
+      [](const core::MediaIndexNotice& notice) {
+        return notice.kind ==
+               core::MediaIndexNoticeKind::bt709_transfer_defaulted;
+      });
+}
+
 [[nodiscard]] std::string extension_for(
     const core::MediaContainerProfile profile) {
   return profile == core::MediaContainerProfile::quicktime_mov ? "mov" : "mp4";
@@ -442,6 +452,8 @@ ImportVideoResult ImportVideoService::execute(ImportVideoIntent intent) {
     return rejected(active.revision_id, std::move(indexed.code),
                     std::move(indexed.diagnostic));
   }
+  const bool used_default_bt709_transfer =
+      defaulted_bt709_transfer(*indexed.index);
   if (indexed.index->source_digest != intent.source->content_digest() ||
       indexed.index->source_byte_size != intent.source->byte_size()) {
     return rejected(active.revision_id, "RFX-MEDIA-IMPORT-INDEX-IDENTITY",
@@ -531,7 +543,10 @@ ImportVideoResult ImportVideoService::execute(ImportVideoIntent intent) {
           applied.active_snapshot.linked_imports.back().linked_import_id,
       .code = applied.replayed() ? "RFX-MEDIA-IMPORT-REPLAYED"
                                  : "RFX-MEDIA-IMPORT-ACCEPTED",
-      .diagnostic = "linked Video and Audio clips published atomically",
+      .diagnostic =
+          used_default_bt709_transfer
+              ? "linked media clips published atomically; absent transfer metadata was normalized to BT.709 by the accepted SDR policy"
+              : "linked media clips published atomically",
   };
 }
 

@@ -1,0 +1,21 @@
+{
+  "byte_size": 94538,
+  "expected": "admitted",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=2160x3840:rate=30:duration=0.2 -an -c:v libx264 -threads:v 1 -preset veryfast -pix_fmt yuv420p -profile:v high -level:v 5.1 -g 6 -bf 2 -b:v 2M -maxrate 4M -bufsize 8M -color_primaries bt709 -colorspace bt709 -color_range tv -bsf:v h264_metadata=colour_primaries=1:transfer_characteristics=2:matrix_coefficients=1:video_full_range_flag=0 -movflags +faststart+write_colr '$TMP/portrait-4k-source.mp4'",
+      "'$FFMPEG' -hide_banner -loglevel error -y -i '$TMP/portrait-4k-source.mp4' -map 0:v:0 -c copy -color_range tv -color_primaries bt709 -color_trc 2 -colorspace bt709 -timecode 01:00:55:04 -movflags +faststart+write_colr '$TMP/mp4-portrait-4k30-partial-bt709.mp4'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/3",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-portrait-4k30-partial-bt709",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "e333fc651981c11ee1c9b7c09a8ba32fb2b9ac7ad29b347866cab12b807c2dc0",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "d389c5fea01ca727b9ff967eac4955b04f643de58aed6e858a517ede5c088d2a"
+}

@@ -125,7 +125,9 @@ struct AdmittedFixture final {
   std::uint32_t display_width;
   std::uint32_t display_height;
   std::int16_t orientation;
+  bool has_audio{true};
   std::uint32_t audio_rate;
+  bool expected_defaulted_transfer{false};
   std::int64_t first_pts;
   std::int64_t first_dts;
   std::uint64_t first_duration;
@@ -162,14 +164,13 @@ void verify_admitted(const std::filesystem::path& fixture_root,
               index.source_byte_size == fixture.source_bytes &&
               index.container_profile == fixture.container,
           std::string{fixture.id} + " immutable source identity differs");
-  require(index.streams.size() == 2 &&
+  const auto expected_stream_count = fixture.has_audio ? 2U : 1U;
+  require(index.streams.size() == expected_stream_count &&
               index.samples_decode_order.size() == fixture.sample_count,
           std::string{fixture.id} + " Stream/sample count differs");
 
   const auto& video = stream_of_kind(index, MediaStreamKind::video);
-  const auto& audio = stream_of_kind(index, MediaStreamKind::audio);
   const auto& video_format = std::get<VideoStreamFormat>(video.format);
-  const auto& audio_format = std::get<AudioStreamFormat>(audio.format);
   require(video.start == fixture.video_start &&
               video.duration == fixture.video_duration &&
               video.time_base == MediaTimeBase{.numerator = 1,
@@ -181,9 +182,28 @@ void verify_admitted(const std::filesystem::path& fixture_root,
               video_format.display_extent.height_pixels == fixture.display_height &&
               video_format.orientation_degrees == fixture.orientation,
           std::string{fixture.id} + " Video geometry/orientation differs");
-  require(audio_format.sample_rate_hz == fixture.audio_rate &&
-              audio_format.channels == 1,
-          std::string{fixture.id} + " Audio format differs");
+  const auto audio = std::find_if(
+      index.streams.begin(), index.streams.end(),
+      [](const MediaStreamDescriptor& stream) {
+        return stream.kind == MediaStreamKind::audio;
+      });
+  require((audio != index.streams.end()) == fixture.has_audio,
+          std::string{fixture.id} + " Audio presence differs");
+  if (fixture.has_audio) {
+    const auto& audio_format = std::get<AudioStreamFormat>(audio->format);
+    require(audio_format.sample_rate_hz == fixture.audio_rate &&
+                audio_format.channels == 1,
+            std::string{fixture.id} + " Audio format differs");
+  }
+  const auto defaulted_transfer = std::any_of(
+      index.notices.begin(), index.notices.end(),
+      [](const MediaIndexNotice& notice) {
+        return notice.kind ==
+               MediaIndexNoticeKind::bt709_transfer_defaulted;
+      });
+  require(defaulted_transfer == fixture.expected_defaulted_transfer,
+          std::string{fixture.id} +
+              " BT.709 transfer normalization receipt differs");
 
   const auto& first = index.samples_decode_order.front();
   require(first.presentation_timestamp == fixture.first_pts &&
@@ -197,7 +217,8 @@ void verify_admitted(const std::filesystem::path& fixture_root,
           std::string{fixture.id} + " codec configurations are absent");
   const auto digest = media_index_digest(index);
   require(digest == fixture.expected_index_digest,
-          std::string{fixture.id} + " canonical MediaIndex digest differs");
+          std::string{fixture.id} + " canonical MediaIndex digest differs: " +
+              digest);
 
   const auto decode_projection = project_media_index_for_hardware_decode(
       index, video.stream_id);
@@ -287,7 +308,9 @@ int main() {
           .display_width = 640,
           .display_height = 360,
           .orientation = 0,
+          .has_audio = true,
           .audio_rate = 48'000,
+          .expected_defaulted_transfer = false,
           .first_pts = 15'990,
           .first_dts = 13'990,
           .first_duration = 1'000,
@@ -314,7 +337,9 @@ int main() {
           .display_width = 360,
           .display_height = 640,
           .orientation = 90,
+          .has_audio = true,
           .audio_rate = 44'100,
+          .expected_defaulted_transfer = false,
           .first_pts = 0,
           .first_dts = -1'024,
           .first_duration = 512,
@@ -341,12 +366,43 @@ int main() {
           .display_width = 1'920,
           .display_height = 1'080,
           .orientation = 0,
+          .has_audio = true,
           .audio_rate = 48'000,
+          .expected_defaulted_transfer = false,
           .first_pts = 0,
           .first_dts = -512,
           .first_duration = 256,
           .first_byte_offset = 4'658,
           .first_byte_size = 38'177,
+      });
+  verify_admitted(
+      fixture_root,
+      AdmittedFixture{
+          .id = "mp4-portrait-4k30-partial-bt709",
+          .file_name = "source.mp4",
+          .source_digest =
+              "sha256:d389c5fea01ca727b9ff967eac4955b04f643de58aed6e858a517ede5c088d2a",
+          .source_bytes = 94'538,
+          .expected_index_digest =
+              "sha256:5d4aa884bcc403f7f2cecf6a711727c9103e444ad8ae2e820a89bfbb1f37248e",
+          .container = MediaContainerProfile::iso_bmff_mp4,
+          .sample_count = 6,
+          .video_start = 0,
+          .video_duration = 3'072,
+          .video_time_base_denominator = 15'360,
+          .coded_width = 2'160,
+          .coded_height = 3'840,
+          .display_width = 2'160,
+          .display_height = 3'840,
+          .orientation = 0,
+          .has_audio = false,
+          .audio_rate = 0,
+          .expected_defaulted_transfer = true,
+          .first_pts = 0,
+          .first_dts = -1'024,
+          .first_duration = 512,
+          .first_byte_offset = 1'414,
+          .first_byte_size = 53'755,
       });
 
   verify_rejected(

@@ -1,6 +1,7 @@
 #include "refusion/adapters/media/FfmpegMediaDemuxer.hpp"
 
 #include "refusion/core/ContentDigest.hpp"
+#include "refusion/core/DesktopVideoImportProfile.hpp"
 
 extern "C" {
 #include <libavcodec/codec_par.h>
@@ -28,6 +29,7 @@ extern "C" {
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #if LIBAVFORMAT_VERSION_MAJOR != 62
 #error "ReFusion requires the pinned FFmpeg n8.0.x libavformat ABI"
@@ -239,7 +241,187 @@ struct AvcConfigurationSummary final {
   std::uint8_t chroma_format_idc{1};
   std::uint8_t bit_depth_luma{8};
   std::uint8_t bit_depth_chroma{8};
+  bool vui_video_signal_present{false};
+  bool vui_full_range{false};
+  std::uint8_t vui_color_primaries{2};
+  std::uint8_t vui_color_transfer{2};
+  std::uint8_t vui_color_matrix{2};
+  std::uint32_t vui_sample_aspect_numerator{0};
+  std::uint32_t vui_sample_aspect_denominator{0};
 };
+
+class RbspBitReader final {
+ public:
+  explicit RbspBitReader(const std::span<const std::uint8_t> ebsp) {
+    bytes_.reserve(ebsp.size());
+    std::uint8_t zero_count = 0;
+    for (const auto byte : ebsp) {
+      if (zero_count >= 2 && byte == 0x03U) {
+        zero_count = 0;
+        continue;
+      }
+      bytes_.push_back(byte);
+      zero_count = byte == 0 ? static_cast<std::uint8_t>(zero_count + 1U) : 0;
+    }
+  }
+
+  [[nodiscard]] std::optional<std::uint32_t> bits(
+      const std::uint8_t count) noexcept {
+    if (count > 32 || bit_offset_ + count > bytes_.size() * 8U) {
+      return std::nullopt;
+    }
+    std::uint32_t value = 0;
+    for (std::uint8_t index = 0; index < count; ++index) {
+      value = static_cast<std::uint32_t>(
+          (value << 1U) |
+          ((bytes_[bit_offset_ / 8U] >> (7U - bit_offset_ % 8U)) & 1U));
+      ++bit_offset_;
+    }
+    return value;
+  }
+
+  [[nodiscard]] std::optional<std::uint32_t> ue() noexcept {
+    std::uint8_t leading_zeroes = 0;
+    for (;;) {
+      const auto bit = bits(1);
+      if (!bit) return std::nullopt;
+      if (*bit != 0) break;
+      if (++leading_zeroes > 31) return std::nullopt;
+    }
+    const auto suffix = bits(leading_zeroes);
+    if (!suffix) return std::nullopt;
+    return ((1U << leading_zeroes) - 1U) + *suffix;
+  }
+
+  [[nodiscard]] std::optional<std::int32_t> se() noexcept {
+    const auto encoded = ue();
+    if (!encoded) return std::nullopt;
+    const auto magnitude = static_cast<std::int32_t>((*encoded + 1U) / 2U);
+    return (*encoded & 1U) != 0U ? magnitude : -magnitude;
+  }
+
+ private:
+  std::vector<std::uint8_t> bytes_;
+  std::size_t bit_offset_{0};
+};
+
+[[nodiscard]] bool skip_scaling_list(RbspBitReader& reader,
+                                     const std::uint8_t size) noexcept {
+  std::int32_t last_scale = 8;
+  std::int32_t next_scale = 8;
+  for (std::uint8_t index = 0; index < size; ++index) {
+    if (next_scale != 0) {
+      const auto delta = reader.se();
+      if (!delta) return false;
+      next_scale = (last_scale + *delta + 256) % 256;
+    }
+    last_scale = next_scale == 0 ? last_scale : next_scale;
+  }
+  return true;
+}
+
+void read_sps_video_signal(const std::span<const std::uint8_t> nal,
+                           AvcConfigurationSummary& result) noexcept {
+  if (nal.size() < 4 || (nal.front() & 0x1fU) != 7U) return;
+  RbspBitReader reader{nal.subspan(1)};
+  const auto profile = reader.bits(8);
+  const auto constraints = reader.bits(8);
+  const auto level = reader.bits(8);
+  const auto sequence_id = reader.ue();
+  if (!profile || !constraints || !level || !sequence_id) return;
+
+  std::uint32_t chroma_format = 1;
+  if (*profile == 100 || *profile == 110 || *profile == 122 ||
+      *profile == 244 || *profile == 44 || *profile == 83 ||
+      *profile == 86 || *profile == 118 || *profile == 128 ||
+      *profile == 138 || *profile == 139 || *profile == 134 ||
+      *profile == 135) {
+    const auto parsed_chroma = reader.ue();
+    if (!parsed_chroma || *parsed_chroma > 3) return;
+    chroma_format = *parsed_chroma;
+    if (chroma_format == 3 && !reader.bits(1)) return;
+    if (!reader.ue() || !reader.ue() || !reader.bits(1)) return;
+    const auto scaling_matrix = reader.bits(1);
+    if (!scaling_matrix) return;
+    if (*scaling_matrix != 0) {
+      const auto list_count = chroma_format == 3 ? 12U : 8U;
+      for (std::uint8_t index = 0; index < list_count; ++index) {
+        const auto present = reader.bits(1);
+        if (!present) return;
+        if (*present != 0 &&
+            !skip_scaling_list(reader, index < 6 ? 16U : 64U)) {
+          return;
+        }
+      }
+    }
+  }
+
+  if (!reader.ue()) return;  // log2_max_frame_num_minus4
+  const auto picture_order = reader.ue();
+  if (!picture_order) return;
+  if (*picture_order == 0) {
+    if (!reader.ue()) return;
+  } else if (*picture_order == 1) {
+    if (!reader.bits(1) || !reader.se() || !reader.se()) return;
+    const auto cycle = reader.ue();
+    if (!cycle || *cycle > 255) return;
+    for (std::uint32_t index = 0; index < *cycle; ++index) {
+      if (!reader.se()) return;
+    }
+  } else if (*picture_order > 2) {
+    return;
+  }
+  if (!reader.ue() || !reader.bits(1) || !reader.ue() || !reader.ue()) return;
+  const auto frame_only = reader.bits(1);
+  if (!frame_only) return;
+  if (*frame_only == 0 && !reader.bits(1)) return;
+  if (!reader.bits(1)) return;
+  const auto cropped = reader.bits(1);
+  if (!cropped) return;
+  if (*cropped != 0 &&
+      (!reader.ue() || !reader.ue() || !reader.ue() || !reader.ue())) {
+    return;
+  }
+  const auto vui_present = reader.bits(1);
+  if (!vui_present || *vui_present == 0) return;
+
+  const auto aspect_present = reader.bits(1);
+  if (!aspect_present) return;
+  if (*aspect_present != 0) {
+    const auto aspect_idc = reader.bits(8);
+    if (!aspect_idc) return;
+    if (*aspect_idc == 1) {
+      result.vui_sample_aspect_numerator = 1;
+      result.vui_sample_aspect_denominator = 1;
+    } else if (*aspect_idc == 255) {
+      const auto width = reader.bits(16);
+      const auto height = reader.bits(16);
+      if (!width || !height || *width == 0 || *height == 0) return;
+      result.vui_sample_aspect_numerator = *width;
+      result.vui_sample_aspect_denominator = *height;
+    }
+  }
+  const auto overscan_present = reader.bits(1);
+  if (!overscan_present) return;
+  if (*overscan_present != 0 && !reader.bits(1)) return;
+  const auto video_signal_present = reader.bits(1);
+  if (!video_signal_present || *video_signal_present == 0) return;
+  if (!reader.bits(3)) return;
+  const auto full_range = reader.bits(1);
+  const auto color_description = reader.bits(1);
+  if (!full_range || !color_description) return;
+  result.vui_video_signal_present = true;
+  result.vui_full_range = *full_range != 0;
+  if (*color_description != 0) {
+    const auto primaries = reader.bits(8);
+    const auto transfer = reader.bits(8);
+    const auto matrix = reader.bits(8);
+    if (!primaries || !transfer || !matrix) return;
+    result.vui_color_primaries = static_cast<std::uint8_t>(*primaries);
+    result.vui_color_transfer = static_cast<std::uint8_t>(*transfer);
+    result.vui_color_matrix = static_cast<std::uint8_t>(*matrix);
+  }
+}
 
 [[nodiscard]] std::optional<AvcConfigurationSummary>
 parse_avc_decoder_configuration(const std::uint8_t* bytes, const int size) {
@@ -258,6 +440,16 @@ parse_avc_decoder_configuration(const std::uint8_t* bytes, const int size) {
   std::size_t cursor = 6;
   const auto sequence_count = static_cast<std::uint8_t>(bytes[5] & 0x1fU);
   if (sequence_count == 0) return std::nullopt;
+  if (cursor + 2 > available) return std::nullopt;
+  const auto first_sequence_length = static_cast<std::size_t>(
+      (static_cast<std::uint16_t>(bytes[cursor]) << 8U) |
+      static_cast<std::uint16_t>(bytes[cursor + 1]));
+  if (first_sequence_length == 0 ||
+      first_sequence_length > available - cursor - 2U) {
+    return std::nullopt;
+  }
+  const std::span<const std::uint8_t> first_sequence{
+      bytes + cursor + 2U, first_sequence_length};
   const auto skip_arrays = [&](const std::uint8_t count,
                                std::size_t& offset) noexcept {
     for (std::uint8_t index = 0; index < count; ++index) {
@@ -294,12 +486,14 @@ parse_avc_decoder_configuration(const std::uint8_t* bytes, const int size) {
     result.bit_depth_chroma =
         static_cast<std::uint8_t>(8U + (bytes[cursor + 2] & 0x07U));
   }
+  read_sps_video_signal(first_sequence, result);
   return result;
 }
 
 [[nodiscard]] bool supported_h264_profile(
     const std::uint8_t profile_idc) noexcept {
-  return profile_idc == 66 || profile_idc == 77 || profile_idc == 100;
+  return refusion::core::desktop_video_import::admitted_h264_profile_idc(
+      profile_idc);
 }
 
 struct AacConfigurationSummary final {
@@ -454,6 +648,13 @@ MediaDemuxResult FfmpegMediaDemuxer::build_index(
                      "RFX-MEDIA-IMPORT-ENCRYPTED",
                      "encrypted ISO BMFF tracks are not admitted");
     }
+    // QuickTime timecode is ancillary metadata, not an alternate media stream.
+    // It carries no decoded pixels/audio and is intentionally outside the
+    // selected portable media truth for this slice.
+    if (parameters.codec_type == AVMEDIA_TYPE_DATA &&
+        parameters.codec_tag == fourcc('t', 'm', 'c', 'd')) {
+      continue;
+    }
     if (parameters.codec_type != AVMEDIA_TYPE_VIDEO &&
         parameters.codec_type != AVMEDIA_TYPE_AUDIO) {
       return failure(MediaDemuxState::unsupported_profile,
@@ -493,16 +694,24 @@ MediaDemuxResult FfmpegMediaDemuxer::build_index(
       if (!avc_configuration ||
           !supported_h264_profile(avc_configuration->profile_idc) ||
           avc_configuration->level_idc == 0 ||
-          avc_configuration->level_idc > 42) {
+          avc_configuration->level_idc >
+              refusion::core::desktop_video_import::maximum_h264_level_idc) {
         return failure(MediaDemuxState::unsupported_profile,
                        "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
                        "H.264 profile or level is outside Desktop v1");
       }
       if (parameters.width <= 0 || parameters.height <= 0 ||
+          static_cast<std::uint32_t>(parameters.width) >
+              refusion::core::desktop_video_import::maximum_coded_dimension ||
+          static_cast<std::uint32_t>(parameters.height) >
+              refusion::core::desktop_video_import::maximum_coded_dimension ||
           static_cast<std::uint64_t>(parameters.width) *
                   static_cast<std::uint64_t>(parameters.height) >
-              2'073'600ULL ||
-          (parameters.bit_rate > 0 && parameters.bit_rate > 50'000'000)) {
+              refusion::core::desktop_video_import::maximum_coded_pixels ||
+          (parameters.bit_rate > 0 &&
+           static_cast<std::uint64_t>(parameters.bit_rate) >
+               refusion::core::desktop_video_import::
+                   maximum_bitrate_bits_per_second)) {
         return failure(MediaDemuxState::unsupported_profile,
                        "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
                        "Video coded extent or bitrate exceeds Desktop v1");
@@ -514,27 +723,58 @@ MediaDemuxResult FfmpegMediaDemuxer::build_index(
                        "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
                        "Video pixel format is not declared 8-bit 4:2:0");
       }
-      // MOV's nclx full-range flag is represented by libavformat as JPEG only
-      // when set; an explicitly false flag can remain UNSPECIFIED. The three
-      // mandatory nclx color identifiers below prove the container declaration,
-      // so UNSPECIFIED here is normalized to the declared video-range profile.
+      auto effective_range = parameters.color_range;
+      auto effective_primaries = parameters.color_primaries;
+      auto effective_transfer = parameters.color_trc;
+      auto effective_matrix = parameters.color_space;
+      if (avc_configuration->vui_video_signal_present) {
+        if (effective_range == AVCOL_RANGE_UNSPECIFIED) {
+          effective_range = avc_configuration->vui_full_range
+                                ? AVCOL_RANGE_JPEG
+                                : AVCOL_RANGE_MPEG;
+        }
+        if (effective_primaries == AVCOL_PRI_UNSPECIFIED) {
+          effective_primaries = static_cast<AVColorPrimaries>(
+              avc_configuration->vui_color_primaries);
+        }
+        if (effective_transfer == AVCOL_TRC_UNSPECIFIED) {
+          effective_transfer = static_cast<AVColorTransferCharacteristic>(
+              avc_configuration->vui_color_transfer);
+        }
+        if (effective_matrix == AVCOL_SPC_UNSPECIFIED) {
+          effective_matrix = static_cast<AVColorSpace>(
+              avc_configuration->vui_color_matrix);
+        }
+      }
+      // Container codec parameters are preferred. Missing values are recovered
+      // only from the same AVC configuration's SPS VUI; no resolution or host
+      // decoder inference is permitted.
       const bool declared_video_range =
-          parameters.color_range == AVCOL_RANGE_MPEG ||
-          parameters.color_range == AVCOL_RANGE_UNSPECIFIED;
+          effective_range == AVCOL_RANGE_MPEG;
+      const bool explicit_bt709_transfer =
+          effective_transfer == AVCOL_TRC_BT709;
+      const bool defaultable_bt709_transfer =
+          effective_transfer == AVCOL_TRC_UNSPECIFIED;
       if (!declared_video_range ||
-          parameters.color_primaries != AVCOL_PRI_BT709 ||
-          parameters.color_trc != AVCOL_TRC_BT709 ||
-          parameters.color_space != AVCOL_SPC_BT709) {
+          effective_primaries != AVCOL_PRI_BT709 ||
+          (!explicit_bt709_transfer && !defaultable_bt709_transfer) ||
+          effective_matrix != AVCOL_SPC_BT709) {
         return failure(MediaDemuxState::unsupported_profile,
                        "RFX-MEDIA-IMPORT-COLOR-MISSING",
-                       "explicit video-range BT.709 primaries, transfer and matrix are required (range=" +
-                           std::to_string(parameters.color_range) +
+                       "video-range BT.709 primaries/matrix and BT.709 or unspecified SDR transfer are required (range=" +
+                           std::to_string(effective_range) +
                            ", primaries=" +
-                           std::to_string(parameters.color_primaries) +
+                           std::to_string(effective_primaries) +
                            ", transfer=" +
-                           std::to_string(parameters.color_trc) +
+                           std::to_string(effective_transfer) +
                            ", matrix=" +
-                           std::to_string(parameters.color_space) + ")");
+                           std::to_string(effective_matrix) + ")");
+      }
+      if (defaultable_bt709_transfer) {
+        index.notices.push_back(MediaIndexNotice{
+            .stream_id = descriptor.stream_id,
+            .kind = MediaIndexNoticeKind::bt709_transfer_defaulted,
+        });
       }
       if (
           (parameters.field_order != AV_FIELD_UNKNOWN &&
@@ -548,13 +788,26 @@ MediaDemuxResult FfmpegMediaDemuxer::build_index(
                             : parameters.framerate;
       if (!positive_rational(rate) ||
           static_cast<std::uint64_t>(rate.num) >
-              60ULL * static_cast<std::uint64_t>(rate.den)) {
+              static_cast<std::uint64_t>(
+                  refusion::core::desktop_video_import::
+                      maximum_presentation_frames_per_second) *
+                  static_cast<std::uint64_t>(rate.den)) {
         return failure(MediaDemuxState::unsupported_profile,
                        "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
                        "Video presentation rate exceeds Desktop v1");
       }
       auto aspect = parameters.sample_aspect_ratio;
       if (!positive_rational(aspect)) aspect = stream.sample_aspect_ratio;
+      if (!positive_rational(aspect) &&
+          avc_configuration->vui_sample_aspect_numerator != 0 &&
+          avc_configuration->vui_sample_aspect_denominator != 0) {
+        aspect = AVRational{
+            .num = static_cast<int>(
+                avc_configuration->vui_sample_aspect_numerator),
+            .den = static_cast<int>(
+                avc_configuration->vui_sample_aspect_denominator),
+        };
+      }
       if (!positive_rational(aspect) || aspect.num != aspect.den) {
         return failure(MediaDemuxState::unsupported_profile,
                        "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",

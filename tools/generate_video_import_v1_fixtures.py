@@ -19,12 +19,13 @@ import tempfile
 from typing import Any
 
 
-GENERATOR_VERSION = "refusion-video-import-v1-generator/2"
+GENERATOR_VERSION = "refusion-video-import-v1-generator/3"
 EXPECTED_FFMPEG_VERSION = "8.1.2"
 FIXTURES = (
     ("mp4-vfr-bframes-aac-offset", "source.mp4", "admitted"),
     ("mov-portrait-rotation-aac", "source.mov", "admitted"),
     ("mp4-landscape-1080p60", "source.mp4", "admitted"),
+    ("mp4-portrait-4k30-partial-bt709", "source.mp4", "admitted"),
     ("mp4-unsupported-hevc", "source.mp4", "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED"),
     ("mp4-corrupt-truncated", "source.mp4", "RFX-MEDIA-IMPORT-CORRUPT"),
     ("mp4-encrypted-cenc", "source.mp4", "RFX-MEDIA-IMPORT-ENCRYPTED"),
@@ -208,6 +209,32 @@ def main() -> int:
         run(command)
         commands["mp4-landscape-1080p60"].append(command)
 
+        portrait_4k_source = temp / "portrait-4k-source.mp4"
+        command = ffmpeg_command(
+            args.ffmpeg,
+            "-f", "lavfi", "-i", "testsrc2=size=2160x3840:rate=30:duration=0.2",
+            "-an", "-c:v", "libx264", "-threads:v", "1",
+            "-preset", "veryfast", "-pix_fmt", "yuv420p", "-profile:v", "high",
+            "-level:v", "5.1", "-g", "6", "-bf", "2", "-b:v", "2M",
+            "-maxrate", "4M", "-bufsize", "8M", "-color_primaries", "bt709",
+            "-colorspace", "bt709", "-color_range", "tv",
+            "-bsf:v", "h264_metadata=colour_primaries=1:transfer_characteristics=2:matrix_coefficients=1:video_full_range_flag=0",
+            "-movflags", "+faststart+write_colr", str(portrait_4k_source),
+        )
+        run(command)
+        commands["mp4-portrait-4k30-partial-bt709"].append(command)
+        portrait_4k = temp / "mp4-portrait-4k30-partial-bt709.mp4"
+        command = ffmpeg_command(
+            args.ffmpeg,
+            "-i", str(portrait_4k_source), "-map", "0:v:0", "-c", "copy",
+            "-color_range", "tv", "-color_primaries", "bt709",
+            "-color_trc", "2", "-colorspace", "bt709",
+            "-timecode", "01:00:55:04",
+            "-movflags", "+faststart+write_colr", str(portrait_4k),
+        )
+        run(command)
+        commands["mp4-portrait-4k30-partial-bt709"].append(command)
+
         hevc = temp / "mp4-unsupported-hevc.mp4"
         command = ffmpeg_command(
             args.ffmpeg,
@@ -242,6 +269,7 @@ def main() -> int:
             "mp4-vfr-bframes-aac-offset": vfr,
             "mov-portrait-rotation-aac": rotated,
             "mp4-landscape-1080p60": performance,
+            "mp4-portrait-4k30-partial-bt709": portrait_4k,
             "mp4-unsupported-hevc": hevc,
             "mp4-corrupt-truncated": corrupt,
             "mp4-encrypted-cenc": encrypted,

@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP03-macos-complete-msvc-reproduction-pending
-version: 10
+execution_state: VI-WP03-macos-4k-intake-correction-msvc-reproduction-pending
+version: 11
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -13,7 +13,7 @@ stage_routes:
   - G4
   - G5
 canonical_for: first-video-import-hardware-playback-vertical-slice
-last_verified: 2026-08-09
+last_verified: 2026-08-10
 approved_by: product-owner-instruction-2026-08-09
 ---
 
@@ -79,7 +79,7 @@ before implementation:
 | Native decoded format | NV12 or the accepted equivalent native two-plane surface |
 | Timing | VFR, B-frames, non-zero source PTS/DTS, rational/integer project mapping |
 | Audio target | AAC-LC mono/stereo, 44.1/48 kHz; final native route decided by ADR |
-| Canvas | 1080x1920 Reels reference plus one 1920x1080 landscape fixture |
+| Canvas | 1080x1920 Reels reference, 1920x1080 playback fixture and bounded portrait/landscape 4K intake |
 | Desktop lanes | macOS arm64 Metal and Windows x64 D3D12 |
 
 HEVC, AV1, ProRes, HDR, alpha video, image sequences, proxies, multicam,
@@ -242,7 +242,7 @@ The technical screening and formal decision package are now written:
 | Asset/MediaSource/linked clips/import/relink | [ADR-0014](../decisions/adrs/ADR-0014-portable-media-assets-linked-clips-and-relink.md) | accepted |
 | First media profile, metadata and corpus | [ADR-0015](../decisions/adrs/ADR-0015-first-desktop-video-import-profile-and-corpus.md) | accepted |
 | Machine profile | [`desktop-video-import-v1.json`](../../contracts/media/desktop-video-import-v1.json) | accepted |
-| Fixture corpus | [`video-import-v1-fixtures.json`](../../contracts/media/video-import-v1-fixtures.json) | accepted and materialized; 6/6 receipts verified |
+| Fixture corpus | [`video-import-v1-fixtures.json`](../../contracts/media/video-import-v1-fixtures.json) | accepted and materialized; 7/7 receipts verified |
 | Demux dependency intake | [`ffmpeg-demux.md`](../../deps/intake/ffmpeg-demux.md) | official source verified; macOS demux-only build passed; Windows profile not run |
 | Evidence/resume point | [`VI-WP00.md`](../evidence/VIDEO/VI-WP00.md) | passed |
 
@@ -252,8 +252,9 @@ VideoToolbox/Media Foundation and audio decode remains AudioToolbox/Media
 Foundation. The shared media index, project identities, time/color/rotation
 rules and failure codes are portable and provider-neutral.
 
-The owner accepted all four decisions on 2026-08-09. The immutable six-row
-corpus and its oracles are materialized, and the official pinned source builds
+The owner accepted the original four decisions on 2026-08-09 and the bounded
+ADR-0018 intake amendment on 2026-08-10. The immutable seven-row corpus and its
+oracles are materialized, and the official pinned source builds
 on macOS with only `MOV_DEMUXER` enabled. VI-WP00 is passed. Product import is
 still unavailable because VI-WP02 and later implementation packages have not
 completed.
@@ -394,6 +395,24 @@ MSVC RFX6, import, Studio/CLI client, exact-relink and recovery receipts remain
 mandatory and may not introduce another semantic, filesystem or persistence
 path. See
 [`EVID-VIDEO-VI-WP03`](../evidence/VIDEO/VI-WP03.md).
+
+### VI-WP03 4K intake correction — 2026-08-10
+
+Physical Studio use exposed two overly narrow intake checks after the initial
+macOS checkpoint. ADR-0018 and profile `v1.1` now admit shared SDR H.264 through
+Level 5.2 and 3840x2160 coded pixels in either orientation. Missing codec
+parameters are recovered only from the same AVC SPS VUI; an unspecified
+transfer is normalized to BT.709 only when video range, BT.709 primaries,
+BT.709 matrix and 8-bit 4:2:0 are otherwise explicit. The normalization notice
+is bound into the canonical MediaIndex digest. Ancillary `tmcd` Timecode is
+ignored after encryption checks rather than treated as another selected media
+track.
+
+The immutable corpus now contains a 2160x3840 High Level 5.1, Timecode-bearing,
+video-only row reproducing both corrections. Studio terminal import outcomes
+are also appended to `.refusion/Diagnostics/session.jsonl`, so an Agent sees
+the same accepted/rejected result as the UI. These are shared semantics and
+must reproduce under MSVC before VI-WP04 begins.
 
 ## VI-WP04 — Exact playback scheduler and RenderPlan video operation
 

@@ -232,6 +232,23 @@ int main() {
   require(!validate_media_index(changed_configuration).valid,
           "codec configuration bytes differing from their digest were admitted");
 
+  auto normalized_transfer = index;
+  normalized_transfer.notices.push_back(MediaIndexNotice{
+      .stream_id = MediaStreamId{"stream_video"},
+      .kind = MediaIndexNoticeKind::bt709_transfer_defaulted,
+  });
+  require(validate_media_index(normalized_transfer).valid &&
+              media_index_digest(normalized_transfer) != digest_value,
+          "color normalization notice is absent from canonical index truth");
+
+  auto invalid_notice = index;
+  invalid_notice.notices.push_back(MediaIndexNotice{
+      .stream_id = MediaStreamId{"stream_audio"},
+      .kind = MediaIndexNoticeKind::bt709_transfer_defaulted,
+  });
+  require(!validate_media_index(invalid_notice).valid,
+          "Video color normalization notice accepted an Audio stream");
+
   std::cout << "media index tests passed\n";
   return 0;
 }

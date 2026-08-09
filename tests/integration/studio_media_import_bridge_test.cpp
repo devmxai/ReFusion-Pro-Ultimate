@@ -74,23 +74,44 @@ int main(int argc, char* argv[]) {
   StudioMediaImportBridge media_import(
       *commands, studio, project_directory,
       [] { return refusion::core::ProjectTimeNs{0}; });
-
-  bool completed = false;
-  bool accepted = false;
-  QEventLoop loop;
   QObject::connect(
-      &media_import, &StudioMediaImportBridge::importCompleted, &loop,
-      [&](const bool value) {
-        completed = true;
-        accepted = value;
-        loop.quit();
+      &media_import, &StudioMediaImportBridge::importCompleted, &live_reload,
+      [&](const bool accepted) {
+        live_reload.recordWorkflowDiagnostic(accepted,
+                                             media_import.diagnostic());
       });
-  QTimer::singleShot(15'000, &loop, &QEventLoop::quit);
-  media_import.importSelectedFile(QUrl::fromLocalFile(
-      QString::fromUtf8(REFUSION_VIDEO_IMPORT_SOURCE_PATH)));
-  loop.exec();
 
-  require(completed, "Studio import client timed out");
+  const auto run_import = [&](const QString& path) {
+    bool completed = false;
+    bool accepted = false;
+    QEventLoop loop;
+    const auto connection = QObject::connect(
+        &media_import, &StudioMediaImportBridge::importCompleted, &loop,
+        [&](const bool value) {
+          completed = true;
+          accepted = value;
+          loop.quit();
+        });
+    QTimer::singleShot(15'000, &loop, &QEventLoop::quit);
+    media_import.importSelectedFile(QUrl::fromLocalFile(path));
+    loop.exec();
+    QObject::disconnect(connection);
+    require(completed, "Studio import client timed out");
+    return accepted;
+  };
+
+  const auto initial_revision = commands->active_snapshot().revision_id;
+  require(!run_import(
+              QString::fromUtf8(REFUSION_VIDEO_IMPORT_REJECTED_SOURCE_PATH)),
+          "unsupported Studio media source was accepted");
+  require(commands->active_snapshot().revision_id == initial_revision,
+          "rejected Studio media source advanced project truth");
+  require(media_import.diagnostic().contains(
+              QStringLiteral("RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED")),
+          "Studio rejected-media diagnostic code is missing");
+
+  const auto accepted = run_import(
+      QString::fromUtf8(REFUSION_VIDEO_IMPORT_SOURCE_PATH));
   require(accepted, media_import.diagnostic().toStdString());
   require(!media_import.busy(), "Studio import client remained busy");
   const auto active = commands->active_snapshot();
@@ -110,6 +131,18 @@ int main(int argc, char* argv[]) {
   require(!canonical.contains(REFUSION_VIDEO_IMPORT_SOURCE_PATH) &&
               !canonical.contains("/Users/"),
           "Studio import persistence leaked the selected host path");
+
+  QFile diagnostics(project_directory +
+                    QStringLiteral("/.refusion/Diagnostics/session.jsonl"));
+  require(diagnostics.open(QIODevice::ReadOnly),
+          "Studio diagnostics stream is unavailable");
+  const auto diagnostic_bytes = diagnostics.readAll();
+  require(diagnostic_bytes.contains("RFX-MEDIA-IMPORT-ACCEPTED") &&
+              diagnostic_bytes.contains(
+                  "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED") &&
+              diagnostic_bytes.contains("\"status\":\"rejected\"") &&
+              diagnostic_bytes.contains("\"status\":\"accepted\""),
+          "Studio media workflow result was not persisted for Agents");
 
   std::cout << "Studio file client -> shared import -> persisted RFX6 passed\n";
   return 0;

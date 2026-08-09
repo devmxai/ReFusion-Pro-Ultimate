@@ -13,8 +13,9 @@ source_head_at_review: 718346cd88e835696d258533660ac5e7f7f48fa0
 ## Outcome
 
 VI-WP00 is **passed** as the decision, dependency-profile and immutable-corpus
-entry gate. Four ADRs and the Desktop v1 profile are accepted; six synthetic
-payload/oracle pairs are materialized and verified; official FFmpeg `n8.0.3`
+entry gate. The original four ADRs, the bounded ADR-0018 amendment and the
+Desktop v1.1 profile are accepted; seven synthetic payload/oracle pairs are
+materialized and verified; official FFmpeg `n8.0.3`
 source is locked; and the macOS build receipt proves the demux-only allowlist.
 
 No product C++/QML/platform import code was added by this package. Product
@@ -60,18 +61,20 @@ to Core and never become a second ProjectClock authority.
 
 ## Fixture receipt
 
-The required six-row corpus is committed under
+The required seven-row corpus is committed under
 `tests/fixtures/media/video-import-v1/` with CC0-1.0 ownership, a per-row
 manifest and a normalized index or diagnostic oracle:
 
 - positive VFR/B-frame/AAC-offset MP4;
 - positive rotated portrait MOV;
 - positive 1080p60 landscape performance MP4;
+- positive 2160x3840 High Level 5.1 MP4 with ancillary Timecode and the bounded
+  missing-transfer BT.709 normalization case added by ADR-0018;
 - unsupported HEVC MP4;
 - corrupt/truncated MP4;
 - encrypted CENC MP4.
 
-`python3 tools/verify_video_import_v1_fixtures.py` verified all 6/6 payload
+`python3 tools/verify_video_import_v1_fixtures.py` verified all 7/7 payload
 digests, byte sizes, oracle digests, IDs and expected results. The corpus totals
 approximately 3.8 MiB. Homebrew FFmpeg 8.1.2 was used only by the explicit
 offline generator; it is not a configure, build, test-runtime or product
@@ -122,7 +125,7 @@ authorized by this receipt.
 The product owner accepted all four ADRs by the instruction to continue on
 2026-08-09. VI-WP00 completion is:
 
-1. **complete** — six immutable fixture rows and oracles;
+1. **complete** — seven immutable fixture rows and oracles;
 2. **complete on macOS / source-defined on Windows** — official pinned demux
    source and profiles inside ReFusion;
 3. **complete on macOS** — zero forbidden component allowlist receipt;

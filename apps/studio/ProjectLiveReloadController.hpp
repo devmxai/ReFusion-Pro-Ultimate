@@ -28,6 +28,11 @@ class ProjectLiveReloadController final : public QObject {
       QObject* parent = nullptr);
   ~ProjectLiveReloadController() override;
 
+  // Records the terminal result of another typed Application workflow (for
+  // example ImportVideo) in the same session diagnostics stream consumed by
+  // Agents. This has no Revision or persistence authority.
+  void recordWorkflowDiagnostic(bool accepted, const QString& diagnostic);
+
  private slots:
   void projectFileChanged(const QString& path);
 

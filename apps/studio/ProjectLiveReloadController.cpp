@@ -199,6 +199,22 @@ ProjectLiveReloadController::~ProjectLiveReloadController() {
   }
 }
 
+void ProjectLiveReloadController::recordWorkflowDiagnostic(
+    const bool accepted, const QString& diagnostic) {
+  const auto separator = diagnostic.indexOf(QStringLiteral(": "));
+  const auto code = separator > 0
+                        ? diagnostic.left(separator)
+                        : QStringLiteral("RFX-WORKFLOW-DIAGNOSTIC");
+  const auto message = separator > 0
+                           ? diagnostic.sliced(separator + 2)
+                           : diagnostic;
+  const auto active_revision =
+      static_cast<qulonglong>(commands_->active_snapshot().revision_id.value);
+  appendDiagnostic(accepted ? QStringLiteral("accepted")
+                            : QStringLiteral("rejected"),
+                   code, message, active_revision, active_revision);
+}
+
 void ProjectLiveReloadController::projectFileChanged(const QString&) {
   try {
     processCandidate();

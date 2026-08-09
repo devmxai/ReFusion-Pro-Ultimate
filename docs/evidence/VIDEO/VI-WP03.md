@@ -3,9 +3,9 @@ id: EVID-VIDEO-VI-WP03
 kind: atomic-video-import-transaction-evidence
 plan: PLAN-VIDEO-VS-001
 work_package: VI-WP03
-status: macos-complete-msvc-reproduction-pending
+status: macos-4k-intake-corrected-msvc-reproduction-pending
 source_branch: feature/shared-video-import-v1
-last_verified: 2026-08-09
+last_verified: 2026-08-10
 ---
 
 # VI-WP03 — Atomic import and workspace materialization
@@ -141,6 +141,58 @@ macos-visual:
 architecture-check:
   132 source files; zero problems; zero visual-boundary debt
 ```
+
+## Bounded 4K intake correction receipt
+
+Physical use with a 2160x3840 H.264 High Level 5.1 MP4 exposed three intake
+assumptions that were narrower than the declared Desktop product boundary:
+Level 4.2/1080p admission, reliance on container-level transfer metadata and
+rejection of ancillary Timecode as a second media track. ADR-0018 replaces
+those assumptions once in the shared demux/profile contract; there is no
+macOS-only exception.
+
+The corrected profile admits SDR H.264 8-bit 4:2:0 through Level 5.2 and
+3840x2160 coded pixels in either orientation. Missing codec parameters may be
+recovered only from the same AVC SPS VUI. An unspecified transfer is normalized
+to BT.709 only when video range, BT.709 primaries and BT.709 matrix are already
+explicit; the normalization notice participates in the canonical MediaIndex
+digest. Unencrypted ancillary `tmcd` is ignored, while unknown or encrypted
+non-media streams still fail closed.
+
+The immutable corpus now includes a six-frame 2160x3840, High Level 5.1,
+video-only MP4 carrying Timecode and the bounded missing-transfer case:
+
+```text
+source sha256:
+  d389c5fea01ca727b9ff967eac4955b04f643de58aed6e858a517ede5c088d2a
+
+canonical MediaIndex digest:
+  sha256:5d4aa884bcc403f7f2cecf6a711727c9103e444ad8ae2e820a89bfbb1f37248e
+
+fixture corpus:
+  7/7 receipts verified
+
+macos-core:
+  37/37 passed
+
+macos-visual:
+  63/63 passed
+
+architecture-check:
+  133 source files; zero problems; zero visual-boundary debt
+```
+
+The original 98,158,612-byte physical source that produced
+`RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED` now passes the product CLI transaction,
+copies exactly once, publishes canonical RFX6 with one VideoClip and reopens
+successfully. It contains no Audio stream, so the accepted project correctly
+contains no fabricated AudioClip. Studio now persists terminal accepted and
+rejected import diagnostics into the project session journal for Agent
+inspection.
+
+This receipt proves import admission/materialization only. It does not claim a
+decoded Canvas frame, hardware playback or Audio output; those remain VI-WP04
+through VI-WP07 after the same intake receipt passes under MSVC.
 
 ## Remaining exit evidence
 

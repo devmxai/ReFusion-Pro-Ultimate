@@ -10,6 +10,8 @@ The corpus covers:
 - admitted H.264 VFR/B-frame MP4 with non-zero source starts and AAC offset;
 - admitted H.264/AAC MOV with a 90-degree display matrix;
 - admitted H.264/AAC 1920x1080 at 60 fps performance input;
+- admitted H.264 2160x3840 at 30 fps with Level 5.1 and the bounded
+  missing-transfer BT.709 normalization case;
 - valid HEVC MP4 rejected by the first profile;
 - a deliberately tail-truncated MP4 rejected as corrupt;
 - a deliberately CENC-encrypted MP4 rejected before decode.

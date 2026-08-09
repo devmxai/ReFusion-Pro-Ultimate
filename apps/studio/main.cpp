@@ -114,6 +114,15 @@ class ActiveStudioSession final {
             [transport_bridge] {
               return transport_bridge->compositionTimeNs();
             });
+        QObject::connect(
+            media_import_.get(), &StudioMediaImportBridge::importCompleted,
+            live_reload_.get(),
+            [this](const bool accepted) {
+              if (media_import_ != nullptr && live_reload_ != nullptr) {
+                live_reload_->recordWorkflowDiagnostic(
+                    accepted, media_import_->diagnostic());
+              }
+            });
       }
 #endif
     } catch (const std::exception& error) {

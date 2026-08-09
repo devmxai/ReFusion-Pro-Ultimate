@@ -57,6 +57,21 @@ struct MediaCodecConfiguration final {
                          const MediaCodecConfiguration&) = default;
 };
 
+enum class MediaIndexNoticeKind : std::uint8_t {
+  bt709_transfer_defaulted,
+};
+
+// A deterministic, non-blocking normalization applied while producing the
+// derived MediaIndex. It is included in the index digest so cache entries and
+// downstream clients cannot lose the fact that source metadata was partial.
+struct MediaIndexNotice final {
+  MediaStreamId stream_id;
+  MediaIndexNoticeKind kind{MediaIndexNoticeKind::bt709_transfer_defaulted};
+
+  friend bool operator==(const MediaIndexNotice&,
+                         const MediaIndexNotice&) = default;
+};
+
 // Derived, rebuildable container truth. No provider object, host path, decoded
 // pixel, native handle or project-time decision is legal in this record.
 struct MediaIndex final {
@@ -66,6 +81,7 @@ struct MediaIndex final {
   MediaContainerProfile container_profile{
       MediaContainerProfile::iso_bmff_mp4};
   std::vector<MediaStreamDescriptor> streams;
+  std::vector<MediaIndexNotice> notices;
   std::vector<MediaCodecConfiguration> codec_configurations;
   std::vector<CompressedSample> samples_decode_order;
 
