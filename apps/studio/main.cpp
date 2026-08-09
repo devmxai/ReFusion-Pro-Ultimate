@@ -1,6 +1,9 @@
 #include "ProjectLauncherBridge.hpp"
 #include "ProjectLiveReloadController.hpp"
 #include "StudioBridge.hpp"
+#if defined(REFUSION_STUDIO_MEDIA_IMPORT)
+#include "StudioMediaImportBridge.hpp"
+#endif
 #include "StudioRuntimeComposition.hpp"
 #include "StudioTransportBridge.hpp"
 #include "adapters/QtProjectFontAssetResolver.hpp"
@@ -103,6 +106,16 @@ class ActiveStudioSession final {
           opened_project.canonical_path,
           cli_path,
           opened_project.source_bytes);
+#if defined(REFUSION_STUDIO_MEDIA_IMPORT)
+      if (transport_bridge != nullptr) {
+        media_import_ = std::make_unique<StudioMediaImportBridge>(
+            *commands_, *bridge_,
+            QFileInfo(opened_project.canonical_path).absolutePath(),
+            [transport_bridge] {
+              return transport_bridge->compositionTimeNs();
+            });
+      }
+#endif
     } catch (const std::exception& error) {
       viewport_diagnostic = QString::fromUtf8(error.what());
       qCritical() << "Engine viewport initialization failed:"
@@ -115,6 +128,12 @@ class ActiveStudioSession final {
                                 viewport_window);
     context->setContextProperty(QStringLiteral("transportBridge"),
                                 transport_bridge);
+#if defined(REFUSION_STUDIO_MEDIA_IMPORT)
+    context->setContextProperty(QStringLiteral("mediaImportBridge"),
+                                media_import_.get());
+#else
+    context->setContextProperty(QStringLiteral("mediaImportBridge"), nullptr);
+#endif
     context->setContextProperty(QStringLiteral("engineViewportAvailable"),
                                 viewport_window != nullptr);
     context->setContextProperty(QStringLiteral("engineViewportDiagnostic"),
@@ -138,6 +157,9 @@ class ActiveStudioSession final {
   std::unique_ptr<StudioBridge> bridge_;
   std::shared_ptr<StudioRuntimeComposition> runtime_;
   std::unique_ptr<ProjectLiveReloadController> live_reload_;
+#if defined(REFUSION_STUDIO_MEDIA_IMPORT)
+  std::unique_ptr<StudioMediaImportBridge> media_import_;
+#endif
 };
 
 }  // namespace

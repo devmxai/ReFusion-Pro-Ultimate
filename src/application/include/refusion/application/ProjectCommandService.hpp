@@ -7,17 +7,27 @@
 
 namespace refusion::application {
 
-class ProjectCommandService {
+// Minimal accepted-revision boundary used by long-running shared workflows.
+// A host may marshal these two operations onto its engine thread without
+// exposing every authoring command or mutable Core authority.
+class ProjectRevisionService {
+ public:
+  virtual ~ProjectRevisionService() = default;
+  [[nodiscard]] virtual core::ProjectSnapshot active_snapshot() const = 0;
+  [[nodiscard]] virtual core::ApplyResult
+  submit(const core::ReplaceProjectCommand& command) = 0;
+};
+
+class ProjectCommandService : public ProjectRevisionService {
  public:
   virtual ~ProjectCommandService() = default;
 
-  [[nodiscard]] virtual core::ProjectSnapshot active_snapshot() const = 0;
+  using ProjectRevisionService::submit;
+
   virtual void set_candidate_admission_port(
       std::shared_ptr<ProjectCandidateAdmissionPort> port) = 0;
   [[nodiscard]] virtual core::ApplyResult
   submit(const core::RenameProjectCommand& command) = 0;
-  [[nodiscard]] virtual core::ApplyResult
-  submit(const core::ReplaceProjectCommand& command) = 0;
   [[nodiscard]] virtual core::ApplyResult
   submit(const core::SetVisualTransformCommand& command) = 0;
   [[nodiscard]] virtual core::ApplyResult

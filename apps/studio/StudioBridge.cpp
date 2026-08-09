@@ -803,6 +803,15 @@ void StudioBridge::publishExternalDiagnostic(QString diagnostic) {
   emit diagnosticChanged();
 }
 
+void StudioBridge::publishAcceptedWorkflow(
+    const refusion::core::ProjectSnapshot& snapshot) {
+  diagnostic_.clear();
+  if (accepted_observer_) accepted_observer_(snapshot);
+  refreshMeasurementProjection();
+  emit snapshotChanged();
+  emit diagnosticChanged();
+}
+
 void StudioBridge::submitRename(const QString& requested_name) {
   const auto base = commands_->active_snapshot();
   ++command_sequence_;

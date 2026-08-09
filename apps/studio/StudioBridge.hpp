@@ -87,6 +87,11 @@ class StudioBridge final : public QObject {
   void setCompositionTimeProvider(CompositionTimeProvider provider);
   void publishExternalResult(const refusion::core::ApplyResult& result);
   void publishExternalDiagnostic(QString diagnostic);
+  // Shared workflow clients call this after their typed command has been
+  // accepted through Application. It persists the accepted snapshot through
+  // the same observer as UI commands and refreshes all Studio projections.
+  void publishAcceptedWorkflow(
+      const refusion::core::ProjectSnapshot& snapshot);
 
   Q_INVOKABLE void submitRename(const QString& requested_name);
   Q_INVOKABLE void addVisualLayer(const QString& preset);

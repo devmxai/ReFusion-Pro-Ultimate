@@ -98,7 +98,7 @@ struct ImportVideoResult final {
 // publishes partial project state.
 class ImportVideoService final {
  public:
-  ImportVideoService(ProjectCommandService& commands,
+  ImportVideoService(ProjectRevisionService& commands,
                      MediaIndexingService& indexing,
                      MediaImportWorkspacePort& workspace,
                      ImportVideoProgressPort* progress = nullptr) noexcept;
@@ -106,7 +106,7 @@ class ImportVideoService final {
   [[nodiscard]] ImportVideoResult execute(ImportVideoIntent intent);
 
  private:
-  ProjectCommandService& commands_;
+  ProjectRevisionService& commands_;
   MediaIndexingService& indexing_;
   MediaImportWorkspacePort& workspace_;
   ImportVideoProgressPort* progress_{nullptr};

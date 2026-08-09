@@ -352,7 +352,7 @@ struct SelectedStreams final {
 
 }  // namespace
 
-ImportVideoService::ImportVideoService(ProjectCommandService& commands,
+ImportVideoService::ImportVideoService(ProjectRevisionService& commands,
                                        MediaIndexingService& indexing,
                                        MediaImportWorkspacePort& workspace,
                                        ImportVideoProgressPort* progress) noexcept

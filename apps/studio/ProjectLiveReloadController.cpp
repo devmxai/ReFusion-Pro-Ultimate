@@ -317,7 +317,8 @@ void ProjectLiveReloadController::persistAcceptedSnapshot(
     writeAgentContext(snapshot);
     appendDiagnostic(QStringLiteral("accepted"),
                      QStringLiteral("RFX-UI-REVISION-PERSISTED"),
-                     QStringLiteral("UI command persisted canonical Project.rfx"),
+                     QStringLiteral(
+                         "Accepted workflow persisted canonical Project.rfx"),
                      snapshot.revision_id.value,
                      snapshot.revision_id.value);
   } catch (const std::exception& error) {

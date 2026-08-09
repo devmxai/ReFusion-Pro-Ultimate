@@ -10,12 +10,12 @@
 #include <QSaveFile>
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
 #include <limits>
 #include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -286,7 +286,10 @@ std::unique_ptr<PreparedMediaAsset> QtMediaImportWorkspace::prepare_copy(
     return nullptr;
   }
   QCryptographicHash hash(QCryptographicHash::Sha256);
-  std::array<std::uint8_t, static_cast<std::size_t>(kCopyChunkBytes)> buffer{};
+  // Import runs on a bounded worker thread whose platform stack can be much
+  // smaller than the main thread. Keep the transfer chunk on the heap.
+  std::vector<std::uint8_t> buffer(
+      static_cast<std::size_t>(kCopyChunkBytes));
   std::uint64_t offset = 0;
   while (offset < expected.byte_size) {
     if (cancellation != nullptr && cancellation->cancelled()) {

@@ -297,6 +297,18 @@ if(TARGET ReFusion::ProjectLiveReload)
     COMMAND refusion-project-live-reload-tests)
 endif()
 
+if(TARGET ReFusion::StudioMediaImport AND TARGET ReFusion::ProjectLiveReload)
+  add_executable(refusion-studio-media-import-bridge-tests
+    studio_media_import_bridge_test.cpp)
+  target_link_libraries(refusion-studio-media-import-bridge-tests
+    PRIVATE ReFusion::StudioMediaImport ReFusion::ProjectLiveReload)
+  target_compile_definitions(refusion-studio-media-import-bridge-tests PRIVATE
+    REFUSION_VIDEO_IMPORT_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4")
+  refusion_enable_warnings(refusion-studio-media-import-bridge-tests)
+  add_test(NAME refusion.studio_media_import_bridge
+    COMMAND refusion-studio-media-import-bridge-tests)
+endif()
+
 get_property(refusion_qt_runtime_directory GLOBAL
   PROPERTY REFUSION_QT_RUNTIME_DIRECTORY)
 if(WIN32 AND refusion_qt_runtime_directory)
@@ -310,4 +322,9 @@ if(WIN32 AND refusion_qt_runtime_directory)
     PROPERTIES
       ENVIRONMENT_MODIFICATION
         "PATH=path_list_prepend:${refusion_qt_runtime_directory}")
+  if(TEST refusion.studio_media_import_bridge)
+    set_tests_properties(refusion.studio_media_import_bridge PROPERTIES
+      ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:${refusion_qt_runtime_directory}")
+  endif()
 endif()

@@ -113,6 +113,24 @@ target_link_libraries(refusion_project_file_adapter
 
 refusion_enable_warnings(refusion_project_file_adapter)
 
+if(TARGET ReFusion::FfmpegDemux)
+  add_library(refusion_studio_media_import STATIC
+    StudioMediaImportBridge.cpp
+    StudioMediaImportBridge.hpp
+  )
+  add_library(ReFusion::StudioMediaImport ALIAS refusion_studio_media_import)
+  target_include_directories(refusion_studio_media_import
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  target_link_libraries(refusion_studio_media_import
+    PUBLIC
+      ReFusion::Application
+      ReFusion::FfmpegDemux
+      ReFusion::ProjectFileAdapter
+      ReFusion::StudioBridge
+      Qt6::Core)
+  refusion_enable_warnings(refusion_studio_media_import)
+endif()
+
 qt_add_resources(refusion_project_file_adapter "refusion_project_templates"
   PREFIX "/refusion/project-template"
   BASE "${CMAKE_CURRENT_SOURCE_DIR}/project-template"
@@ -250,6 +268,12 @@ target_link_libraries(refusion-studio
     Qt6::QuickControls2
     Qt6::QuickDialogs2
 )
+
+if(TARGET ReFusion::StudioMediaImport)
+  target_compile_definitions(refusion-studio PRIVATE
+    REFUSION_STUDIO_MEDIA_IMPORT=1)
+  target_link_libraries(refusion-studio PRIVATE ReFusion::StudioMediaImport)
+endif()
 
 if(refusion_studio_visual_runtime)
   target_compile_definitions(refusion-studio PRIVATE

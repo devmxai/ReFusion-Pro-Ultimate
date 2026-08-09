@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import QtQuick.Window
 
 ApplicationWindow {
@@ -125,6 +126,17 @@ ApplicationWindow {
         function onSnapshotChanged() { root.syncTransformInspector() }
     }
 
+    FileDialog {
+        id: videoImportDialog
+        title: "Import Video"
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Qualified video (*.mp4 *.mov)"]
+        onAccepted: {
+            if (mediaImportBridge !== null)
+                mediaImportBridge.importSelectedFile(selectedFile)
+        }
+    }
+
     Shortcut {
         sequence: "Space"
         context: Qt.WindowShortcut
@@ -166,6 +178,16 @@ ApplicationWindow {
                 text: studioBridge.projectName + "  •  Revision " + studioBridge.revision
                 color: root.textMuted
             }
+            Label {
+                visible: mediaImportBridge !== null && mediaImportBridge.busy
+                text: mediaImportBridge !== null ? mediaImportBridge.stage : ""
+                color: root.accent
+            }
+            ToolButton {
+                visible: mediaImportBridge !== null && mediaImportBridge.busy
+                text: "Cancel"
+                onClicked: mediaImportBridge.cancelImport()
+            }
         }
     }
 
@@ -200,7 +222,15 @@ ApplicationWindow {
                         Layout.preferredHeight: 44
                         ToolTip.visible: hovered
                         ToolTip.text: "Command surface: " + modelData
-                        onClicked: studioBridge.addVisualLayer(modelData)
+                        enabled: modelData !== "VID"
+                                 || (mediaImportBridge !== null
+                                     && !mediaImportBridge.busy)
+                        onClicked: {
+                            if (modelData === "VID")
+                                videoImportDialog.open()
+                            else
+                                studioBridge.addVisualLayer(modelData)
+                        }
                     }
                 }
             }
@@ -1555,6 +1585,16 @@ ApplicationWindow {
                             visible: studioBridge.diagnostic.length > 0
                             text: studioBridge.diagnostic
                             color: "#ff6f7d"
+                            wrapMode: Text.Wrap
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: mediaImportBridge !== null
+                                     && mediaImportBridge.diagnostic.length > 0
+                            text: mediaImportBridge !== null
+                                  ? mediaImportBridge.diagnostic : ""
+                            color: text.indexOf("ACCEPTED") >= 0
+                                   ? "#42d989" : "#ff6f7d"
                             wrapMode: Text.Wrap
                         }
                     }
