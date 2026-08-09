@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP02-macos-passed-msvc-pending
-version: 6
+execution_state: VI-WP03-atomic-import-macos-passed-client-relink-msvc-pending
+version: 7
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -290,7 +290,11 @@ compiler, serializer, Agent outline and Revision admission all use whole-project
 validation. Media-empty projects continue to serialize as RFX5.
 
 The AppleClang conformance test passes with fixed canonical receipt
-`rfx-project-fnv1a64:36eb03d9474173bc`; RFX5 regression tests remain green.
+`rfx-project-fnv1a64:b4c2660862925e34`; RFX5 regression tests remain green.
+RFX6 Clip project ranges are integer nanoseconds while source ranges remain
+exact Stream ticks; the initial frame-only Clip spelling remains a readable
+migration input. This preserves real inter-frame Audio offsets without changing
+the Composition frame clock.
 The matching MSVC execution is pending, so VI-WP01 is locally code-complete but
 not cross-Desktop closed. See [`EVID-VIDEO-VI-WP01`](../evidence/VIDEO/VI-WP01.md).
 No platform-specific schema fork is permitted if MSVC differs.
@@ -350,6 +354,29 @@ Deliver:
 
 **Exit:** interruption at every materialization phase produces the previous or
 next complete project only; invalid media preserves Last-Known-Good.
+
+### VI-WP03 implementation state — 2026-08-09
+
+The shared `ImportVideoService` and Desktop Qt filesystem adapter are now
+implemented and physically passed on macOS. One typed intent indexes the
+path-free immutable source, derives collision-safe project-global media IDs,
+stages and SHA-256 verifies one copied original, and publishes Asset,
+MediaSource, LinkedImport, VideoClip and optional AudioClip in exactly one
+Revision. Runtime rejection rolls back the committed asset; a byte-identical
+retry is idempotent; incomplete transaction journals remove unreferenced
+originals on reopen. New workspaces expose `Assets/Media`, RFX6 in
+`refusion.lock`, and a bundled Agent language-v6 guide.
+
+The physical positive corpus test imports the VFR/B-frame/AAC-offset fixture,
+preserves its 70 ms Audio offset and exact source ticks, materializes the
+verified original and reopens canonical RFX6 without any host path. macOS
+Visual now includes the same demux target used by product Studio; macOS Visual
+passes 60/60 and macOS Demux 38/38.
+
+VI-WP03 is not closed yet: the system file-portal/UI/CLI client, typed exact
+relink operation and matching MSVC transaction receipt remain. These must use
+this service/port and may not introduce another import or persistence path. See
+[`EVID-VIDEO-VI-WP03`](../evidence/VIDEO/VI-WP03.md).
 
 ## VI-WP04 — Exact playback scheduler and RenderPlan video operation
 
@@ -613,9 +640,11 @@ requires:
 
 ## Exact next action
 
-Keep all work on `feature/shared-video-import-v1`. Begin VI-WP02 only in the
-shared demux/index boundary: adapt the pinned demux-only `libavformat` build to
-produce the provider-neutral immutable MediaIndex contract for the verified
-fixtures. Do not start QML, VideoToolbox or Media Foundation product wiring.
-In parallel, the Windows host must run the existing VI-WP01 MSVC conformance
-test and return the fixed digest before VI-WP01 may be promoted or closed.
+Keep all work on `feature/shared-video-import-v1`. Complete VI-WP03 through the
+single `ImportVideoService`: connect the Desktop file-portal/Studio client,
+persist accepted RFX6 through the existing observer transaction, and add typed
+exact-byte relink plus client-parity receipts. Do not put file copying,
+MediaIndex construction or project mutation in QML. In parallel, Windows must
+run the updated VI-WP01–03 MSVC conformance/transaction tests and reproduce the
+new RFX6 receipt before these packages may close. VI-WP04 exact playback and
+`DrawVideoFrame` start only after this VI-WP03 boundary is green.

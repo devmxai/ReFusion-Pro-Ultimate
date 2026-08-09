@@ -108,6 +108,8 @@
         "REFUSION_BUILD_STUDIO": "ON",
         "REFUSION_BUILD_PLATFORM_GPU": "ON",
         "REFUSION_BUILD_PLATFORM_MEDIA": "ON",
+        "REFUSION_ENABLE_FFMPEG_DEMUX": "ON",
+        "REFUSION_FFMPEG_ROOT": "${sourceDir}/out/deps-build/ffmpeg/macos-arm64-demux-shared/install",
         "REFUSION_ENABLE_SKIA": "ON",
         "REFUSION_SKIA_PROFILE": "macos-arm64-metal",
         "REFUSION_SKIA_SOURCE_DIR": "${sourceDir}/out/deps-src/skia",
@@ -147,7 +149,10 @@
       "inherits": "windows-core",
       "displayName": "Windows Qt Studio foundation shell",
       "cacheVariables": {
-        "REFUSION_BUILD_STUDIO": "ON"
+        "REFUSION_BUILD_STUDIO": "ON",
+        "REFUSION_BUILD_PLATFORM_MEDIA": "ON",
+        "REFUSION_ENABLE_FFMPEG_DEMUX": "ON",
+        "REFUSION_FFMPEG_ROOT": "${sourceDir}/out/deps-build/ffmpeg/windows-x64-demux-shared/install"
       }
     },
     {

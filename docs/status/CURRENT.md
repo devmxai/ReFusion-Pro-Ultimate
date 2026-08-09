@@ -36,21 +36,38 @@ The product owner also approved
 [`PLAN-VIDEO-VS-001`](../plans/VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md)
 for a bounded macOS-first Video import/hardware-playback slice followed by a
 same-commit Windows Media Foundation/D3D qualification. Execution has `VI-WP00`
-passed and `VI-WP01` locally code-complete on macOS as of 2026-08-09. The owner
-accepted ADR-0012 through ADR-0015;
+passed, `VI-WP01–02` locally passed on macOS, and the shared atomic portion of
+`VI-WP03` physically passed on macOS as of 2026-08-09. The owner accepted
+ADR-0012 through ADR-0015;
 the six-row synthetic corpus and normalized oracles are materialized and
 verified; official FFmpeg `n8.0.3` source is pinned; and the macOS shared build
 receipt proves exactly one enabled demuxer (`MOV`) with zero decoders, encoders,
 muxers, filters, parsers, protocols or bitstream filters. RFX6 now round-trips
 portable Assets, MediaSources, one linked Video/Audio import and independent
-Clips with fixed AppleClang receipt `rfx-project-fnv1a64:36eb03d9474173bc`.
-The equivalent MSVC profile and RFX6 conformance remain pending. Work continues
-on `feature/shared-video-import-v1` with VI-WP02 shared demux/index implemented
-and macOS-passed while the fixed MSVC receipts remain pending. VI-WP03 atomic
-ImportVideo transaction/recovery is the next local package. This
-does not claim product MP4 import, Windows decode or G4 exit.
+Clips with fixed AppleClang receipt `rfx-project-fnv1a64:b4c2660862925e34`.
+Clip Timeline ranges use integer nanoseconds and source ranges retain exact
+Stream ticks, preserving the physical corpus's 70 ms Audio offset without frame
+rounding.
+
+`VI-WP03` now owns one shared typed ImportVideo transaction: immutable source
+lease, pinned demux/index, collision-safe IDs, journaled SHA-256 copy into
+`Assets/Media`, one accepted linked Revision, rollback/recovery and idempotent
+duplicate handling. A real VFR/B-frame/AAC-offset MP4 passes the physical
+transaction and canonical reopen test. `macos-demux` passes 38/38 and the
+product-shaped `macos-visual` lane, now including the same FFmpeg demux target,
+passes 60/60. The equivalent MSVC receipts, Studio file-portal client, typed
+exact relink and accepted-file persistence receipt remain pending; therefore
+this does not yet claim user-visible product import, Windows decode or G4 exit.
 
 ## Exact resume point
+
+Continue `VI-WP03` on `feature/shared-video-import-v1` by connecting the Studio
+file portal/progress diagnostics to the existing `ImportVideoService`, adding
+typed exact-byte relink and proving accepted RFX6 persistence/reopen. QML may
+submit intent only; it may not copy files, index media or mutate project truth.
+The Windows host must reproduce the updated RFX6 and transaction receipts under
+MSVC before VI-WP01–03 close. Only then begin VI-WP04 exact ProjectTime-to-PTS
+scheduling and the common `DrawVideoFrame` RenderPlan operation.
 
 The cross-platform remediation guardrail
 [`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) remains

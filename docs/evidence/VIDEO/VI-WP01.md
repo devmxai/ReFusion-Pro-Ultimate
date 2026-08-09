@@ -29,7 +29,8 @@ VI-WP02 onward.
   base/start/duration and first-profile video/audio metadata;
 - stable `LinkedImport`, `VideoClip` and `AudioClip` IDs;
 - separate Video and Audio enable/lock state and Audio gain/mute/solo state;
-- composition ranges stored as exact project time derived from integer frames;
+- Clip composition ranges stored as integer project nanoseconds so an A/V
+  offset between frames survives exactly; Composition/Layers remain frame-based;
 - source in/out stored as signed-start/unsigned-duration media ticks;
 - whole-project validation at compiler, serializer, Agent outline and Revision
   admission boundaries;
@@ -45,14 +46,14 @@ VI-WP02 onward.
 
 The `refusion.media_project_schema` test constructs one linked H.264/AAC
 synthetic import, serializes it, reopens it and proves exact object equality,
-canonical-byte stability and semantic-digest stability. It also verifies frame
-and source-tick timing, missing-source round-trip, absolute-path rejection and
+canonical-byte stability and semantic-digest stability. It also verifies exact
+project-nanosecond/source-tick timing, missing-source round-trip, absolute-path rejection and
 broken-link rejection.
 
 Fixed cross-toolchain receipt:
 
 ```text
-rfx-project-fnv1a64:36eb03d9474173bc
+rfx-project-fnv1a64:b4c2660862925e34
 ```
 
 macOS commands and results:

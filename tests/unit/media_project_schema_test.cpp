@@ -159,9 +159,9 @@ int main() {
   const auto canonical_digest = project_snapshot_digest(project);
   require(project_snapshot_digest(*reopened.project) == canonical_digest,
           "RFX6 snapshot digest changed after reopen");
-  require(canonical_digest == "rfx-project-fnv1a64:36eb03d9474173bc",
-          "RFX6 canonical bytes differ from the AppleClang/MSVC receipt");
   std::cout << "canonical_digest=" << canonical_digest << '\n';
+  require(canonical_digest == "rfx-project-fnv1a64:b4c2660862925e34",
+          "RFX6 canonical bytes differ from the AppleClang/MSVC receipt");
   const auto outline = agent_project_outline(*reopened.project);
   require(outline.assets.size() == 1 && outline.media_sources.size() == 1 &&
               outline.linked_imports.size() == 1 &&

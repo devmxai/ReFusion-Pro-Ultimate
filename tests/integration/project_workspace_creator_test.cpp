@@ -1,4 +1,5 @@
 #include "adapters/QtProjectFontAssetResolver.hpp"
+#include "adapters/QtMediaImportWorkspace.hpp"
 #include "adapters/QtProjectWorkspaceCreator.hpp"
 #include "adapters/QtRfxProjectFileAdapter.hpp"
 
@@ -10,6 +11,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 
 #include <stdexcept>
@@ -66,6 +69,9 @@ int main(int argc, char* argv[]) {
                             "references/language-v5.md")));
   require(QFileInfo::exists(
       root + QStringLiteral("/.agents/skills/refusion-project-authoring/"
+                            "references/language-v6.md")));
+  require(QFileInfo::exists(
+      root + QStringLiteral("/.agents/skills/refusion-project-authoring/"
                             "references/property-registry.md")));
   require(QFileInfo::exists(
       root + QStringLiteral("/.agents/skills/refusion-project-authoring/"
@@ -76,7 +82,7 @@ int main(int argc, char* argv[]) {
   require(QFileInfo::exists(
       root + QStringLiteral("/.agents/skills/refusion-project-authoring/"
                             "references/agent-commands.md")));
-  require(QFileInfo(root + QStringLiteral("/Media/Originals")).isDir());
+  require(QFileInfo(root + QStringLiteral("/Assets/Media")).isDir());
   require(QFileInfo::exists(
       root + QStringLiteral(
                  "/Assets/Fonts/font_noto_sans_regular/font.ttf")));
@@ -119,8 +125,8 @@ int main(int argc, char* argv[]) {
   QFile project_lock(root + QStringLiteral("/refusion.lock"));
   require(project_lock.open(QIODevice::ReadOnly));
   const auto lock_bytes = project_lock.readAll();
-  require(lock_bytes.contains("rfx_language_version = 5"));
-  require(lock_bytes.contains("refusion-project-rfx-exp5"));
+  require(lock_bytes.contains("rfx_language_version = 6"));
+  require(lock_bytes.contains("refusion-project-rfx-exp6"));
   require(lock_bytes.contains(registry_digest));
   require(lock_bytes.contains(QByteArray::fromStdString(
       refusion::core::visual_contribution_registry_digest())));
@@ -156,6 +162,67 @@ int main(int argc, char* argv[]) {
   require(opened.project->snapshot.composition->layers.empty());
   require(opened.project->snapshot.composition->canvas.width_pixels == 1920);
   require(opened.project->snapshot.composition->frame_rate.numerator == 60);
+
+  const QString selected_media = temporary.filePath(QStringLiteral("source.mp4"));
+  QFile selected_output(selected_media);
+  require(selected_output.open(QIODevice::WriteOnly));
+  const QByteArray selected_bytes(64 * 1024, '\x51');
+  require(selected_output.write(selected_bytes) == selected_bytes.size());
+  selected_output.close();
+  const auto compressed_source =
+      open_immutable_compressed_file_source(selected_media);
+  require(compressed_source.succeeded());
+  const refusion::application::MediaAssetMaterializationReceipt media_receipt{
+      .asset_id = refusion::core::AssetId{"ast_qt_import_test"},
+      .content_digest = compressed_source.source->content_digest(),
+      .byte_size = compressed_source.source->byte_size(),
+      .project_relative_original =
+          "Assets/Media/ast_qt_import_test/original.mp4",
+  };
+  QtMediaImportWorkspace media_workspace(root);
+  {
+    auto prepared = media_workspace.prepare_copy(
+        "qt-import-rollback", media_receipt, *compressed_source.source, nullptr);
+    require(prepared != nullptr && prepared->receipt() == media_receipt);
+    require(prepared->commit());
+    require(QFileInfo::exists(
+        root + QStringLiteral("/Assets/Media/ast_qt_import_test/original.mp4")));
+  }
+  require(!QFileInfo::exists(
+      root + QStringLiteral("/Assets/Media/ast_qt_import_test/original.mp4")));
+  {
+    auto prepared = media_workspace.prepare_copy(
+        "qt-import-retain", media_receipt, *compressed_source.source, nullptr);
+    require(prepared != nullptr && prepared->commit());
+    prepared->retain();
+  }
+  const auto committed_media =
+      root + QStringLiteral("/Assets/Media/ast_qt_import_test/original.mp4");
+  require(QFileInfo::exists(committed_media));
+  require(QFile(committed_media).size() == selected_bytes.size());
+
+  const auto interrupted_directory =
+      root + QStringLiteral("/.refusion/Journal/Import/interrupted");
+  require(QDir().mkpath(interrupted_directory));
+  QFile interrupted_manifest(interrupted_directory +
+                             QStringLiteral("/manifest.json"));
+  require(interrupted_manifest.open(QIODevice::WriteOnly));
+  const QJsonObject interrupted_object{
+      {QStringLiteral("project_relative_original"),
+       QStringLiteral("Assets/Media/ast_qt_import_test/original.mp4")},
+      {QStringLiteral("content_digest"),
+       QString::fromStdString(media_receipt.content_digest)},
+      {QStringLiteral("byte_size"),
+       QString::number(static_cast<qulonglong>(media_receipt.byte_size))},
+  };
+  const auto interrupted_bytes =
+      QJsonDocument(interrupted_object).toJson(QJsonDocument::Compact);
+  require(interrupted_manifest.write(interrupted_bytes) ==
+          interrupted_bytes.size());
+  interrupted_manifest.close();
+  require(recover_incomplete_media_imports(root, opened.project->snapshot));
+  require(!QFileInfo::exists(committed_media) &&
+          !QFileInfo::exists(interrupted_directory));
 
   const auto collision = create_project_workspace(root, project_fixture());
   require(!collision.succeeded());

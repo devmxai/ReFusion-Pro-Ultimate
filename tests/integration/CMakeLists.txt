@@ -34,6 +34,18 @@ if(TARGET ReFusion::FfmpegDemux)
   refusion_enable_warnings(refusion-ffmpeg-media-demux-tests)
   add_test(NAME refusion.ffmpeg_media_demux
     COMMAND refusion-ffmpeg-media-demux-tests)
+
+  if(TARGET ReFusion::ProjectFileAdapter)
+    add_executable(refusion-video-import-transaction-tests
+      video_import_transaction_test.cpp)
+    target_link_libraries(refusion-video-import-transaction-tests
+      PRIVATE ReFusion::FfmpegDemux ReFusion::ProjectFileAdapter)
+    target_compile_definitions(refusion-video-import-transaction-tests PRIVATE
+      REFUSION_VIDEO_IMPORT_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4")
+    refusion_enable_warnings(refusion-video-import-transaction-tests)
+    add_test(NAME refusion.video_import_transaction
+      COMMAND refusion-video-import-transaction-tests)
+  endif()
 endif()
 
 if(APPLE AND TARGET ReFusion::PlatformMedia)

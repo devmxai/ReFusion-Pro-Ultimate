@@ -88,6 +88,8 @@ target_link_libraries(refusion_studio_bridge
 refusion_enable_warnings(refusion_studio_bridge)
 
 add_library(refusion_project_file_adapter STATIC
+  adapters/QtMediaImportWorkspace.cpp
+  adapters/QtMediaImportWorkspace.hpp
   adapters/QtProjectFontAssetResolver.cpp
   adapters/QtProjectFontAssetResolver.hpp
   adapters/QtProjectWorkspaceCreator.cpp
@@ -126,6 +128,7 @@ qt_add_resources(refusion_project_file_adapter "refusion_project_templates"
     project-template/language-v3.md
     project-template/language-v4.md
     project-template/language-v5.md
+    project-template/language-v6.md
     project-template/diagnostics-and-repair.md
 )
 
@@ -195,6 +198,7 @@ target_include_directories(refusion_project_live_reload
 target_link_libraries(refusion_project_live_reload
   PUBLIC
     ReFusion::StudioBridge
+    ReFusion::ProjectFileAdapter
     Qt6::Core
 )
 

@@ -66,18 +66,19 @@ duration_decl     = "duration", "frames", call_integer, ";" ;
 video_clip_decl   = "video_clip", "id", call_string,
                     "link", call_string, "source", call_string,
                     "stream", call_string, "name", call_string, "{",
-                    range_decl, source_range_decl,
+                    clip_range_decl, source_range_decl,
                     enabled_decl, locked_decl, "}" ;
 audio_clip_decl   = "audio_clip", "id", call_string,
                     "link", call_string, "source", call_string,
                     "stream", call_string, "name", call_string, "{",
-                    range_decl, source_range_decl,
+                    clip_range_decl, source_range_decl,
                     enabled_decl, locked_decl,
                     "gain", call_number, ";",
                     "muted", call_boolean, ";",
                     "solo", call_boolean, ";", "}" ;
 source_range_decl = "source_range", "ticks",
                     call_signed_unsigned_pair, ";" ;
+clip_range_decl   = "range", "ns", call_integer_pair, ";" ;
 enabled_decl      = "enabled", call_boolean, ";" ;
 locked_decl       = "locked", call_boolean, ";" ;
 

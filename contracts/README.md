@@ -78,7 +78,8 @@ lowering/execution path, never a platform-specific project syntax.
 `project/refusion-project-rfx-exp6.ebnf` is the bounded `VI-WP01` portable
 media-project extension. It adds content-addressed Asset records, MediaSource
 and exact Stream descriptors, stable LinkedImport ownership, and independently
-editable VideoClip/AudioClip tracks with project-frame and source-tick ranges.
+editable VideoClip/AudioClip tracks with project-nanosecond and source-tick
+ranges.
 RFX1–RFX5 remain readable migration inputs. Canonical writing remains RFX5 for
 projects without media and moves to RFX6 only when portable media truth exists.
 Absolute host paths, native handles and derived decoder/cache state are not

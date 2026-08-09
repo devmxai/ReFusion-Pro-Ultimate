@@ -81,8 +81,8 @@ project_lock(const refusion::core::ProjectSnapshot& project) {
   return QStringLiteral("format = \"refusion-project-lock\"\n"
                         "format_version = 1\n"
                         "project_id = \"%1\"\n"
-                        "rfx_language_version = 5\n"
-                        "contract = \"refusion-project-rfx-exp5\"\n"
+                        "rfx_language_version = 6\n"
+                        "contract = \"refusion-project-rfx-exp6\"\n"
                         "contract_status = \"experimental\"\n"
                         "visual_property_registry = \"%2\"\n"
                         "visual_contribution_registry = \"%3\"\n"
@@ -107,7 +107,7 @@ void populate_staging(const QString& staging,
   ensure_directory(staging +
                    QStringLiteral("/.agents/skills/"
                                   "refusion-project-authoring/references"));
-  ensure_directory(staging + QStringLiteral("/Media/Originals"));
+  ensure_directory(staging + QStringLiteral("/Assets/Media"));
   ensure_directory(
       staging + QStringLiteral("/Assets/Fonts/font_noto_sans_regular"));
   ensure_directory(
@@ -120,7 +120,7 @@ void populate_staging(const QString& staging,
   write_file(staging + QStringLiteral("/.gitignore"),
              QByteArray(".refusion/\n"));
   write_file(staging + QStringLiteral("/refusion.lock"), project_lock(project));
-  write_file(staging + QStringLiteral("/Media/Originals/.keep"), QByteArray{});
+  write_file(staging + QStringLiteral("/Assets/Media/.keep"), QByteArray{});
   write_file(
       staging +
           QStringLiteral("/Assets/Fonts/font_noto_sans_regular/font.ttf"),
@@ -185,6 +185,9 @@ void populate_staging(const QString& staging,
   write_file(skill_root + QStringLiteral("/references/language-v5.md"),
              resource_bytes(
                  QStringLiteral(":/refusion/project-template/language-v5.md")));
+  write_file(skill_root + QStringLiteral("/references/language-v6.md"),
+             resource_bytes(
+                 QStringLiteral(":/refusion/project-template/language-v6.md")));
   const auto registry_markdown =
       refusion::core::visual_property_registry_markdown();
   write_file(skill_root + QStringLiteral("/references/property-registry.md"),
@@ -247,10 +250,10 @@ WorkspaceCreateResult create_project_workspace(
     std::vector<CreatedEntry> promoted;
     try {
       populate_staging(staging, project, source);
-      const std::array<QString, 7> promotion_order{
+      const std::array<QString, 6> promotion_order{
           QStringLiteral(".agents"),       QStringLiteral(".gitignore"),
           QStringLiteral("AGENTS.md"),     QStringLiteral("Assets"),
-          QStringLiteral("Media"),         QStringLiteral("refusion.lock"),
+          QStringLiteral("refusion.lock"),
           QStringLiteral("Project.rfx"),
       };
       for (const auto& name : promotion_order) {

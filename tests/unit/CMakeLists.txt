@@ -115,6 +115,15 @@ refusion_enable_warnings(refusion-media-indexing-service-tests)
 add_test(NAME refusion.media_indexing_service
   COMMAND refusion-media-indexing-service-tests)
 
+add_executable(refusion-import-video-service-tests
+  import_video_service_test.cpp)
+target_link_libraries(refusion-import-video-service-tests
+  PRIVATE ReFusion::Application)
+refusion_enable_warnings(refusion-import-video-service-tests)
+
+add_test(NAME refusion.import_video_service
+  COMMAND refusion-import-video-service-tests)
+
 add_executable(refusion-xplat-project-conformance-tests
   xplat_project_conformance_test.cpp)
 target_link_libraries(refusion-xplat-project-conformance-tests

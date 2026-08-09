@@ -1060,16 +1060,27 @@ class Parser final {
     expect(TokenKind::left_brace, "'{'");
 
     expect_identifier("range");
-    expect_identifier("frames");
     const auto range_location = current_.location;
-    const auto range = parse_call_integer_pair();
-    const auto end_frame = add_frames(range.first, range.second, range_location);
-    const auto start_time = frame_to_time(range.first, rate, range_location);
-    const auto end_time = frame_to_time(end_frame, rate, range_location);
-    clip.active_range = TimeRangeNs{
-        .start = start_time,
-        .duration = end_time - start_time,
-    };
+    if (is_identifier("ns")) {
+      advance();
+      const auto range = parse_call_integer_pair();
+      clip.active_range =
+          TimeRangeNs{.start = range.first, .duration = range.second};
+    } else {
+      // Read the initial experimental RFX6 frame spelling as a migration
+      // input. Canonical RFX6 always writes nanoseconds so non-frame-aligned
+      // A/V offsets survive save/reopen exactly.
+      expect_identifier("frames");
+      const auto range = parse_call_integer_pair();
+      const auto end_frame =
+          add_frames(range.first, range.second, range_location);
+      const auto start_time = frame_to_time(range.first, rate, range_location);
+      const auto end_time = frame_to_time(end_frame, rate, range_location);
+      clip.active_range = TimeRangeNs{
+          .start = start_time,
+          .duration = end_time - start_time,
+      };
+    }
     expect(TokenKind::semicolon, "';'");
 
     expect_identifier("source_range");
@@ -1107,16 +1118,24 @@ class Parser final {
     expect(TokenKind::left_brace, "'{'");
 
     expect_identifier("range");
-    expect_identifier("frames");
     const auto range_location = current_.location;
-    const auto range = parse_call_integer_pair();
-    const auto end_frame = add_frames(range.first, range.second, range_location);
-    const auto start_time = frame_to_time(range.first, rate, range_location);
-    const auto end_time = frame_to_time(end_frame, rate, range_location);
-    clip.active_range = TimeRangeNs{
-        .start = start_time,
-        .duration = end_time - start_time,
-    };
+    if (is_identifier("ns")) {
+      advance();
+      const auto range = parse_call_integer_pair();
+      clip.active_range =
+          TimeRangeNs{.start = range.first, .duration = range.second};
+    } else {
+      expect_identifier("frames");
+      const auto range = parse_call_integer_pair();
+      const auto end_frame =
+          add_frames(range.first, range.second, range_location);
+      const auto start_time = frame_to_time(range.first, rate, range_location);
+      const auto end_time = frame_to_time(end_frame, rate, range_location);
+      clip.active_range = TimeRangeNs{
+          .start = start_time,
+          .duration = end_time - start_time,
+      };
+    }
     expect(TokenKind::semicolon, "';'");
 
     expect_identifier("source_range");
@@ -2407,18 +2426,14 @@ std::string serialize_project_rfx(const ProjectSnapshot& project) {
   }
 
   for (const auto& clip : composition.video_clips) {
-    const auto start_frame =
-        exact_frame_at_time(clock_spec, clip.active_range.start);
-    const auto end_frame =
-        exact_frame_at_time(clock_spec, clip.active_range.end());
     output << "  video_clip id("
            << escaped_string(clip.video_clip_id.value) << ") link("
            << escaped_string(clip.linked_import_id.value) << ") source("
            << escaped_string(clip.media_source_id.value) << ") stream("
            << escaped_string(clip.stream_id.value) << ") name("
            << escaped_string(clip.display_name) << ") {\n"
-           << "    range frames(" << start_frame << ", "
-           << end_frame - start_frame << ");\n"
+           << "    range ns(" << clip.active_range.start << ", "
+           << clip.active_range.duration << ");\n"
            << "    source_range ticks(" << clip.source_range.start << ", "
            << clip.source_range.duration << ");\n"
            << "    enabled(" << (clip.enabled ? "true" : "false") << ");\n"
@@ -2427,18 +2442,14 @@ std::string serialize_project_rfx(const ProjectSnapshot& project) {
   }
 
   for (const auto& clip : composition.audio_clips) {
-    const auto start_frame =
-        exact_frame_at_time(clock_spec, clip.active_range.start);
-    const auto end_frame =
-        exact_frame_at_time(clock_spec, clip.active_range.end());
     output << "  audio_clip id("
            << escaped_string(clip.audio_clip_id.value) << ") link("
            << escaped_string(clip.linked_import_id.value) << ") source("
            << escaped_string(clip.media_source_id.value) << ") stream("
            << escaped_string(clip.stream_id.value) << ") name("
            << escaped_string(clip.display_name) << ") {\n"
-           << "    range frames(" << start_frame << ", "
-           << end_frame - start_frame << ");\n"
+           << "    range ns(" << clip.active_range.start << ", "
+           << clip.active_range.duration << ");\n"
            << "    source_range ticks(" << clip.source_range.start << ", "
            << clip.source_range.duration << ");\n"
            << "    enabled(" << (clip.enabled ? "true" : "false") << ");\n"

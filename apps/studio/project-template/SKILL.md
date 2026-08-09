@@ -18,7 +18,8 @@ Core snapshot. It is not C++, JSON or free-form text.
    target stable ID and `measure <Project.rfx> <time-ns> --json` for any
    spatial request. Never infer Canvas geometry from names or Timeline pixels.
 4. Read `references/coordinates-and-time.md` for spatial/timeline edits,
-   `references/language-v5.md` for canonical declarations and
+   `references/language-v6.md` for portable linked media and
+   `references/language-v5.md` for canonical visual declarations,
    `references/property-registry.md` for the generated Inspector/Agent property
    vocabulary, plus `references/visual-contributions.md` for registered Mask/FX
    parameters and bounds. RFX1–RFX4 references are migration documentation only.

@@ -1,6 +1,7 @@
 #include "ProjectLiveReloadController.hpp"
 
 #include "StudioBridge.hpp"
+#include "adapters/QtMediaImportWorkspace.hpp"
 
 #include <QDateTime>
 #include <QDir>
@@ -163,12 +164,18 @@ ProjectLiveReloadController::ProjectLiveReloadController(
     reset_host_local_state(refusion_directory_);
   }
 
+  const auto initial = commands_->active_snapshot();
+  QString import_recovery_diagnostic;
+  if (!recover_incomplete_media_imports(project_directory_, initial,
+                                        &import_recovery_diagnostic)) {
+    throw std::runtime_error(import_recovery_diagnostic.toStdString());
+  }
+
   connect(&watcher_, &QFileSystemWatcher::fileChanged,
           this, &ProjectLiveReloadController::projectFileChanged);
   connect(&watcher_, &QFileSystemWatcher::directoryChanged,
           this, &ProjectLiveReloadController::projectFileChanged);
   ensureWatch();
-  const auto initial = commands_->active_snapshot();
   writeJournal(initial, last_accepted_source_);
   writeAgentContext(initial);
   appendDiagnostic(QStringLiteral("accepted"),
