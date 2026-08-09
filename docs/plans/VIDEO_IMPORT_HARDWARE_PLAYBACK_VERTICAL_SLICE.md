@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP03-atomic-import-macos-passed-client-relink-msvc-pending
-version: 7
+execution_state: VI-WP03-studio-client-persistence-macos-passed-relink-cli-msvc-pending
+version: 8
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -357,8 +357,8 @@ next complete project only; invalid media preserves Last-Known-Good.
 
 ### VI-WP03 implementation state — 2026-08-09
 
-The shared `ImportVideoService` and Desktop Qt filesystem adapter are now
-implemented and physically passed on macOS. One typed intent indexes the
+The shared `ImportVideoService`, Desktop Qt filesystem adapter and Studio
+file-portal client are now implemented and physically passed on macOS. One typed intent indexes the
 path-free immutable source, derives collision-safe project-global media IDs,
 stages and SHA-256 verifies one copied original, and publishes Asset,
 MediaSource, LinkedImport, VideoClip and optional AudioClip in exactly one
@@ -371,11 +371,16 @@ The physical positive corpus test imports the VFR/B-frame/AAC-offset fixture,
 preserves its 70 ms Audio offset and exact source ticks, materializes the
 verified original and reopens canonical RFX6 without any host path. macOS
 Visual now includes the same demux target used by product Studio; macOS Visual
-passes 60/60 and macOS Demux 38/38.
+passes 61/61 and macOS Demux 38/38. The Studio client runs hashing, indexing
+and verified copy outside the UI thread, marshals only active-snapshot and
+final Revision admission onto the engine thread, persists through the existing
+accepted-workflow observer, and exposes typed progress, cancellation and final
+diagnostics. A worker-stack overflow found by the physical client test was
+fixed by heap-allocating the bounded 1 MiB transfer chunk.
 
-VI-WP03 is not closed yet: the system file-portal/UI/CLI client, typed exact
-relink operation and matching MSVC transaction receipt remain. These must use
-this service/port and may not introduce another import or persistence path. See
+VI-WP03 is not closed yet: the typed exact-byte relink operation, CLI client
+parity and matching MSVC transaction/client receipt remain. These must use this
+service/port and may not introduce another import or persistence path. See
 [`EVID-VIDEO-VI-WP03`](../evidence/VIDEO/VI-WP03.md).
 
 ## VI-WP04 — Exact playback scheduler and RenderPlan video operation
@@ -641,10 +646,10 @@ requires:
 ## Exact next action
 
 Keep all work on `feature/shared-video-import-v1`. Complete VI-WP03 through the
-single `ImportVideoService`: connect the Desktop file-portal/Studio client,
-persist accepted RFX6 through the existing observer transaction, and add typed
-exact-byte relink plus client-parity receipts. Do not put file copying,
-MediaIndex construction or project mutation in QML. In parallel, Windows must
+single media workflow boundary: add typed exact-byte relink and CLI client
+parity receipts without duplicating copy, index, persistence or Revision
+authority. Do not put file copying, MediaIndex construction or project mutation
+in QML. In parallel, Windows must
 run the updated VI-WP01–03 MSVC conformance/transaction tests and reproduce the
 new RFX6 receipt before these packages may close. VI-WP04 exact playback and
 `DrawVideoFrame` start only after this VI-WP03 boundary is green.

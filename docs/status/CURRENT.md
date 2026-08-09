@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: a0ad5803d71d4a1764cf107a3beafd6aaa1d1b2c
-last_checkpoint: CP-G1-0012
+last_green_commit: 3df1719
+last_checkpoint: CP-G1-0013
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -53,18 +53,21 @@ rounding.
 lease, pinned demux/index, collision-safe IDs, journaled SHA-256 copy into
 `Assets/Media`, one accepted linked Revision, rollback/recovery and idempotent
 duplicate handling. A real VFR/B-frame/AAC-offset MP4 passes the physical
-transaction and canonical reopen test. `macos-demux` passes 38/38 and the
-product-shaped `macos-visual` lane, now including the same FFmpeg demux target,
-passes 60/60. The equivalent MSVC receipts, Studio file-portal client, typed
-exact relink and accepted-file persistence receipt remain pending; therefore
-this does not yet claim user-visible product import, Windows decode or G4 exit.
+transaction and canonical reopen test. The Studio `VID` client now opens the
+native file portal, runs the shared index/copy transaction off the UI thread,
+publishes only through Application authority, and persists canonical RFX6
+through the existing accepted observer. Its physical client test imports the
+same fixture and reopens the accepted file. `macos-demux` passes 38/38 and the
+product-shaped `macos-visual` lane passes 61/61. Typed exact-byte relink, CLI
+parity and matching MSVC receipts remain pending; therefore this does not yet
+claim Timeline/Canvas Video playback, Windows decode or G4 exit.
 
 ## Exact resume point
 
-Continue `VI-WP03` on `feature/shared-video-import-v1` by connecting the Studio
-file portal/progress diagnostics to the existing `ImportVideoService`, adding
-typed exact-byte relink and proving accepted RFX6 persistence/reopen. QML may
-submit intent only; it may not copy files, index media or mutate project truth.
+Continue `VI-WP03` on `feature/shared-video-import-v1` by adding typed
+exact-byte relink through the same materialization/admission boundary and a CLI
+client over the shared service. QML remains intent-only; it may not copy files,
+index media or mutate project truth.
 The Windows host must reproduce the updated RFX6 and transaction receipts under
 MSVC before VI-WP01–03 close. Only then begin VI-WP04 exact ProjectTime-to-PTS
 scheduling and the common `DrawVideoFrame` RenderPlan operation.

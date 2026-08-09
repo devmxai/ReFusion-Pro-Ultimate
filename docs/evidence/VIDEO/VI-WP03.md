@@ -3,7 +3,7 @@ id: EVID-VIDEO-VI-WP03
 kind: atomic-video-import-transaction-evidence
 plan: PLAN-VIDEO-VS-001
 work_package: VI-WP03
-status: macos-shared-transaction-passed-client-relink-msvc-pending
+status: macos-studio-client-persistence-passed-relink-cli-msvc-pending
 source_branch: feature/shared-video-import-v1
 last_verified: 2026-08-09
 ---
@@ -12,10 +12,10 @@ last_verified: 2026-08-09
 
 ## Honest claim
 
-The shared atomic ImportVideo transaction and Desktop Qt filesystem adapter are
-implemented and physically passed on macOS. Product Studio file-portal wiring,
-typed exact-byte relink and matching MSVC execution remain pending; VI-WP03 is
-therefore active, not closed.
+The shared atomic ImportVideo transaction, Desktop Qt filesystem adapter and
+product Studio file-portal client are implemented and physically passed on
+macOS. Typed exact-byte relink, CLI client parity and matching MSVC execution
+remain pending; VI-WP03 is therefore active, not closed.
 
 No video decoder, decoded pixel, Canvas Video operation, Audio output or QML
 project mutation was added by this package.
@@ -74,16 +74,34 @@ macos-demux:
   38/38 passed
 
 macos-visual:
-  60/60 passed
+  61/61 passed
 ```
+
+## Studio client and accepted-file receipt
+
+Source commit `3df1719` connects the `VID` command surface to a native Qt
+`FileDialog`, but QML submits only the selected local-file token. A bounded
+worker owns source fingerprinting, shared FFmpeg indexing and streamed asset
+materialization. Only the initial immutable snapshot and final
+`ReplaceProjectCommand` cross back to the engine thread. The existing accepted
+observer persists the resulting Revision, so UI commands, Agent file changes
+and ImportVideo do not create separate project-file authorities.
+
+`refusion.studio_media_import_bridge` opens the real VFR/B-frame/AAC-offset MP4
+through that client, waits on Qt's event loop, observes exactly one accepted
+Revision, and reopens the persisted `Project.rfx` with one Asset, MediaSource,
+LinkedImport, VideoClip and AudioClip and no selected host path. The test first
+reproduced a worker-stack overflow from a stack-resident 1 MiB copy buffer; the
+buffer is now heap-resident and the same test passes. Studio exposes progress,
+cancellation and the typed final diagnostic while remaining free of container,
+copy or project authority.
 
 ## Remaining exit evidence
 
-1. Connect the Studio file portal and progress/diagnostic projection to this
-   exact service, with no QML filesystem or project authority.
-2. Add typed exact-byte relink through the same materialization contract.
-3. Prove accepted Project.rfx persistence/save/reopen in the product client.
-4. Run the same RFX6, service, real-copy and interruption tests under MSVC.
-5. Record client parity for UI/file/CLI; future MCP calls the same typed intent.
+1. Add typed exact-byte relink through the same materialization contract.
+2. Add the CLI client over the same shared service and record UI/file/CLI
+   parity; future MCP calls the same typed intent.
+3. Run the same RFX6, service, real-copy, client and interruption tests under
+   MSVC.
 
 VI-WP04 must not reinterpret Clip/source timing or bypass this transaction.
