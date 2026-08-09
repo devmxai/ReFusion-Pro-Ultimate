@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: a23a0d41c67c8fde1fe7093364810af1927a2e7b
-last_checkpoint: CP-G1-0009
+last_green_commit: 235d67f900ac63b319502f3c5b140c90871d6760
+last_checkpoint: CP-G1-0010
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -25,46 +25,30 @@ last_updated: 2026-08-09
 ## Exact resume point
 
 The cross-platform remediation guardrail
-[`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) is active.
-The locally executable `XPF-WP01A/B`, `XPF-WP02A/B`, `XPF-WP03A`, common/
-Metal `XPF-WP04A`, Windows-source `XPF-WP05A`, local `XPF-WP06A` and iOS
-`XPF-WP07A` slices, plus the local `XPF-WP08A` Preview/Export semantic contract,
-now pass their available checks; formal Windows and Android receipts remain
-`not-run`. D3D12 context/target and DXGI swapchain/fence mechanics are defined
-and Windows Studio selects the common visual runtime. `Pre-Windows Source
-Closure` is now closed by
-[`XPF-PRE-WINDOWS-READY`](../evidence/reviews/XPF-PRE-WINDOWS-READY.md). The
-exact resume point is Phase B GitHub handoff followed by Phase C Windows
-dependency-lock/build/device evidence in
-[`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md). The color
-descriptor, common Preview/Offline GPU route, packaged-font corpus, D3D12
-offscreen/capture test, bounded/typed DXGI behavior, Windows compile-only versus
-physical bring-up split, calibrated comparison contract, receipt generator and
-mobile automation are source-implemented. The product owner accepted ADR-0010
-and the paired Desktop-v1 visual bounds after the physical macOS review on
-2026-08-09. Accepted implementation commit
-`57d000fc51b7156e08c362f8b04979b4aee5b3fe` now has a machine receipt and
-immutable Metal reference. The final local source tree
-passes macOS Core 30/30, sanitized Core 30/30, Visual 51/51, both iPhoneOS arm64
-build canaries, docs-doctor and architecture-check. This work is qualification
-infrastructure, not G4 production Export.
+[`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) remains
+active. The physical Windows handoff has returned and is reconciled by
+[`EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09`](../evidence/reviews/XPF-WP05B-windows-physical-bringup.md).
+Tested source `1e2dc89` passed Windows Core 30/30, hardware D3D12 Graphics
+38/38, Qt Visual 44/44 and manual Intel Studio playback without WARP or CPU
+project pixels. This advances the Windows profile through compile, physical run
+and semantic match only; calibrated visual tolerance, performance and complete
+qualification remain false.
 
-Only the resulting `XPF-PRE-WINDOWS-READY` commit is handed through GitHub to
-the physical Windows host. That host materializes and locks official Windows
-Skia, builds Core -> Graphics -> Visual under MSVC, runs the common semantic,
-pixel, performance, recovery and non-WARP corpus, and returns human/machine
-evidence in a source-descendant commit. macOS then reconciles the receipts; any
-shared correction invalidates affected evidence and is rerun on both Desktop
-lanes. Android official-NDK compile evidence remains a separate plan-exit input.
-Windows Media Foundation video decode is still open G1/G4 work and is not
-implied by a successful Windows Canvas Preview.
+Checkpoint [`CP-G1-0010`](checkpoints/CP-G1-0010.md) integrates that Windows
+base with the portrait/Reels workspace and compact Timeline/transport UI. The
+result passes macOS Core 30/30, Visual 51/51, docs-doctor and
+architecture-check. The new UI has not yet been rerun on Windows, so the exact
+resume point is to publish the checkpoint on `main`, pull that exact commit on
+Windows, and produce a new UI/Studio receipt. A same-commit Metal and D3D12
+capture comparison must then run under the unchanged accepted bounds.
 
-The physical Windows Agent enters through the root
-[`README_FOR_WINDOWS.md`](../../README_FOR_WINDOWS.md). It defines the exact
-two-pass Windows Skia lock protocol, ordered Core -> Graphics -> Visual run,
-physical D3D12/Studio observations and the single editable diagnostic handoff
-block. That file does not replace this status or the active guardrail; Windows
-results become capability truth only after their receipts are reconciled here.
+Android official-NDK compile evidence, Windows Media Foundation Video
+import/decode, full performance qualification, packaging and production Export
+remain open. None is implied by the bounded Windows Canvas success. All future
+two-host work follows the accepted
+[`Canonical two-host Git workflow`](../architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow):
+Windows never develops directly on `main`; macOS reviews and promotes one
+classified feature/fix/evidence branch at a time.
 
 `XPF-WP02C` fixes a reproduced Agent live-reload self-deadlock. Application no
 longer emits Studio/Qt projections while holding its accepted-state admission
