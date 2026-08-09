@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: 872d36b
-last_checkpoint: CP-G1-0014
+last_green_commit: 0d0badc
+last_checkpoint: CP-G1-0015
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -58,20 +58,24 @@ native file portal, runs the shared index/copy transaction off the UI thread,
 publishes only through Application authority, and persists canonical RFX6
 through the existing accepted observer. Its physical client test imports the
 same fixture and reopens the accepted file. `macos-demux` passes 38/38 and the
-product-shaped `macos-visual` lane passes 61/61. Typed exact-byte relink now
+product-shaped `macos-visual` lane passes 62/62. Typed exact-byte relink now
 restores only the accepted Asset digest/size/location without creating a
-Revision and rolls back on concurrent truth changes. CLI parity and matching
-MSVC receipts remain pending; therefore this does not yet
+Revision and rolls back on concurrent truth changes. Product CLI now exposes
+typed import/relink clients over the same services and its physical test proves
+CAS persistence, rollback ownership, exact restore and byte-unchanged project
+truth. Matching MSVC receipts remain pending; therefore this does not yet
 claim Timeline/Canvas Video playback, Windows decode or G4 exit.
 
 ## Exact resume point
 
-Continue `VI-WP03` on `feature/shared-video-import-v1` by adding a CLI client
-over the same shared import/relink services and persistence authority. QML
-remains intent-only; it may not copy files, index media or mutate project truth.
-The Windows host must reproduce the updated RFX6 and transaction receipts under
-MSVC before VI-WP01–03 close. Only then begin VI-WP04 exact ProjectTime-to-PTS
-scheduling and the common `DrawVideoFrame` RenderPlan operation.
+Continue `VI-WP03` on `feature/shared-video-import-v1` by reproducing the fixed
+RFX6, shared ImportVideo transaction, exact Relink, Studio client and typed CLI
+receipts under real MSVC/Windows. QML remains intent-only; it may not copy
+files, index media or mutate project truth. No Windows-only schema, timing,
+semantic, filesystem or persistence fork is permitted. Record the exact source
+commit and receipts before VI-WP01–03 close. Only then begin VI-WP04 exact
+ProjectTime-to-PTS scheduling and the common `DrawVideoFrame` RenderPlan
+operation.
 
 The cross-platform remediation guardrail
 [`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) remains

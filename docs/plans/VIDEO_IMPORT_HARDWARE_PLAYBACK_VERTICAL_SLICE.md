@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP03-studio-client-exact-relink-macos-passed-cli-msvc-pending
-version: 9
+execution_state: VI-WP03-macos-complete-msvc-reproduction-pending
+version: 10
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -371,7 +371,7 @@ The physical positive corpus test imports the VFR/B-frame/AAC-offset fixture,
 preserves its 70 ms Audio offset and exact source ticks, materializes the
 verified original and reopens canonical RFX6 without any host path. macOS
 Visual now includes the same demux target used by product Studio; macOS Visual
-passes 61/61 and macOS Demux 38/38. The Studio client runs hashing, indexing
+passes 62/62 and macOS Demux 38/38. The Studio client runs hashing, indexing
 and verified copy outside the UI thread, marshals only active-snapshot and
 final Revision admission onto the engine thread, persists through the existing
 accepted-workflow observer, and exposes typed progress, cancellation and final
@@ -381,9 +381,18 @@ fixed by heap-allocating the bounded 1 MiB transfer chunk.
 The typed exact-byte relink workflow is also implemented: it restores only the
 accepted Asset ID, SHA-256, byte size and canonical relative location, creates
 no semantic Revision, and rolls back if accepted Asset truth changes during
-copy. VI-WP03 is not closed yet: CLI client parity and matching MSVC
-transaction/client/relink receipts remain. These must use the same services and
-ports and may not introduce another import or persistence path. See
+copy. Product CLI now advertises and implements typed `commit import-video`
+and `commit relink-exact` clients over those same Application services. Its
+Revision proxy retains the prepared Asset only after canonical `Project.rfx`
+CAS persistence succeeds; persistence failure rejects the operation and rolls
+the prepared bytes back. The physical CLI receipt imports the real corpus,
+removes and exactly relinks the copied original, verifies that canonical
+project bytes do not change during relink, and reopens the project successfully.
+
+VI-WP03 is locally complete on macOS but is not cross-Desktop closed. Matching
+MSVC RFX6, import, Studio/CLI client, exact-relink and recovery receipts remain
+mandatory and may not introduce another semantic, filesystem or persistence
+path. See
 [`EVID-VIDEO-VI-WP03`](../evidence/VIDEO/VI-WP03.md).
 
 ## VI-WP04 — Exact playback scheduler and RenderPlan video operation
@@ -648,11 +657,11 @@ requires:
 
 ## Exact next action
 
-Keep all work on `feature/shared-video-import-v1`. Complete VI-WP03 through the
-single media workflow boundary: add CLI client parity receipts without
-duplicating copy, index, persistence or Revision authority. Do not put file
-copying, MediaIndex construction or project mutation in QML. In parallel,
-Windows must
-run the updated VI-WP01–03 MSVC conformance/transaction tests and reproduce the
-new RFX6 receipt before these packages may close. VI-WP04 exact playback and
-`DrawVideoFrame` start only after this VI-WP03 boundary is green.
+Keep all work on `feature/shared-video-import-v1`. Reproduce the fixed RFX6,
+shared ImportVideo transaction, exact-byte Relink, Studio client and typed CLI
+receipts under real MSVC/Windows from the same source. Do not fork schema,
+timing, media semantics, copy, persistence or Revision authority to make that
+lane pass. Do not put file copying, MediaIndex construction or project mutation
+in QML. Record the exact Windows source commit and physical results before
+closing VI-WP01–03. VI-WP04 exact playback and `DrawVideoFrame` must not begin
+until this MSVC boundary is green.

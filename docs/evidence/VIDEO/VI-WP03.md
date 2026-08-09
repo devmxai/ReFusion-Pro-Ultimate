@@ -3,7 +3,7 @@ id: EVID-VIDEO-VI-WP03
 kind: atomic-video-import-transaction-evidence
 plan: PLAN-VIDEO-VS-001
 work_package: VI-WP03
-status: macos-studio-client-exact-relink-passed-cli-msvc-pending
+status: macos-complete-msvc-reproduction-pending
 source_branch: feature/shared-video-import-v1
 last_verified: 2026-08-09
 ---
@@ -12,10 +12,10 @@ last_verified: 2026-08-09
 
 ## Honest claim
 
-The shared atomic ImportVideo transaction, Desktop Qt filesystem adapter and
-product Studio file-portal client and typed exact-byte relink are implemented
-and physically passed on macOS. CLI client parity and matching MSVC execution
-remain pending; VI-WP03 is therefore active, not closed.
+The shared atomic ImportVideo transaction, Desktop Qt filesystem adapter,
+product Studio file-portal client, typed CLI clients and exact-byte relink are
+implemented and physically passed on macOS. Matching MSVC execution remains
+pending; VI-WP03 is locally complete but cross-Desktop active, not closed.
 
 No video decoder, decoded pixel, Canvas Video operation, Audio output or QML
 project mutation was added by this package.
@@ -74,7 +74,7 @@ macos-demux:
   38/38 passed
 
 macos-visual:
-  61/61 passed
+  62/62 passed
 ```
 
 ## Studio client and accepted-file receipt
@@ -109,13 +109,44 @@ The service rechecks accepted Asset truth after committing the staged file. A
 concurrent Revision causes rollback rather than retaining bytes against stale
 truth. The physical transaction test deletes the imported original, restores
 it from the exact fixture and verifies that project Revision and canonical RFX6
-remain unchanged. Full macOS Visual remains 61/61.
+remain unchanged.
+
+## CLI parity and persistence receipt
+
+Source commit `0d0badc` adds typed `commit import-video` and
+`commit relink-exact` clients to the media-enabled product CLI. Capability
+output reports both operations explicitly, while project Agent guidance directs
+callers to these commands and forbids hand-authoring Asset, MediaSource,
+LinkedImport or Clip records.
+
+Both commands invoke the same `ImportVideoService` and
+`ExactAssetRelinkService` used by Studio. Their project-file Revision proxy
+first performs in-memory Application admission, then atomically CAS-persists
+canonical RFX6; a persistence failure returns rejection so the prepared Asset
+is rolled back rather than becoming orphan truth. Native Qt arguments and
+UTF-8 filesystem paths preserve Unicode project and media names.
+
+The physical CLI test imports the real VFR/B-frame/AAC-offset MP4, verifies the
+copied Asset and path-free canonical project, deletes the copied original,
+restores it with exact relink, proves `Project.rfx` is byte-unchanged by relink,
+and validates canonical reopen.
+
+```text
+macos-core:
+  37/37 passed
+
+macos-visual:
+  62/62 passed
+
+architecture-check:
+  132 source files; zero problems; zero visual-boundary debt
+```
 
 ## Remaining exit evidence
 
-1. Add the CLI client over the same shared service and record UI/file/CLI
-   parity; future MCP calls the same typed intent.
-2. Run the same RFX6, service, real-copy, client, relink and interruption tests under
-   MSVC.
+1. Run the same RFX6, service, real-copy, Studio client, CLI client, relink and
+   interruption tests under MSVC from the exact shared source.
+2. Record the Windows toolchain, pinned dependency materialization, source
+   commit and physical receipts before declaring VI-WP01–03 closed.
 
 VI-WP04 must not reinterpret Clip/source timing or bypass this transaction.
