@@ -16,7 +16,7 @@ Normal CMake configure/build is offline. `tools/bootstrap.py` is the only
 foundation network-fetch entry point and writes to the ignored ReFusion-local
 `out/deps-src`. Fresh qualification uses that checkout-local path. Ordinary
 development may consume the verified, content-addressed ReFusion machine cache
-proposed by ADR-0012; arbitrary external paths, mutable checkout copies,
+proposed by ADR-0016; arbitrary external paths, mutable checkout copies,
 junctions and another project's cache remain forbidden. A machine-cache publish
 re-verifies the current manifest, transitive lock, source inventory, profile,
 patch and artifact before indexing it. `sync --fresh` may remove only the

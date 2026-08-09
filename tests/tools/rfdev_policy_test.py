@@ -320,8 +320,8 @@ def main() -> None:
             value = json.loads(dependency_record.read_text(encoding="utf-8"))
             value["deps_sha256"] = "0" * 64
             bad_record.write_text(json.dumps(value), encoding="utf-8")
-            original = bootstrap.SKIA_DEPENDENCY_RECORD
-            bootstrap.SKIA_DEPENDENCY_RECORD = bad_record
+            original = bootstrap.skia_dependency_record_path
+            bootstrap.skia_dependency_record_path = lambda _cache: bad_record
             rejected = False
             try:
                 with redirect_stdout(io.StringIO()):
@@ -329,7 +329,7 @@ def main() -> None:
             except RuntimeError as error:
                 rejected = "DEPS changed" in str(error)
             finally:
-                bootstrap.SKIA_DEPENDENCY_RECORD = original
+                bootstrap.skia_dependency_record_path = original
             require(rejected, "Skia materialization accepted a tampered DEPS digest")
 
 

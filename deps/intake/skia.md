@@ -13,7 +13,7 @@ last_verified: 2026-08-07
   directly from the official `main` ref on 2026-08-07.
 - Source policy: fresh qualification materializes below ReFusion's ignored
   `out/deps-src`. Ordinary development may use only the content-addressed,
-  verifier-resolved ReFusion machine cache proposed by ADR-0012; arbitrary
+  verifier-resolved ReFusion machine cache proposed by ADR-0016; arbitrary
   external checkouts, copies and junctions remain forbidden.
 - License: BSD-3-Clause plus all enabled third-party components.
 - Build: official GN/Ninja path; paired depot_tools pin

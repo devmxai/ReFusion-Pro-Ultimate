@@ -33,14 +33,14 @@ Adopt one common Canvas-preview policy:
   the declared project dimensions;
 - reduction uses reusable GPU surfaces, linear stages with no stage reducing
   either dimension by more than two, then one Mitchell cubic presentation pass
-  through the shared final dither defined by ADR-0013;
+  through the shared final dither defined by ADR-0017;
 - Canvas text uses device-independent font rasterization with unknown subpixel
   geometry, preventing platform display geometry from changing project text;
 - Metal, D3D12 and future Vulkan bindings call the same executor and supply only
   native target mechanics; they do not select scaling, text, gradient, color or
   sampling semantics;
 - native presenters bind one complete storage/transfer pair admitted by
-  ADR-0013 and expose the selected profile through portable telemetry.
+  ADR-0017 and expose the selected profile through portable telemetry.
 
 The Desktop-v1 SDR project and compositing contract in ADR-0010 remains
 unchanged. The floating-point intermediate prevents early 8-bit quantization;

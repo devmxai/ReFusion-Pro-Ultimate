@@ -300,7 +300,7 @@ Replace only the content between the markers. Use factual values; write
 |---|---|
 | Report state | `Cross-platform high-precision Canvas presentation implemented; full Windows build, tests, pixel mapping, pan and live Play passed` |
 | UTC timestamp | `2026-08-09T18:48:27Z` |
-| Evidence branch | `feature/shared-machine-dependency-cache` |
+| Evidence branch | `fix/windows-canvas-quality` |
 | Tested source commit | `38536e54fb748d6fa57cc2c54086f5a3672bd0f6` |
 | Observed origin/main | `718346cd88e835696d258533660ac5e7f7f48fa0; unchanged and not merged` |
 | Windows edition/build | `Windows 11 Pro 23H2, build 22631.6199 (NT kernel string 10.0.22631.0)` |
@@ -351,7 +351,7 @@ Replace only the content between the markers. Use factual values; write
 - Both Skia backends wrap the admitted native profile with the matching color type and color space. The common executor retains full-resolution F16 raster, staged Fit reduction, Mitchell sampling and one nonlinear non-periodic encoded-domain final dither before the selected carrier transfer.
 - Studio exposes a compact Fit/100% segmented control. Actual Pixels maps one Composition pixel to one physical target pixel and supports direct pan; Fit resets pan and preserves aspect ratio.
 - Initial window sizing now uses Qt screen available geometry plus the settled native frame geometry instead of assuming a 1440x900 client fits every DPI/work-area combination.
-- ADR-0013 explicitly separates the accepted ADR-0010 project/color semantics from the interactive high-precision display carrier. The Windows and Metal fixtures cover both carrier profiles and true 100% crop behavior.
+- ADR-0017 explicitly separates the accepted ADR-0010 project/color semantics from the interactive high-precision display carrier. The Windows and Metal fixtures cover both carrier profiles and true 100% crop behavior.
 - The reviewed Windows Skia lock and all dependency identities are unchanged. No Qt/Skia binaries, `.exe`, CMake cache, runtime log, screenshot or `out/` content is committed.
 
 #### Diagnosis and next action
@@ -360,6 +360,6 @@ Replace only the content between the markers. Use factual values; write
 - Display limitation: `the AUO499F panel still reports 6 bits per primary and Windows HDR is disabled. Software cannot make that panel native 10-bit or guarantee identical appearance on an uncalibrated external monitor; fine panel/FRC texture may remain`.
 - Cross-platform boundary: `the profile, dither, scaling and Actual Pixels logic are shared, and Metal source/fixtures were updated in the same commit. This Windows host cannot physically compile or execute Metal, so macOS qualification remains mandatory`.
 - Git boundary: `origin/main remained at 718346cd88e835696d258533660ac5e7f7f48fa0. This branch must be reviewed on the official macOS host and must not be merged or pushed directly to main from Windows`.
-- Next action: `fetch feature/shared-machine-dependency-cache on the official macOS host, build and run the full Metal suite at 38536e54fb748d6fa57cc2c54086f5a3672bd0f6, verify RGBA16F selection or documented fallback, repeat Fit/100%/pan and physical gradient review, then reconcile through the documented integration workflow`.
+- Next action: `fetch fix/windows-canvas-quality on the official macOS host, build and run the full Metal suite at 38536e54fb748d6fa57cc2c54086f5a3672bd0f6, verify RGBA16F selection or documented fallback, repeat Fit/100%/pan and physical gradient review, then reconcile through the documented integration workflow`.
 
 <!-- WINDOWS_AGENT_REPORT:END -->
