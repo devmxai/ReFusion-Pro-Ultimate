@@ -13,11 +13,13 @@ renderer, media pipeline, or supported product capability is claimed yet.
 Read in this order:
 
 1. [`AGENTS.md`](AGENTS.md)
-2. [`docs/status/CURRENT.md`](docs/status/CURRENT.md)
-3. every active guardrail linked from `CURRENT.md`, currently
+2. On the physical Windows test host, read and follow
+   [`README_FOR_WINDOWS.md`](README_FOR_WINDOWS.md).
+3. [`docs/status/CURRENT.md`](docs/status/CURRENT.md)
+4. every active guardrail linked from `CURRENT.md`, currently
    [`Fix Cross-Platform Architecture`](docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md)
-4. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
-5. the current stage plan linked from `CURRENT.md`
+5. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
+6. the current stage plan linked from `CURRENT.md`
 
 Visual development is single-source: portable descriptors/evaluation compile
 to one RenderPlan executed by one common Skia compositor. Metal, D3D12 and

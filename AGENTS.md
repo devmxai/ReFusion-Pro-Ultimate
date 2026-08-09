@@ -6,12 +6,15 @@ These rules apply to every human- or agent-authored change in this repository.
 
 Before editing:
 
-1. Read `docs/status/CURRENT.md`.
-2. Read every plan named by its `active_guardrails` field.
-3. Read the active stage plan linked there.
-4. Read only the ADRs, contracts, and work-package files linked by those plans.
-5. Run `python3 tools/rfdev.py context` for the minimal context manifest.
-6. Confirm the requested change belongs to the active gate and allowed paths.
+1. On a physical Windows build/test host, first read
+   `README_FOR_WINDOWS.md`; it is the execution and diagnostic handoff protocol,
+   while the canonical authorities below remain unchanged.
+2. Read `docs/status/CURRENT.md`.
+3. Read every plan named by its `active_guardrails` field.
+4. Read the active stage plan linked there.
+5. Read only the ADRs, contracts, and work-package files linked by those plans.
+6. Run `python3 tools/rfdev.py context` for the minimal context manifest.
+7. Confirm the requested change belongs to the active gate and allowed paths.
 
 Do not reread `docs/research/foundation-screening-draft.md` unless the active
 plan explicitly routes to unresolved research.

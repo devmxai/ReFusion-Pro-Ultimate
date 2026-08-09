@@ -1773,7 +1773,10 @@ receipt are returned through a dedicated evidence branch/commit.
 
 ### Phase C — Physical Windows build and qualification
 
-The Windows host performs the following ordered route:
+The Windows Agent executes this phase through the root
+[`README_FOR_WINDOWS.md`](../../README_FOR_WINDOWS.md), including its editable
+diagnostic handoff block. That runbook operationalizes—but does not replace—the
+following ordered route:
 
 1. record OS, MSVC/SDK/CMake/Ninja/Python, GPU/driver and Qt engineering-path
    fingerprints;

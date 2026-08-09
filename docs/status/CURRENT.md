@@ -59,6 +59,13 @@ lanes. Android official-NDK compile evidence remains a separate plan-exit input.
 Windows Media Foundation video decode is still open G1/G4 work and is not
 implied by a successful Windows Canvas Preview.
 
+The physical Windows Agent enters through the root
+[`README_FOR_WINDOWS.md`](../../README_FOR_WINDOWS.md). It defines the exact
+two-pass Windows Skia lock protocol, ordered Core -> Graphics -> Visual run,
+physical D3D12/Studio observations and the single editable diagnostic handoff
+block. That file does not replace this status or the active guardrail; Windows
+results become capability truth only after their receipts are reconciled here.
+
 `XPF-WP02C` fixes a reproduced Agent live-reload self-deadlock. Application no
 longer emits Studio/Qt projections while holding its accepted-state admission
 mutex: Core and Runtime commit first under exclusion, then Canvas, Timeline,
@@ -431,11 +438,14 @@ physical evidence remains not-run.
 
 ## Next actions
 
-1. Run the checked-in `XPF-WP01A` project and `XPF-WP02B` RenderPlan receipts
-   plus the `XPF-WP03A` exact layout receipt under real MSVC when a Windows
-   runner is available. Materialize pinned Windows Skia, build the defined
-   `windows-visual` lane and execute `XPF-WP05` D3D12/DXGI physical tests;
-   never add semantic draw, text, color, mask or FX logic to Windows sources.
+1. On the physical Windows host, follow the root
+   [`README_FOR_WINDOWS.md`](../../README_FOR_WINDOWS.md) without skipping its
+   clean-checkout, dependency-lock or lower-lane gates. Run the checked-in
+   `XPF-WP01A` project and `XPF-WP02B` RenderPlan receipts plus the `XPF-WP03A`
+   exact layout receipt under real MSVC. Materialize pinned Windows Skia, build
+   the defined `windows-visual` lane and execute `XPF-WP05` D3D12/DXGI physical
+   tests; never add semantic draw, text, color, mask or FX logic to Windows
+   sources.
 2. Preserve the checked-in canonical project, command and RenderPlan receipts.
    They remain prerequisites for a truthful Mac-create -> Windows-open parity
    claim and do not activate G2 or G3.
