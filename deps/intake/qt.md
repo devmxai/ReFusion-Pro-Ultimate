@@ -25,7 +25,9 @@ last_verified: 2026-08-07
 ## Materialization policy
 
 Development may use exact Qt 6.11.1 from the host and carries no distribution
-claim. A build with `REFUSION_RELEASE_BUILD=ON` fails closed unless:
+claim. A verified machine-cache copy is still a host development SDK and carries
+no distribution claim. A build with `REFUSION_RELEASE_BUILD=ON` fails closed
+unless:
 
 - the exact Commercial SDK is materialized below the ignored ReFusion-local
   `out/toolchains/qt-commercial` path;

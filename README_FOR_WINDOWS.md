@@ -85,6 +85,40 @@ $env:CMAKE_PREFIX_PATH = "C:\Qt\6.11.1\msvc2022_64"
 Use the actual installed kit path. Do not select a MinGW Qt kit for the MSVC
 lane.
 
+### Optional development cache
+
+For ordinary UI/product development, a previously verified machine cache can
+avoid downloading and rebuilding Skia/Qt/fonts for every clone. Its default
+Windows location is `%USERPROFILE%\.rfx\dc1`; the short path is intentional
+because Dawn contains filenames near the legacy Windows path limit.
+
+Publish once from the already verified checkout and installed Qt kit:
+
+```powershell
+python tools/bootstrap.py machine-cache publish-skia `
+  --profile windows-x64-d3d12 `
+  --from-checkout C:\path\to\verified\ReFusion
+python tools/bootstrap.py machine-cache publish-qt `
+  --source C:\path\to\Qt\6.11.1\msvc2022_64
+python tools/bootstrap.py machine-cache status
+```
+
+Every later clone can use the verified entries directly:
+
+```powershell
+pwsh -NoProfile -File .\tools\windows\Invoke-ReFusionWindowsBringup.ps1 `
+  -Lane Visual `
+  -UseMachineCache `
+  -ReceiptPath out/evidence/windows-visual-machine-cache.json
+```
+
+This mode re-verifies the exact cache identities and remains non-qualifying by
+design. Do not combine `-UseMachineCache` with `-FreshDependencies`. The
+qualification phases below continue to use checkout-local official
+materialization. Git, CMake, MSVC, Ninja and a working Python interpreter are
+machine prerequisites installed once, not payloads copied into this cache. Use
+`-PythonExe C:\path\to\python.exe` if the Windows Store alias shadows Python.
+
 ## Clone and isolate the evidence branch
 
 ```powershell

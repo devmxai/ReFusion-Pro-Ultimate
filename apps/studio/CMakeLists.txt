@@ -1,3 +1,5 @@
+include(MachineCache)
+
 if(REFUSION_RELEASE_BUILD)
   if(REFUSION_QT_COMMERCIAL_SDK_ROOT STREQUAL "")
     message(FATAL_ERROR
@@ -18,6 +20,8 @@ if(REFUSION_RELEASE_BUILD)
   endif()
   list(PREPEND CMAKE_PREFIX_PATH "${refusion_qt_sdk_root}")
 endif()
+
+refusion_resolve_qt_machine_cache()
 
 find_package(Qt6 6.11.1 EXACT REQUIRED COMPONENTS
   Core Gui Qml Quick QuickControls2 QuickDialogs2)
@@ -131,6 +135,7 @@ foreach(refusion_font_component IN ITEMS
   execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/bootstrap.py"
             verify-font "${refusion_font_component}"
+            --source-cache "${REFUSION_DEPENDENCY_SOURCE_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     RESULT_VARIABLE refusion_font_verify_result
     OUTPUT_VARIABLE refusion_font_verify_output
@@ -145,12 +150,12 @@ endforeach()
 
 qt_add_resources(refusion_project_file_adapter "refusion_packaged_fonts"
   PREFIX "/refusion/fonts"
-  BASE "${CMAKE_SOURCE_DIR}/out/deps-src"
+  BASE "${REFUSION_DEPENDENCY_SOURCE_DIR}"
   FILES
-    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/font.ttf"
-    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/OFL.txt"
-    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf"
-    "${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/OFL.txt"
+    "${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_latin_baseline/font.ttf"
+    "${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_latin_baseline/OFL.txt"
+    "${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_arabic_baseline/font.ttf"
+    "${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_arabic_baseline/OFL.txt"
 )
 
 add_library(refusion_project_launcher STATIC

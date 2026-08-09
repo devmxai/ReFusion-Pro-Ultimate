@@ -48,9 +48,30 @@ cmake --workflow --preset macos-core
 Build output and fetched dependency sources belong under `out/` and never in
 Git. Release builds must use the pinned dependency manifest.
 
+## Verified development machine cache
+
+Ordinary development clones may reuse a content-addressed per-user dependency
+cache after one verified publication. This is an acceleration path only; it is
+not release or physical-qualification evidence.
+
+```bash
+python3 tools/bootstrap.py machine-cache publish-skia \
+  --profile macos-arm64-metal --from-checkout /path/to/verified/checkout
+python3 tools/bootstrap.py machine-cache publish-qt \
+  --source /path/to/Qt/6.11.1/kit
+python3 tools/bootstrap.py machine-cache status
+```
+
+When local `out/` dependencies are absent, CMake discovers a verified matching
+entry automatically. A changed dependency pin, profile, patch, lock or host
+architecture is a cache miss. Set `REFUSION_MACHINE_CACHE_ROOT` to use a
+non-default per-user cache location. Windows uses the
+`windows-x64-d3d12` profile and defaults to `%USERPROFILE%\.rfx\dc1`.
+
 ## Clean Skia materialization
 
-Skia is never copied from another checkout. The only admitted source flow is:
+Fresh qualification never copies Skia from another checkout or the development
+cache. Its admitted source flow is:
 
 ```bash
 python3 tools/bootstrap.py sync depot_tools --fresh

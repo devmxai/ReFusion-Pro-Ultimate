@@ -14,6 +14,10 @@ set(REFUSION_QT_COMMERCIAL_SDK_ROOT "" CACHE PATH
     "ReFusion-local Qt Commercial SDK root admitted for release builds")
 set(REFUSION_QT_COMMERCIAL_RECEIPT "" CACHE FILEPATH
     "Private Qt Commercial entitlement receipt admitted for release builds")
+set(REFUSION_MACHINE_CACHE_ROOT "$ENV{REFUSION_MACHINE_CACHE_ROOT}" CACHE PATH
+    "Optional verified machine dependency cache; development builds only")
+set(REFUSION_DEPENDENCY_SOURCE_DIR "${CMAKE_SOURCE_DIR}/out/deps-src" CACHE PATH
+    "Verified dependency source root")
 
 if(APPLE AND (REFUSION_BUILD_PLATFORM_GPU OR REFUSION_BUILD_PLATFORM_MEDIA OR
               REFUSION_ENABLE_SKIA))

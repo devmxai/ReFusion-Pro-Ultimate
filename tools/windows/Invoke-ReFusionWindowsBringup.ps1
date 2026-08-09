@@ -3,6 +3,7 @@ param(
   [ValidateSet("Core", "Graphics", "Visual")]
   [string]$Lane = "Graphics",
   [switch]$FreshDependencies,
+  [switch]$UseMachineCache,
   [switch]$CompileOnly,
   [switch]$AllowDirtySource,
   [string]$PythonExe = "python",
@@ -17,12 +18,23 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repositoryRoot = (Resolve-Path (Join-Path $scriptRoot "../..")).Path
 Set-Location $repositoryRoot
 
+$pythonCommand = Get-Command $PythonExe -ErrorAction Stop
+$PythonExe = $pythonCommand.Source
+& $PythonExe -c "import sys; print(sys.executable)" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  throw "PythonExe is not a working Python interpreter: $PythonExe"
+}
+$pythonDirectory = Split-Path -Parent $PythonExe
+$env:PATH = "$pythonDirectory$([IO.Path]::PathSeparator)$env:PATH"
+
 $stepReceipts = [System.Collections.Generic.List[object]]::new()
 $initialDirty = @(& git status --porcelain=v1)
 $sourceCommit = (& git rev-parse HEAD).Trim()
 $evidenceDirectory = Join-Path $repositoryRoot "out/evidence"
 $trackedWindowsLock = Join-Path $repositoryRoot "deps/locks/skia-transitive-windows-x64.lock.json"
 $dependencyLockGenerated = $false
+$machineSkia = $null
+$machineQt = $null
 $windowsCapture = Join-Path $evidenceDirectory "xplat-visual-v1-windows-d3d12-640x360.ppm"
 $windowsComparison = Join-Path $evidenceDirectory "xplat-visual-v1-metal-vs-d3d12.json"
 $windowsQualification = Join-Path $evidenceDirectory "windows-d3d12-visual-qualification.json"
@@ -31,6 +43,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 if ($initialDirty.Count -ne 0 -and -not $AllowDirtySource) {
   throw "Windows bring-up requires a clean source checkpoint. Use -AllowDirtySource only for an explicitly non-qualifying diagnostic run."
+}
+if ($FreshDependencies -and $UseMachineCache) {
+  throw "FreshDependencies and UseMachineCache are mutually exclusive."
 }
 
 function Invoke-NativeCommand {
@@ -86,6 +101,27 @@ function Enter-ReFusionMsvcEnvironment {
 $failure = $null
 $gpuRows = @()
 try {
+  if ($UseMachineCache) {
+    Invoke-ReceiptStep "verified-machine-cache" {
+      $skiaOutput = & $PythonExe tools/bootstrap.py machine-cache resolve-skia `
+        --profile windows-x64-d3d12
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to resolve the verified Windows Skia machine cache."
+      }
+      $qtOutput = & $PythonExe tools/bootstrap.py machine-cache resolve-qt
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to resolve the verified Qt machine cache."
+      }
+      $script:machineSkia = ($skiaOutput -join "`n") | ConvertFrom-Json
+      $script:machineQt = ($qtOutput -join "`n") | ConvertFrom-Json
+      $env:REFUSION_MACHINE_CACHE_ROOT = $script:machineSkia.machine_cache_root
+      $env:CMAKE_PREFIX_PATH = $script:machineQt.qt_root
+      $ninjaDirectory = Join-Path $script:machineSkia.skia_source "third_party/ninja"
+      $qtBin = Join-Path $script:machineQt.qt_root "bin"
+      $env:PATH = "$ninjaDirectory$([IO.Path]::PathSeparator)$qtBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+  }
+
   Invoke-ReceiptStep "msvc-environment" {
     Enter-ReFusionMsvcEnvironment
     Invoke-NativeCommand "cmake" @("--version")
@@ -107,25 +143,50 @@ try {
     if ($FreshDependencies) {
       $fresh = @("--fresh")
     }
-    Invoke-ReceiptStep "official-fonts" {
-      Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync-font", "noto_sans_latin_baseline") + $fresh)
-      Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync-font", "noto_sans_arabic_baseline") + $fresh)
-    }
-    Invoke-ReceiptStep "official-skia-materialization" {
-      Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync", "depot_tools") + $fresh)
-      Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync", "skia") + $fresh)
-      Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "hydrate-skia")
-      if (-not (Test-Path $trackedWindowsLock -PathType Leaf)) {
-        if (-not $CompileOnly) {
-          throw "The reviewed Windows Skia transitive lock is absent. Run the CompileOnly lane once, review and commit deps/locks/skia-transitive-windows-x64.lock.json, then rerun the physical qualification from that clean commit."
+    if ($UseMachineCache) {
+      Invoke-ReceiptStep "official-fonts" {
+        foreach ($font in @("noto_sans_latin_baseline", "noto_sans_arabic_baseline")) {
+          Invoke-NativeCommand $PythonExe @(
+            "tools/bootstrap.py", "verify-font", $font,
+            "--source-cache", $machineSkia.source_cache
+          )
         }
-        Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "lock-skia-materialization")
-        $script:dependencyLockGenerated = $true
       }
-      Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "verify-skia-materialization")
-    }
-    Invoke-ReceiptStep "windows-skia-profile" {
-      Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "build-skia", "--profile", "windows-x64-d3d12")
+      Invoke-ReceiptStep "official-skia-materialization" {
+        Invoke-NativeCommand $PythonExe @(
+          "tools/bootstrap.py", "verify-skia-materialization",
+          "--source-cache", $machineSkia.source_cache
+        )
+      }
+      Invoke-ReceiptStep "windows-skia-profile" {
+        Invoke-NativeCommand $PythonExe @(
+          "tools/bootstrap.py", "verify-skia-build",
+          "--profile", "windows-x64-d3d12",
+          "--source-cache", $machineSkia.source_cache,
+          "--build-dir", $machineSkia.skia_build
+        )
+      }
+    } else {
+      Invoke-ReceiptStep "official-fonts" {
+        Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync-font", "noto_sans_latin_baseline") + $fresh)
+        Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync-font", "noto_sans_arabic_baseline") + $fresh)
+      }
+      Invoke-ReceiptStep "official-skia-materialization" {
+        Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync", "depot_tools") + $fresh)
+        Invoke-NativeCommand $PythonExe (@("tools/bootstrap.py", "sync", "skia") + $fresh)
+        Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "hydrate-skia")
+        if (-not (Test-Path $trackedWindowsLock -PathType Leaf)) {
+          if (-not $CompileOnly) {
+            throw "The reviewed Windows Skia transitive lock is absent. Run the CompileOnly lane once, review and commit deps/locks/skia-transitive-windows-x64.lock.json, then rerun the physical qualification from that clean commit."
+          }
+          Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "lock-skia-materialization")
+          $script:dependencyLockGenerated = $true
+        }
+        Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "verify-skia-materialization")
+      }
+      Invoke-ReceiptStep "windows-skia-profile" {
+        Invoke-NativeCommand $PythonExe @("tools/bootstrap.py", "build-skia", "--profile", "windows-x64-d3d12")
+      }
     }
     Invoke-ReceiptStep "windows-graphics" {
       if ($CompileOnly) {
@@ -193,7 +254,12 @@ try {
       $compiler = ((& cl 2>&1 | Select-Object -First 1) -join "").Trim()
       $cmakeVersion = ((& cmake --version | Select-Object -First 1) -join "").Trim()
       $ninjaVersion = ((& ninja --version | Select-Object -First 1) -join "").Trim()
-      $skiaRevision = (& git -C out/deps-src/skia rev-parse HEAD).Trim()
+      $skiaSource = if ($UseMachineCache) {
+        $machineSkia.skia_source
+      } else {
+        "out/deps-src/skia"
+      }
+      $skiaRevision = (& git -C $skiaSource rev-parse HEAD).Trim()
       Invoke-NativeCommand $PythonExe @(
         "tools/qualification/write_visual_qualification_receipt.py",
         "--output", $windowsQualification,
@@ -231,7 +297,7 @@ try {
     schema_version = 1
     policy_id = "PLAN-XPLAT-FIX-001/XPF-WP05"
     source_commit = $sourceCommit
-    qualifying_source = ($initialDirty.Count -eq 0 -and -not $dependencyLockGenerated)
+    qualifying_source = ($initialDirty.Count -eq 0 -and -not $dependencyLockGenerated -and -not $UseMachineCache)
     lane = $Lane.ToLowerInvariant()
     execution_mode = if ($CompileOnly) { "compile-only" } else { "physical" }
     host = [ordered]@{
@@ -244,6 +310,9 @@ try {
       skia_profile = if ($Lane -eq "Core") { $null } else { "windows-x64-d3d12" }
       windows_transitive_lock = "deps/locks/skia-transitive-windows-x64.lock.json"
       windows_transitive_lock_generated = $dependencyLockGenerated
+      materialization = if ($UseMachineCache) { "verified-machine-cache-development" } else { "checkout-local" }
+      machine_cache_root = if ($UseMachineCache -and $null -ne $machineSkia) { $machineSkia.machine_cache_root } else { $null }
+      machine_cache_artifact_sha256 = if ($UseMachineCache -and $null -ne $machineSkia) { $machineSkia.artifact_sha256 } else { $null }
       qt_engineering_path_required = ($Lane -eq "Visual")
       qt_release_entitlement_checked = $false
       macos_reference_capture = "docs/evidence/reviews/artifacts/xplat-visual-v1-macos-metal-640x360.ppm"

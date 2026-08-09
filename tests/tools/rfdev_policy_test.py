@@ -302,7 +302,7 @@ def main() -> None:
         output = completed.stdout + completed.stderr
         require(completed.returncode != 0, "CMake accepted Skia outside ReFusion")
         require(
-            "must remain inside this ReFusion checkout" in output,
+            "or resolve from the verified ReFusion development machine cache" in output,
             f"Skia path gate failed for the wrong reason: {output}",
         )
 

@@ -10,9 +10,11 @@ import os
 import pathlib
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 import urllib.request
+import uuid
 import zipfile
 
 
@@ -24,6 +26,156 @@ TRANSITIVE_LOCK_ROOT = ROOT / "deps" / "locks"
 SOURCE_CACHE = ROOT / "out" / "deps-src"
 SKIA_BUILD_ROOT = ROOT / "out" / "deps-build" / "skia"
 SKIA_DEPENDENCY_RECORD = SOURCE_CACHE / "skia-dependencies.lock.json"
+MACHINE_CACHE_SCHEMA_VERSION = 1
+
+
+def default_machine_cache_root() -> pathlib.Path:
+    override = os.environ.get("REFUSION_MACHINE_CACHE_ROOT")
+    if override:
+        return pathlib.Path(override).expanduser().resolve()
+    if os.name == "nt":
+        # Skia/Dawn contains paths near MAX_PATH. Keep the user-owned default
+        # short so a cache publication never truncates a valid checkout.
+        return (pathlib.Path.home() / ".rfx" / "dc1").resolve()
+    if sys.platform == "darwin":
+        return (
+            pathlib.Path.home()
+            / "Library"
+            / "Caches"
+            / "ReFusion"
+            / "dependency-cache"
+            / "v1"
+        ).resolve()
+    xdg_cache = os.environ.get("XDG_CACHE_HOME")
+    base = pathlib.Path(xdg_cache) if xdg_cache else pathlib.Path.home() / ".cache"
+    return (base / "refusion" / "dependency-cache" / "v1").resolve()
+
+
+def machine_cache_index_path(root: pathlib.Path) -> pathlib.Path:
+    return root / "index.json"
+
+
+def empty_machine_cache_index() -> dict:
+    return {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "skia_profiles": {},
+        "qt_sdks": {},
+    }
+
+
+def read_machine_cache_index(root: pathlib.Path) -> dict:
+    path = machine_cache_index_path(root)
+    if not path.is_file():
+        return empty_machine_cache_index()
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise RuntimeError(f"malformed ReFusion machine-cache index: {path}")
+    if value.get("schema_version") != MACHINE_CACHE_SCHEMA_VERSION:
+        raise RuntimeError(f"unsupported ReFusion machine-cache index: {path}")
+    if (
+        not isinstance(value.get("skia_profiles"), dict)
+        or not isinstance(value.get("qt_sdks"), dict)
+    ):
+        raise RuntimeError(f"malformed ReFusion machine-cache index: {path}")
+    return value
+
+
+def canonical_sha256(value: dict) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def is_cache_key(value: str) -> bool:
+    return len(value) == 32 and all(
+        character in "0123456789abcdef" for character in value
+    )
+
+
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(
+        character in "0123456789abcdef" for character in value
+    )
+
+
+def machine_source_cache_is_admitted(cache: pathlib.Path, root: pathlib.Path | None = None) -> bool:
+    cache = cache.resolve()
+    root = (root or default_machine_cache_root()).resolve()
+    try:
+        relative = cache.relative_to(root)
+    except ValueError:
+        return False
+    parts = relative.parts
+    return (
+        len(parts) == 3
+        and parts[0] == "s"
+        and is_cache_key(parts[1])
+        and parts[2] == "d"
+    )
+
+
+def checkout_source_cache_is_compatible(cache: pathlib.Path) -> bool:
+    cache = cache.resolve()
+    if cache.name != "deps-src" or cache.parent.name != "out":
+        return False
+    checkout = cache.parent.parent
+    candidate_lock = checkout / "deps" / "manifest.lock.json"
+    return (
+        (checkout / ".git").exists()
+        and candidate_lock.is_file()
+        and sha256_file(candidate_lock) == sha256_file(LOCK)
+    )
+
+
+def filesystem_io_path(path: pathlib.Path) -> str:
+    absolute = str(path.resolve())
+    if os.name != "nt" or absolute.startswith("\\\\?\\"):
+        return absolute
+    if absolute.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + absolute[2:]
+    return "\\\\?\\" + absolute
+
+
+def copy_tree_atomic(
+    source: pathlib.Path,
+    destination: pathlib.Path,
+    staging_root: pathlib.Path | None = None,
+) -> None:
+    if destination.exists():
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging_root = staging_root or destination.parent
+    staging_root.mkdir(parents=True, exist_ok=True)
+    temporary = staging_root / uuid.uuid4().hex[:8]
+    try:
+        shutil.copytree(
+            filesystem_io_path(source),
+            filesystem_io_path(temporary),
+            symlinks=True,
+            copy_function=shutil.copy2,
+        )
+        temporary.replace(destination)
+    finally:
+        if temporary.exists():
+            remove_tree(temporary)
+
+
+def remove_tree(path: pathlib.Path) -> None:
+    def make_writable_and_retry(function, failed_path, _error) -> None:
+        os.chmod(failed_path, stat.S_IWRITE | stat.S_IREAD)
+        function(failed_path)
+
+    shutil.rmtree(filesystem_io_path(path), onerror=make_writable_and_retry)
+
+
+def copy_file_atomic(source: pathlib.Path, destination: pathlib.Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.tmp-{uuid.uuid4().hex}")
+    try:
+        shutil.copy2(filesystem_io_path(source), filesystem_io_path(temporary))
+        temporary.replace(destination)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def run(
@@ -36,8 +188,18 @@ def run(
     )
     if completed.returncode:
         detail = completed.stderr.strip() or completed.stdout.strip()
-        raise RuntimeError(f"command failed ({completed.returncode}): {' '.join(command)}\n{detail}")
+        raise RuntimeError(
+            f"command failed ({completed.returncode}): {' '.join(command)}\n{detail}"
+        )
     return completed.stdout.strip()
+
+
+def git_command(*arguments: str) -> list[str]:
+    command = ["git"]
+    if os.name == "nt":
+        command.extend(("-c", "core.longpaths=true"))
+    command.extend(arguments)
+    return command
 
 
 def manifest() -> dict:
@@ -113,6 +275,25 @@ def sha256_file(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def portable_text_sha256_variants(path: pathlib.Path) -> set[str]:
+    payload = path.read_bytes()
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise RuntimeError(f"expected UTF-8 dependency metadata: {path}") from error
+    lf = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    crlf = lf.decode("utf-8").replace("\n", "\r\n").encode("utf-8")
+    return {
+        hashlib.sha256(payload).hexdigest(),
+        hashlib.sha256(lf).hexdigest(),
+        hashlib.sha256(crlf).hexdigest(),
+    }
+
+
+def recorded_text_sha256_matches(path: pathlib.Path, recorded: object) -> bool:
+    return isinstance(recorded, str) and recorded in portable_text_sha256_variants(path)
+
+
 def write_json_atomic(path: pathlib.Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -145,11 +326,26 @@ def transitive_lock_projection(record: dict) -> dict:
     }
 
 
-def controlled_destination(name: str, cache: pathlib.Path) -> pathlib.Path:
+def controlled_destination(
+    name: str,
+    cache: pathlib.Path,
+    *,
+    allow_machine_cache: bool = False,
+    allow_compatible_checkout: bool = False,
+) -> pathlib.Path:
     resolved_cache = cache.resolve()
-    if resolved_cache != SOURCE_CACHE.resolve():
+    admitted_local = resolved_cache == SOURCE_CACHE.resolve()
+    admitted_machine = allow_machine_cache and machine_source_cache_is_admitted(
+        resolved_cache
+    )
+    admitted_checkout = (
+        allow_compatible_checkout
+        and checkout_source_cache_is_compatible(resolved_cache)
+    )
+    if not admitted_local and not admitted_machine and not admitted_checkout:
         raise RuntimeError(
-            f"dependency sources must remain inside ReFusion: {SOURCE_CACHE}"
+            "dependency sources must remain in this ReFusion checkout or a "
+            "verified ReFusion machine-cache entry"
         )
     destination = resolved_cache / name
     if destination.parent != resolved_cache or destination.name != name:
@@ -159,32 +355,37 @@ def controlled_destination(name: str, cache: pathlib.Path) -> pathlib.Path:
     return destination
 
 
-def verify_git(name: str, source: pathlib.Path) -> int:
+def skia_dependency_record_path(cache: pathlib.Path) -> pathlib.Path:
+    return cache.resolve() / "skia-dependencies.lock.json"
+
+
+def verify_git(name: str, source: pathlib.Path, *, emit: bool = True) -> int:
     spec = component(name)
     if spec.get("kind") != "git":
         raise RuntimeError(f"{name} is not a git component")
     if not source.is_dir():
         raise RuntimeError(f"source does not exist: {source}")
-    head = run(["git", "rev-parse", "HEAD"], cwd=source)
-    origin = run(["git", "remote", "get-url", "origin"], cwd=source)
+    head = run(git_command("rev-parse", "HEAD"), cwd=source)
+    origin = run(git_command("remote", "get-url", "origin"), cwd=source)
     expected_head = spec["revision"]
     expected_origin = spec["official_origin"]
-    dirty = run(["git", "status", "--porcelain"], cwd=source)
+    dirty = run(git_command("status", "--porcelain"), cwd=source)
     ok = (
         head == expected_head
         and origin.rstrip("/") == expected_origin.rstrip("/")
         and not dirty
     )
-    print(json.dumps({
-        "component": name,
-        "source": str(source),
-        "origin": origin,
-        "expected_origin": expected_origin,
-        "head": head,
-        "expected_head": expected_head,
-        "clean": not dirty,
-        "verified": ok,
-    }, indent=2))
+    if emit:
+        print(json.dumps({
+            "component": name,
+            "source": str(source),
+            "origin": origin,
+            "expected_origin": expected_origin,
+            "head": head,
+            "expected_head": expected_head,
+            "clean": not dirty,
+            "verified": ok,
+        }, indent=2))
     return 0 if ok else 2
 
 
@@ -198,21 +399,30 @@ def sync_git(name: str, cache: pathlib.Path, fresh: bool) -> int:
     if fresh and destination.exists():
         shutil.rmtree(destination)
     if not destination.exists():
-        run(["git", "clone", "--filter=blob:none", "--no-checkout", "--no-tags",
-             spec["official_origin"], str(destination)])
-    origin = run(["git", "remote", "get-url", "origin"], cwd=destination)
+        run(git_command("clone", "--filter=blob:none", "--no-checkout", "--no-tags",
+                        spec["official_origin"], str(destination)))
+    origin = run(git_command("remote", "get-url", "origin"), cwd=destination)
     if origin.rstrip("/") != spec["official_origin"].rstrip("/"):
         raise RuntimeError(f"refusing unexpected origin for {name}: {origin}")
-    run(["git", "fetch", "--depth", "1", "origin", spec["revision"]], cwd=destination)
-    run(["git", "checkout", "--detach", spec["revision"]], cwd=destination)
+    run(git_command("fetch", "--depth", "1", "origin", spec["revision"]), cwd=destination)
+    run(git_command("checkout", "--detach", spec["revision"]), cwd=destination)
     return verify_git(name, destination)
 
 
-def verify_font_archive(name: str, cache: pathlib.Path) -> int:
+def verify_font_archive(
+    name: str,
+    cache: pathlib.Path,
+    *,
+    allow_machine_cache: bool = False,
+) -> int:
     spec = component(name)
     if spec.get("kind") != "font-archive":
         raise RuntimeError(f"{name} is not a font archive")
-    destination = controlled_destination(name, cache.resolve())
+    destination = controlled_destination(
+        name,
+        cache.resolve(),
+        allow_machine_cache=allow_machine_cache,
+    )
     actual_members: dict[str, dict[str, str]] = {}
     ok = destination.is_dir()
     for relative_name, member in spec["members"].items():
@@ -288,9 +498,9 @@ def git_dependency_inventory(root: pathlib.Path) -> list[dict[str, str]]:
         return inventory
     for dependency in sorted(path for path in externals.iterdir() if path.is_dir()):
         try:
-            head = run(["git", "rev-parse", "HEAD"], cwd=dependency)
-            origin = run(["git", "remote", "get-url", "origin"], cwd=dependency)
-            dirty = run(["git", "status", "--porcelain"], cwd=dependency)
+            head = run(git_command("rev-parse", "HEAD"), cwd=dependency)
+            origin = run(git_command("remote", "get-url", "origin"), cwd=dependency)
+            dirty = run(git_command("status", "--porcelain"), cwd=dependency)
         except RuntimeError as error:
             raise RuntimeError(
                 f"Skia dependency is not a verifiable Git checkout: {dependency}"
@@ -306,15 +516,35 @@ def git_dependency_inventory(root: pathlib.Path) -> list[dict[str, str]]:
     return inventory
 
 
-def verify_skia_materialization(cache: pathlib.Path, emit: bool = True) -> dict:
+def verify_skia_materialization(
+    cache: pathlib.Path,
+    emit: bool = True,
+    *,
+    allow_machine_cache: bool = False,
+    allow_compatible_checkout: bool = False,
+) -> dict:
     cache = cache.resolve()
-    skia = controlled_destination("skia", cache)
-    depot_tools = controlled_destination("depot_tools", cache)
-    if verify_git("skia", skia) != 0 or verify_git("depot_tools", depot_tools) != 0:
+    skia = controlled_destination(
+        "skia",
+        cache,
+        allow_machine_cache=allow_machine_cache,
+        allow_compatible_checkout=allow_compatible_checkout,
+    )
+    depot_tools = controlled_destination(
+        "depot_tools",
+        cache,
+        allow_machine_cache=allow_machine_cache,
+        allow_compatible_checkout=allow_compatible_checkout,
+    )
+    if (
+        verify_git("skia", skia, emit=emit) != 0
+        or verify_git("depot_tools", depot_tools, emit=emit) != 0
+    ):
         raise RuntimeError("Skia roots do not match the foundation lock")
-    if not SKIA_DEPENDENCY_RECORD.is_file():
+    dependency_record = skia_dependency_record_path(cache)
+    if not dependency_record.is_file():
         raise RuntimeError("Skia dependency record is missing; run hydrate-skia")
-    record = json.loads(SKIA_DEPENDENCY_RECORD.read_text(encoding="utf-8"))
+    record = json.loads(dependency_record.read_text(encoding="utf-8"))
     if record.get("schema_version") != 2:
         raise RuntimeError("Skia dependency record schema is stale; run hydrate-skia")
     if record.get("skia_revision") != component("skia")["revision"]:
@@ -348,8 +578,8 @@ def verify_skia_materialization(cache: pathlib.Path, emit: bool = True) -> dict:
     result = {
         "verified": True,
         "dependency_count": len(actual_inventory),
-        "record": str(SKIA_DEPENDENCY_RECORD),
-        "record_sha256": sha256_file(SKIA_DEPENDENCY_RECORD),
+        "record": str(dependency_record),
+        "record_sha256": sha256_file(dependency_record),
         "tracked_lock": str(tracked_lock),
         "tracked_lock_sha256": sha256_file(tracked_lock),
     }
@@ -498,8 +728,8 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
     patch_applied = False
     try:
         if source_patch_path is not None:
-            run(["git", "apply", "--check", str(source_patch_path)], cwd=skia)
-            run(["git", "apply", str(source_patch_path)], cwd=skia)
+            run(git_command("apply", "--check", str(source_patch_path)), cwd=skia)
+            run(git_command("apply", str(source_patch_path)), cwd=skia)
             patch_applied = True
             if recorded_patch_matches:
                 for patched_file, times in patched_file_times.items():
@@ -508,7 +738,7 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
         run([str(ninja), "-C", str(output), *profile["targets"]], cwd=skia)
     finally:
         if patch_applied:
-            run(["git", "apply", "--reverse", str(source_patch_path)], cwd=skia)
+            run(git_command("apply", "--reverse", str(source_patch_path)), cwd=skia)
             for patched_file, times in patched_file_times.items():
                 os.utime(patched_file, ns=times)
     if verify_git("skia", skia) != 0:
@@ -603,6 +833,577 @@ def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path)
     return 0
 
 
+def machine_build_is_admitted(
+    build_dir: pathlib.Path,
+    profile_name: str,
+    root: pathlib.Path | None = None,
+) -> bool:
+    build_dir = build_dir.resolve()
+    root = (root or default_machine_cache_root()).resolve()
+    try:
+        relative = build_dir.relative_to(root)
+    except ValueError:
+        return False
+    parts = relative.parts
+    return (
+        len(parts) == 4
+        and parts[0] == "a"
+        and parts[1] == "skia"
+        and parts[2] == profile_name
+        and is_cache_key(parts[3])
+    )
+
+
+def verify_skia_build(
+    profile_name: str,
+    cache: pathlib.Path,
+    build_dir: pathlib.Path,
+    *,
+    allow_machine_cache: bool = False,
+    allow_compatible_checkout: bool = False,
+    emit: bool = True,
+) -> dict:
+    profiles = skia_profiles()
+    if profile_name not in profiles:
+        raise RuntimeError(f"unknown Skia build profile: {profile_name}")
+    profile = profiles[profile_name]
+    cache = cache.resolve()
+    build_dir = build_dir.resolve()
+    local_build = build_dir == (SKIA_BUILD_ROOT / profile_name).resolve()
+    compatible_build = (
+        allow_compatible_checkout
+        and build_dir.name == profile_name
+        and build_dir.parent.name == "skia"
+        and build_dir.parent.parent.name == "deps-build"
+        and build_dir.parent.parent.parent.name == "out"
+        and checkout_source_cache_is_compatible(
+            build_dir.parent.parent.parent / "deps-src"
+        )
+    )
+    cached_build = allow_machine_cache and machine_build_is_admitted(
+        build_dir, profile_name
+    )
+    if not local_build and not compatible_build and not cached_build:
+        raise RuntimeError(
+            "Skia build must be local, from a compatible checkout selected for "
+            "publication, or from a verified ReFusion machine cache"
+        )
+
+    materialization = verify_skia_materialization(
+        cache,
+        emit=False,
+        allow_machine_cache=allow_machine_cache,
+        allow_compatible_checkout=allow_compatible_checkout,
+    )
+    record_path = build_dir / "refusion-build.json"
+    if not record_path.is_file():
+        raise RuntimeError(f"Skia build record is missing: {record_path}")
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    expected_patch = profile.get("source_patch")
+    expected_values = {
+        "schema_version": 2,
+        "profile": profile_name,
+        "source_origin": component("skia")["official_origin"],
+        "source_revision": component("skia")["revision"],
+        "gn_args": (SKIA_PROFILES.parent / profile["gn_args"])
+        .relative_to(ROOT)
+        .as_posix(),
+        "source_patch": expected_patch,
+        "dependency_record": "out/deps-src/skia-dependencies.lock.json",
+        "tracked_dependency_lock": tracked_transitive_lock_path()
+        .relative_to(ROOT)
+        .as_posix(),
+        "dependency_count": materialization["dependency_count"],
+        "targets": profile["targets"],
+    }
+    for name, expected in expected_values.items():
+        if record.get(name) != expected:
+            raise RuntimeError(
+                f"Skia build record {name} mismatch: {record.get(name)!r} != {expected!r}"
+            )
+
+    args_path = SKIA_PROFILES.parent / profile["gn_args"]
+    if not recorded_text_sha256_matches(args_path, record.get("gn_args_sha256")):
+        raise RuntimeError("Skia build GN profile digest changed")
+    patch_matches = (
+        record.get("source_patch_sha256") is None
+        if expected_patch is None
+        else recorded_text_sha256_matches(
+            ROOT / expected_patch, record.get("source_patch_sha256")
+        )
+    )
+    if not patch_matches:
+        raise RuntimeError("Skia build source-patch digest changed")
+    dependency_record = skia_dependency_record_path(cache)
+    if not recorded_text_sha256_matches(
+        dependency_record, record.get("dependency_record_sha256")
+    ):
+        raise RuntimeError("Skia build dependency-record digest changed")
+    if not recorded_text_sha256_matches(
+        tracked_transitive_lock_path(),
+        record.get("tracked_dependency_lock_sha256"),
+    ):
+        raise RuntimeError("Skia build tracked-lock digest changed")
+
+    expected_system = platform.system()
+    actual_host = record.get("host", {})
+    if actual_host.get("system") != expected_system:
+        raise RuntimeError(
+            f"Skia build host mismatch: {actual_host.get('system')} != {expected_system}"
+        )
+    actual_machine = str(actual_host.get("machine", "")).lower()
+    current_machine = platform.machine().lower()
+    machine_aliases = (
+        {"amd64", "x86_64"}
+        if current_machine in {"amd64", "x86_64"}
+        else {current_machine}
+    )
+    if actual_machine not in machine_aliases:
+        raise RuntimeError(
+            f"Skia build architecture mismatch: {actual_machine} != {current_machine}"
+        )
+
+    artifact_record = record.get("artifact", {})
+    artifact = build_dir / profile["bundle_artifact"]
+    recorded_artifact = pathlib.PurePosixPath(
+        str(artifact_record.get("path", ""))
+    )
+    if recorded_artifact.name != artifact.name:
+        raise RuntimeError("Skia build artifact identity changed")
+    if not artifact.is_file():
+        raise RuntimeError(f"Skia build artifact is missing: {artifact}")
+    if artifact.stat().st_size != artifact_record.get("size"):
+        raise RuntimeError("Skia build artifact size changed")
+    artifact_sha = sha256_file(artifact)
+    if artifact_sha != artifact_record.get("sha256"):
+        raise RuntimeError("Skia build artifact digest changed")
+
+    runtime_files: dict[str, dict[str, str | int]] = {}
+    if profile_name == "windows-x64-d3d12":
+        icu_data = build_dir / "icudtl.dat"
+        source_icu_data = cache / "skia" / "third_party" / "externals" / "icu" / "common" / "icudtl.dat"
+        if not icu_data.is_file() or not source_icu_data.is_file():
+            raise RuntimeError("Skia Windows ICU runtime data is missing")
+        icu_sha = sha256_file(icu_data)
+        if icu_sha != sha256_file(source_icu_data):
+            raise RuntimeError("Skia Windows ICU runtime data changed")
+        runtime_files["icudtl.dat"] = {
+            "size": icu_data.stat().st_size,
+            "sha256": icu_sha,
+        }
+
+    result = {
+        "verified": True,
+        "profile": profile_name,
+        "source_cache": str(cache),
+        "build_dir": str(build_dir),
+        "build_record": str(record_path),
+        "build_record_sha256": sha256_file(record_path),
+        "artifact": {
+            "path": str(artifact),
+            "size": artifact.stat().st_size,
+            "sha256": artifact_sha,
+        },
+        "runtime_files": runtime_files,
+        "materialization": materialization,
+    }
+    if emit:
+        print(json.dumps(result, indent=2))
+    return result
+
+
+def source_cache_identity(materialization: dict) -> tuple[str, dict]:
+    value = {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "host": host_key(),
+        "skia_revision": component("skia")["revision"],
+        "depot_tools_revision": component("depot_tools")["revision"],
+        "dependency_record_sha256": materialization["record_sha256"],
+        "tracked_dependency_lock_sha256": materialization["tracked_lock_sha256"],
+    }
+    return canonical_sha256(value), value
+
+
+def artifact_cache_identity(verification: dict) -> tuple[str, dict]:
+    value = {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "host": host_key(),
+        "profile": verification["profile"],
+        "build_record_sha256": verification["build_record_sha256"],
+        "artifact_sha256": verification["artifact"]["sha256"],
+        "dependency_record_sha256": verification["materialization"]["record_sha256"],
+        "tracked_dependency_lock_sha256": verification["materialization"]["tracked_lock_sha256"],
+    }
+    return canonical_sha256(value), value
+
+
+def safe_cache_index_path(root: pathlib.Path, relative: str) -> pathlib.Path:
+    if not isinstance(relative, str):
+        raise RuntimeError("machine-cache index path must be a string")
+    candidate = (root / pathlib.PurePosixPath(relative)).resolve()
+    try:
+        candidate.relative_to(root.resolve())
+    except ValueError as error:
+        raise RuntimeError(f"machine-cache index escapes its root: {relative}") from error
+    return candidate
+
+
+def read_cache_receipt(path: pathlib.Path, kind: str) -> dict:
+    if not path.is_file():
+        raise RuntimeError(f"machine-cache receipt is missing: {path}")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(value, dict)
+        or value.get("schema_version") != MACHINE_CACHE_SCHEMA_VERSION
+        or value.get("kind") != kind
+    ):
+        raise RuntimeError(f"machine-cache receipt is malformed: {path}")
+    return value
+
+
+def require_cache_identity(
+    actual: object,
+    expected_key: str,
+    diagnostic: str,
+) -> None:
+    if not is_sha256(actual) or actual != expected_key:
+        raise RuntimeError(diagnostic)
+
+
+def publish_skia_machine_cache(
+    profile_name: str,
+    source_checkout: pathlib.Path,
+    machine_root: pathlib.Path,
+) -> int:
+    os.environ["REFUSION_MACHINE_CACHE_ROOT"] = str(machine_root.resolve())
+    source_checkout = source_checkout.resolve()
+    source_cache = source_checkout / "out" / "deps-src"
+    build_dir = source_checkout / "out" / "deps-build" / "skia" / profile_name
+    verification = verify_skia_build(
+        profile_name,
+        source_cache,
+        build_dir,
+        allow_compatible_checkout=True,
+        emit=False,
+    )
+    source_key, source_identity = source_cache_identity(
+        verification["materialization"]
+    )
+    artifact_key, artifact_identity = artifact_cache_identity(verification)
+    machine_root = machine_root.resolve()
+    cached_source_parent = machine_root / "s" / source_key[:32]
+    cached_source = cached_source_parent / "d"
+    cached_build = (
+        machine_root / "a" / "skia" / profile_name / artifact_key[:32]
+    )
+
+    if not cached_source.exists():
+        copy_tree_atomic(source_cache, cached_source, machine_root / "t")
+        write_json_atomic(
+            cached_source_parent / "receipt.json",
+            {
+                "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+                "kind": "refusion-skia-source-cache",
+                "identity": source_identity,
+                "source_cache": "d",
+            },
+        )
+    verify_skia_materialization(
+        cached_source, emit=False, allow_machine_cache=True
+    )
+    source_receipt = read_cache_receipt(
+        cached_source_parent / "receipt.json", "refusion-skia-source-cache"
+    )
+    if source_receipt.get("identity") != source_identity:
+        raise RuntimeError("machine-cache Skia source receipt identity changed")
+
+    if not cached_build.exists():
+        cached_build.mkdir(parents=True)
+        try:
+            source_build = pathlib.Path(verification["build_dir"])
+            profile = skia_profiles()[profile_name]
+            for name in ("refusion-build.json", profile["bundle_artifact"]):
+                copy_file_atomic(source_build / name, cached_build / name)
+            for name in verification["runtime_files"]:
+                copy_file_atomic(source_build / name, cached_build / name)
+            write_json_atomic(
+                cached_build / "cache-receipt.json",
+                {
+                    "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+                    "kind": "refusion-skia-build-cache",
+                    "identity": artifact_identity,
+                    "source_key": source_key,
+                },
+            )
+        except Exception:
+            shutil.rmtree(cached_build, ignore_errors=True)
+            raise
+    verify_skia_build(
+        profile_name,
+        cached_source,
+        cached_build,
+        allow_machine_cache=True,
+        emit=False,
+    )
+    artifact_receipt = read_cache_receipt(
+        cached_build / "cache-receipt.json", "refusion-skia-build-cache"
+    )
+    if (
+        artifact_receipt.get("identity") != artifact_identity
+        or artifact_receipt.get("source_key") != source_key
+    ):
+        raise RuntimeError("machine-cache Skia artifact receipt identity changed")
+
+    index = read_machine_cache_index(machine_root)
+    index["skia_profiles"][profile_name] = {
+        "host": host_key(),
+        "source_key": source_key,
+        "artifact_key": artifact_key,
+        "source_cache": cached_source.relative_to(machine_root).as_posix(),
+        "build_dir": cached_build.relative_to(machine_root).as_posix(),
+    }
+    write_json_atomic(machine_cache_index_path(machine_root), index)
+    print(json.dumps({
+        "published": True,
+        "profile": profile_name,
+        "machine_cache_root": str(machine_root),
+        "source_key": source_key,
+        "artifact_key": artifact_key,
+        "source_cache": str(cached_source),
+        "build_dir": str(cached_build),
+    }, indent=2))
+    return 0
+
+
+def resolve_skia_machine_cache(
+    profile_name: str,
+    machine_root: pathlib.Path,
+    *,
+    emit: bool = True,
+) -> dict:
+    machine_root = machine_root.resolve()
+    os.environ["REFUSION_MACHINE_CACHE_ROOT"] = str(machine_root)
+    index = read_machine_cache_index(machine_root)
+    entry = index["skia_profiles"].get(profile_name)
+    if not isinstance(entry, dict) or entry.get("host") != host_key():
+        raise RuntimeError(
+            f"no verified {profile_name} entry exists in {machine_root}"
+        )
+    source_cache = safe_cache_index_path(machine_root, entry["source_cache"])
+    build_dir = safe_cache_index_path(machine_root, entry["build_dir"])
+    if not machine_source_cache_is_admitted(source_cache, machine_root):
+        raise RuntimeError("machine-cache Skia source path is not admitted")
+    if not machine_build_is_admitted(build_dir, profile_name, machine_root):
+        raise RuntimeError("machine-cache Skia build path is not admitted")
+    verification = verify_skia_build(
+        profile_name,
+        source_cache,
+        build_dir,
+        allow_machine_cache=True,
+        emit=False,
+    )
+    source_key, source_identity = source_cache_identity(
+        verification["materialization"]
+    )
+    artifact_key, artifact_identity = artifact_cache_identity(verification)
+    require_cache_identity(
+        entry.get("source_key"), source_key, "machine-cache Skia source key changed"
+    )
+    require_cache_identity(
+        entry.get("artifact_key"),
+        artifact_key,
+        "machine-cache Skia artifact key changed",
+    )
+    if source_cache.parent.name != source_key[:32]:
+        raise RuntimeError("machine-cache Skia source directory key changed")
+    if build_dir.name != artifact_key[:32]:
+        raise RuntimeError("machine-cache Skia artifact directory key changed")
+    source_receipt = read_cache_receipt(
+        source_cache.parent / "receipt.json", "refusion-skia-source-cache"
+    )
+    artifact_receipt = read_cache_receipt(
+        build_dir / "cache-receipt.json", "refusion-skia-build-cache"
+    )
+    if source_receipt.get("identity") != source_identity:
+        raise RuntimeError("machine-cache Skia source receipt identity changed")
+    if (
+        artifact_receipt.get("identity") != artifact_identity
+        or artifact_receipt.get("source_key") != source_key
+    ):
+        raise RuntimeError("machine-cache Skia artifact receipt identity changed")
+    result = {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "machine_cache_root": str(machine_root),
+        "profile": profile_name,
+        "source_cache": str(source_cache),
+        "skia_source": str(source_cache / "skia"),
+        "skia_build": str(build_dir),
+        "artifact_sha256": verification["artifact"]["sha256"],
+        "dependency_record_sha256": verification["materialization"]["record_sha256"],
+        "tracked_dependency_lock_sha256": verification["materialization"]["tracked_lock_sha256"],
+    }
+    if emit:
+        print(json.dumps(result, indent=2))
+    return result
+
+
+def qtpaths_executable(qt_root: pathlib.Path) -> pathlib.Path:
+    names = ("qtpaths.exe", "qtpaths6.exe") if os.name == "nt" else ("qtpaths", "qtpaths6")
+    for name in names:
+        candidate = qt_root / "bin" / name
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError(f"Qt paths tool is missing below {qt_root}")
+
+
+def verify_qt_sdk(qt_root: pathlib.Path) -> dict:
+    qt_root = qt_root.resolve()
+    qtpaths = qtpaths_executable(qt_root)
+    expected_version = component("qt")["version"]
+    actual_version = run([str(qtpaths), "--query", "QT_VERSION"])
+    if actual_version != expected_version:
+        raise RuntimeError(
+            f"Qt SDK version mismatch: {actual_version} != {expected_version}"
+        )
+    required_modules = (
+        "Core", "Gui", "Qml", "Quick", "QuickControls2", "QuickDialogs2"
+    )
+    identity_files = [qtpaths, qt_root / "lib" / "cmake" / "Qt6" / "Qt6Config.cmake"]
+    identity_files.extend(
+        qt_root / "lib" / "cmake" / f"Qt6{name}" / f"Qt6{name}Config.cmake"
+        for name in required_modules
+    )
+    missing = [path for path in identity_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(
+            "Qt SDK is missing required module metadata: "
+            + ", ".join(str(path) for path in missing)
+        )
+    files = {
+        path.relative_to(qt_root).as_posix(): sha256_file(path)
+        for path in identity_files
+    }
+    identity = {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "host": host_key(),
+        "version": actual_version,
+        "required_modules": list(required_modules),
+        "identity_files": files,
+    }
+    return {
+        "verified": True,
+        "root": str(qt_root),
+        "version": actual_version,
+        "identity": identity,
+        "identity_sha256": canonical_sha256(identity),
+    }
+
+
+def publish_qt_machine_cache(
+    source: pathlib.Path,
+    machine_root: pathlib.Path,
+) -> int:
+    verification = verify_qt_sdk(source)
+    machine_root = machine_root.resolve()
+    identity_sha = verification["identity_sha256"]
+    destination = (
+        machine_root
+        / "q"
+        / host_key()
+        / verification["version"]
+        / identity_sha[:32]
+    )
+    if not destination.exists():
+        copy_tree_atomic(source.resolve(), destination, machine_root / "t")
+        write_json_atomic(
+            destination / "cache-receipt.json",
+            {
+                "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+                "kind": "refusion-qt-sdk-cache",
+                "official_origin": component("qt")["official_origin"],
+                "identity": verification["identity"],
+                "identity_sha256": identity_sha,
+                "release_qualified": False,
+            },
+        )
+    cached_verification = verify_qt_sdk(destination)
+    if cached_verification["identity_sha256"] != identity_sha:
+        raise RuntimeError("copied Qt SDK identity changed")
+    receipt = read_cache_receipt(
+        destination / "cache-receipt.json", "refusion-qt-sdk-cache"
+    )
+    if (
+        receipt.get("official_origin") != component("qt")["official_origin"]
+        or receipt.get("identity") != verification["identity"]
+        or receipt.get("identity_sha256") != identity_sha
+        or receipt.get("release_qualified") is not False
+    ):
+        raise RuntimeError("machine-cache Qt receipt identity changed")
+    index = read_machine_cache_index(machine_root)
+    index["qt_sdks"][host_key()] = {
+        "version": verification["version"],
+        "identity_sha256": identity_sha,
+        "path": destination.relative_to(machine_root).as_posix(),
+        "release_qualified": False,
+    }
+    write_json_atomic(machine_cache_index_path(machine_root), index)
+    print(json.dumps({
+        "published": True,
+        "machine_cache_root": str(machine_root),
+        "qt_root": str(destination),
+        "version": verification["version"],
+        "identity_sha256": identity_sha,
+        "release_qualified": False,
+    }, indent=2))
+    return 0
+
+
+def resolve_qt_machine_cache(
+    machine_root: pathlib.Path,
+    *,
+    emit: bool = True,
+) -> dict:
+    machine_root = machine_root.resolve()
+    entry = read_machine_cache_index(machine_root)["qt_sdks"].get(host_key())
+    if not isinstance(entry, dict):
+        raise RuntimeError(f"no verified Qt SDK exists in {machine_root}")
+    qt_root = safe_cache_index_path(machine_root, entry["path"])
+    verification = verify_qt_sdk(qt_root)
+    identity_sha = verification["identity_sha256"]
+    require_cache_identity(
+        entry.get("identity_sha256"),
+        identity_sha,
+        "machine-cache Qt SDK identity changed",
+    )
+    if (
+        entry.get("version") != verification["version"]
+        or entry.get("release_qualified") is not False
+        or qt_root.name != identity_sha[:32]
+    ):
+        raise RuntimeError("machine-cache Qt index identity changed")
+    receipt = read_cache_receipt(
+        qt_root / "cache-receipt.json", "refusion-qt-sdk-cache"
+    )
+    if (
+        receipt.get("official_origin") != component("qt")["official_origin"]
+        or receipt.get("identity") != verification["identity"]
+        or receipt.get("identity_sha256") != identity_sha
+        or receipt.get("release_qualified") is not False
+    ):
+        raise RuntimeError("machine-cache Qt receipt identity changed")
+    result = {
+        "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+        "machine_cache_root": str(machine_root),
+        "qt_root": str(qt_root),
+        "version": verification["version"],
+        "identity_sha256": verification["identity_sha256"],
+        "release_qualified": False,
+    }
+    if emit:
+        print(json.dumps(result, indent=2))
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -618,11 +1419,35 @@ def main() -> int:
     sync_fonts.add_argument("--fresh", action="store_true")
     verify_fonts = sub.add_parser("verify-font")
     verify_fonts.add_argument("component")
+    verify_fonts.add_argument("--source-cache", type=pathlib.Path)
     sub.add_parser("hydrate-skia")
-    sub.add_parser("verify-skia-materialization")
+    verify_skia = sub.add_parser("verify-skia-materialization")
+    verify_skia.add_argument("--source-cache", type=pathlib.Path)
     sub.add_parser("lock-skia-materialization")
     build = sub.add_parser("build-skia")
     build.add_argument("--profile", required=True, choices=tuple(skia_profiles()))
+    verify_build = sub.add_parser("verify-skia-build")
+    verify_build.add_argument("--profile", required=True, choices=tuple(skia_profiles()))
+    verify_build.add_argument("--source-cache", required=True, type=pathlib.Path)
+    verify_build.add_argument("--build-dir", required=True, type=pathlib.Path)
+    machine_cache = sub.add_parser("machine-cache")
+    machine_cache.add_argument("--root", type=pathlib.Path)
+    cache_sub = machine_cache.add_subparsers(dest="cache_command", required=True)
+    cache_publish_skia = cache_sub.add_parser("publish-skia")
+    cache_publish_skia.add_argument(
+        "--profile", required=True, choices=tuple(skia_profiles())
+    )
+    cache_publish_skia.add_argument(
+        "--from-checkout", required=True, type=pathlib.Path
+    )
+    cache_resolve_skia = cache_sub.add_parser("resolve-skia")
+    cache_resolve_skia.add_argument(
+        "--profile", required=True, choices=tuple(skia_profiles())
+    )
+    cache_publish_qt = cache_sub.add_parser("publish-qt")
+    cache_publish_qt.add_argument("--source", required=True, type=pathlib.Path)
+    cache_sub.add_parser("resolve-qt")
+    cache_sub.add_parser("status")
     args = parser.parse_args()
     try:
         if args.command == "doctor":
@@ -634,15 +1459,52 @@ def main() -> int:
         if args.command == "sync-font":
             return sync_font_archive(args.component, SOURCE_CACHE, args.fresh)
         if args.command == "verify-font":
-            return verify_font_archive(args.component, SOURCE_CACHE)
+            source_cache = (args.source_cache or SOURCE_CACHE).resolve()
+            return verify_font_archive(
+                args.component,
+                source_cache,
+                allow_machine_cache=source_cache != SOURCE_CACHE.resolve(),
+            )
         if args.command == "hydrate-skia":
             return hydrate_skia(SOURCE_CACHE)
         if args.command == "verify-skia-materialization":
-            verify_skia_materialization(SOURCE_CACHE)
+            source_cache = (args.source_cache or SOURCE_CACHE).resolve()
+            verify_skia_materialization(
+                source_cache,
+                allow_machine_cache=source_cache != SOURCE_CACHE.resolve(),
+            )
             return 0
         if args.command == "lock-skia-materialization":
             return lock_skia_materialization(SOURCE_CACHE)
-        return build_skia(args.profile, SOURCE_CACHE, SKIA_BUILD_ROOT)
+        if args.command == "build-skia":
+            return build_skia(args.profile, SOURCE_CACHE, SKIA_BUILD_ROOT)
+        if args.command == "verify-skia-build":
+            verify_skia_build(
+                args.profile,
+                args.source_cache,
+                args.build_dir,
+                allow_machine_cache=True,
+            )
+            return 0
+        machine_root = (args.root or default_machine_cache_root()).resolve()
+        if args.cache_command == "publish-skia":
+            return publish_skia_machine_cache(
+                args.profile, args.from_checkout, machine_root
+            )
+        if args.cache_command == "resolve-skia":
+            resolve_skia_machine_cache(args.profile, machine_root)
+            return 0
+        if args.cache_command == "publish-qt":
+            return publish_qt_machine_cache(args.source, machine_root)
+        if args.cache_command == "resolve-qt":
+            resolve_qt_machine_cache(machine_root)
+            return 0
+        print(json.dumps({
+            "schema_version": MACHINE_CACHE_SCHEMA_VERSION,
+            "machine_cache_root": str(machine_root),
+            "index": read_machine_cache_index(machine_root),
+        }, indent=2))
+        return 0
     except (RuntimeError, OSError, json.JSONDecodeError) as error:
         print(f"bootstrap error: {error}", file=sys.stderr)
         return 2
