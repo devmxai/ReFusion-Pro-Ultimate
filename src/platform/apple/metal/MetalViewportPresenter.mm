@@ -22,7 +22,7 @@ using runtime::presentation::FrameStatus;
 using runtime::presentation::BackendFrameTargetLease;
 using runtime::presentation::NativeViewportHostLease;
 using runtime::presentation::NativeWindowSystem;
-using runtime::presentation::PixelFormat;
+using runtime::presentation::PresentationTargetProfile;
 using runtime::presentation::PresentationTelemetry;
 using runtime::presentation::ViewportExtent;
 using runtime::presentation::ViewportFrameRenderer;
@@ -116,19 +116,45 @@ class MetalViewportPresenter final : public ViewportPresenter {
       view.layer = [CALayer layer];
     }
 
-    CAMetalLayer* metal_layer = [CAMetalLayer layer];
-    CGColorSpaceRef srgb_color_space =
-        CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
-    if (srgb_color_space == nullptr) {
+    presentation_profile_ =
+        runtime::presentation::kFallbackSdrPresentationProfile;
+    MTLPixelFormat metal_pixel_format = MTLPixelFormatBGRA8Unorm;
+    CGColorSpaceRef presentation_color_space = nullptr;
+    MTLTextureDescriptor* high_precision_probe_descriptor =
+        [MTLTextureDescriptor
+            texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
+                                     width:1
+                                    height:1
+                                 mipmapped:NO];
+    high_precision_probe_descriptor.usage = MTLTextureUsageRenderTarget;
+    high_precision_probe_descriptor.storageMode = MTLStorageModePrivate;
+    id<MTLTexture> high_precision_probe =
+        [device newTextureWithDescriptor:high_precision_probe_descriptor];
+    if (high_precision_probe != nil) {
+      presentation_color_space =
+          CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
+      if (presentation_color_space != nullptr) {
+        presentation_profile_ =
+            runtime::presentation::kHighPrecisionSdrPresentationProfile;
+        metal_pixel_format = MTLPixelFormatRGBA16Float;
+      }
+    }
+    if (presentation_color_space == nullptr) {
+      presentation_color_space =
+          CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    }
+    if (presentation_color_space == nullptr) {
       ++telemetry_.rejected_frames;
       return rejected(
-          "Metal presenter could not create the Desktop-v1 sRGB color space");
+          "Metal presenter could not create an admitted SDR color space");
     }
+
+    CAMetalLayer* metal_layer = [CAMetalLayer layer];
     metal_layer.name = @"ReFusion.EngineViewport";
     metal_layer.device = device;
-    metal_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metal_layer.colorspace = srgb_color_space;
-    CGColorSpaceRelease(srgb_color_space);
+    metal_layer.pixelFormat = metal_pixel_format;
+    metal_layer.colorspace = presentation_color_space;
+    CGColorSpaceRelease(presentation_color_space);
     metal_layer.framebufferOnly = YES;
     metal_layer.opaque = YES;
     metal_layer.backgroundColor = NSColor.blackColor.CGColor;
@@ -156,6 +182,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
 
     host_view_ = view;
     metal_layer_ = metal_layer;
+    telemetry_.presentation_profile = presentation_profile_;
     NSWindow* window = view.window;
     if (window != nil) {
       occluded_.store(
@@ -303,12 +330,11 @@ class MetalViewportPresenter final : public ViewportPresenter {
           observed_drawable;
       if (observability_) {
         try {
-          const auto resident_bytes = texture.allocatedSize != 0
-                                          ? static_cast<std::uint64_t>(
-                                                texture.allocatedSize)
-                                          : static_cast<std::uint64_t>(
-                                                texture.width) *
-                                                texture.height * 4U;
+          const auto resident_bytes =
+              texture.allocatedSize != 0
+                  ? static_cast<std::uint64_t>(texture.allocatedSize)
+                  : static_cast<std::uint64_t>(texture.width) *
+                        texture.height * presentation_profile_.bytes_per_pixel();
           observed_drawable =
               std::make_shared<runtime::gpu::GpuObservedResourceLease>(
                   observability_, runtime::gpu::GpuSubsystem::presentation,
@@ -322,7 +348,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
       }
       const BackendFrameTargetLease target{
           .device = health.identity,
-          .pixel_format = PixelFormat::bgra8_unorm,
+          .presentation_profile = presentation_profile_,
           .target_id = next_target_id_++,
           .width_pixels = static_cast<std::uint32_t>(texture.width),
           .height_pixels = static_cast<std::uint32_t>(texture.height),
@@ -421,6 +447,7 @@ class MetalViewportPresenter final : public ViewportPresenter {
   PresentationTelemetry telemetry_;
   std::shared_ptr<runtime::gpu::GpuObservabilityService> observability_;
   std::unique_ptr<runtime::gpu::GpuObservedResourceLease> observed_layer_;
+  PresentationTargetProfile presentation_profile_;
   bool visible_{false};
   std::uint64_t next_target_id_{1};
   std::atomic_bool occluded_{false};

@@ -84,8 +84,8 @@ if(TARGET ReFusion::SkiaAdapter)
     PRIVATE ReFusion::SkiaAdapter)
   refusion_deploy_skia_runtime(refusion-skia-text-layout-tests)
   target_compile_definitions(refusion-skia-text-layout-tests PRIVATE
-    REFUSION_NOTO_SANS_LATIN_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_latin_baseline/font.ttf"
-    REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf"
+    REFUSION_NOTO_SANS_LATIN_PATH="${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_latin_baseline/font.ttf"
+    REFUSION_NOTO_SANS_ARABIC_PATH="${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_arabic_baseline/font.ttf"
     REFUSION_NOTO_LAYOUT_RECEIPT_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/fonts/xplat-noto-v1/expected-layout.txt")
   refusion_enable_warnings(refusion-skia-text-layout-tests)
   add_test(NAME refusion.skia_text_layout
@@ -134,7 +134,7 @@ if(TARGET ReFusion::SkiaAdapter)
         WIN32_LEAN_AND_MEAN
         NOMINMAX
         REFUSION_XPLAT_VISUAL_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx"
-        REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf")
+        REFUSION_NOTO_SANS_ARABIC_PATH="${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_arabic_baseline/font.ttf")
       refusion_enable_warnings(refusion-d3d12-fixture-renderer-tests)
       add_test(NAME refusion.d3d12_fixture_renderer
         COMMAND refusion-d3d12-fixture-renderer-tests)
@@ -166,7 +166,7 @@ if(TARGET ReFusion::SkiaAdapter)
     target_compile_options(refusion-skia-fixture-renderer-tests PRIVATE -fobjc-arc)
     target_compile_definitions(refusion-skia-fixture-renderer-tests PRIVATE
       REFUSION_XPLAT_VISUAL_FIXTURE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/render-plan/xplat-visual-v1/Project.rfx"
-      REFUSION_NOTO_SANS_ARABIC_PATH="${CMAKE_SOURCE_DIR}/out/deps-src/noto_sans_arabic_baseline/font.ttf")
+      REFUSION_NOTO_SANS_ARABIC_PATH="${REFUSION_DEPENDENCY_SOURCE_DIR}/noto_sans_arabic_baseline/font.ttf")
     refusion_enable_warnings(refusion-skia-fixture-renderer-tests)
     add_test(NAME refusion.skia_fixture_renderer
       COMMAND refusion-skia-fixture-renderer-tests)

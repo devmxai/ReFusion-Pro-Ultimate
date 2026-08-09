@@ -5,6 +5,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QPointF>
 #include <QWindow>
 
 #include <atomic>
@@ -33,6 +34,9 @@ class EngineViewportWindow final : public QWindow {
   Q_PROPERTY(qulonglong occlusionSuspends READ occlusionSuspends NOTIFY telemetryChanged)
   Q_PROPERTY(qulonglong occlusionResumes READ occlusionResumes NOTIFY telemetryChanged)
   Q_PROPERTY(qulonglong deviceLossRejections READ deviceLossRejections NOTIFY telemetryChanged)
+  Q_PROPERTY(QString presentationFormat READ presentationFormat NOTIFY telemetryChanged)
+  Q_PROPERTY(bool canvasFit READ canvasFit NOTIFY canvasViewChanged)
+  Q_PROPERTY(uint canvasZoomPercent READ canvasZoomPercent NOTIFY canvasViewChanged)
 
  public:
   EngineViewportWindow(
@@ -62,6 +66,11 @@ class EngineViewportWindow final : public QWindow {
   [[nodiscard]] qulonglong occlusionSuspends() const noexcept;
   [[nodiscard]] qulonglong occlusionResumes() const noexcept;
   [[nodiscard]] qulonglong deviceLossRejections() const noexcept;
+  [[nodiscard]] QString presentationFormat() const;
+  [[nodiscard]] bool canvasFit() const noexcept;
+  [[nodiscard]] uint canvasZoomPercent() const noexcept;
+  Q_INVOKABLE void setCanvasFit();
+  Q_INVOKABLE void setCanvasActualPixels();
   void publishComposition(
       std::shared_ptr<const refusion::core::CompositionSnapshot>
           composition) noexcept;
@@ -70,15 +79,21 @@ class EngineViewportWindow final : public QWindow {
   void diagnosticChanged();
   void telemetryChanged();
   void compositionChanged();
+  void canvasViewChanged();
 
  protected:
   bool event(QEvent* event) override;
   void exposeEvent(QExposeEvent* event) override;
   void resizeEvent(QResizeEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
 
  private:
   void ensure_attached();
   void update_extent();
+  void apply_canvas_view(
+      refusion::runtime::render::CanvasViewportState canvas_view);
   void queue_telemetry_update();
   void set_diagnostic(QString diagnostic);
 
@@ -89,5 +104,7 @@ class EngineViewportWindow final : public QWindow {
   QString diagnostic_;
   bool attached_{false};
   bool initial_frame_presented_{false};
+  bool panning_{false};
+  QPointF last_pan_position_;
   std::atomic_bool telemetry_update_pending_{false};
 };

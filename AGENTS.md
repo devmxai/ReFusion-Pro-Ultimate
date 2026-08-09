@@ -124,6 +124,9 @@ Qt's private implementation.
 - Generated files are never hand-edited.
 - Dependencies require official origin, immutable revision, license, build
   options, owner, update policy, and qualification evidence.
+- A development machine cache is admissible only through the repository verifier
+  and never supplies fresh qualification or release evidence. Arbitrary external
+  dependency paths, checkout copies and junctions remain forbidden.
 - Update `docs/status/CURRENT.md` and create a checkpoint when a work package
   reaches a real resume point. Do not report percentage-complete estimates.
 

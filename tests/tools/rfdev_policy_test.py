@@ -302,7 +302,7 @@ def main() -> None:
         output = completed.stdout + completed.stderr
         require(completed.returncode != 0, "CMake accepted Skia outside ReFusion")
         require(
-            "must remain inside this ReFusion checkout" in output,
+            "or resolve from the verified ReFusion development machine cache" in output,
             f"Skia path gate failed for the wrong reason: {output}",
         )
 
@@ -320,8 +320,8 @@ def main() -> None:
             value = json.loads(dependency_record.read_text(encoding="utf-8"))
             value["deps_sha256"] = "0" * 64
             bad_record.write_text(json.dumps(value), encoding="utf-8")
-            original = bootstrap.SKIA_DEPENDENCY_RECORD
-            bootstrap.SKIA_DEPENDENCY_RECORD = bad_record
+            original = bootstrap.skia_dependency_record_path
+            bootstrap.skia_dependency_record_path = lambda _cache: bad_record
             rejected = False
             try:
                 with redirect_stdout(io.StringIO()):
@@ -329,7 +329,7 @@ def main() -> None:
             except RuntimeError as error:
                 rejected = "DEPS changed" in str(error)
             finally:
-                bootstrap.SKIA_DEPENDENCY_RECORD = original
+                bootstrap.skia_dependency_record_path = original
             require(rejected, "Skia materialization accepted a tampered DEPS digest")
 
 

@@ -12,6 +12,7 @@
 
 #include <windows.h>
 
+#include <cstdio>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -23,6 +24,27 @@ void require(const bool condition) {
     throw std::runtime_error(
         "D3D12 viewport presenter test requirement failed");
   }
+}
+
+void pump_window_messages() {
+  MSG message{};
+  while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
+    TranslateMessage(&message);
+    DispatchMessageW(&message);
+  }
+}
+
+void require_presented(
+    const refusion::runtime::presentation::FrameResult& result,
+    const std::uint64_t sequence) {
+  if (result.succeeded()) {
+    return;
+  }
+  std::fprintf(stderr, "frame %llu failed: %s: %s\n",
+               static_cast<unsigned long long>(sequence), result.code.c_str(),
+               result.diagnostic.c_str());
+  std::fflush(stderr);
+  require(false);
 }
 
 LRESULT CALLBACK test_window_proc(HWND window, UINT message, WPARAM wparam,
@@ -70,7 +92,7 @@ class TestWindow final {
 
 }  // namespace
 
-int main() {
+int run_test() {
   using namespace refusion::runtime::presentation;
 
   TestWindow window;
@@ -91,12 +113,13 @@ int main() {
   const auto wrong_host_result = presenter->attach(wrong_host);
   require(wrong_host_result.status == FrameStatus::rejected);
   require(wrong_host_result.failure == FrameFailureKind::incompatible);
-  require(presenter->attach(host).succeeded());
-  require(presenter->resize(ViewportExtent{
-      .width_points = 640,
-      .height_points = 360,
-      .pixels_per_point = 1.0F,
-  }).succeeded());
+  require_presented(presenter->attach(host), 0);
+  require_presented(presenter->resize(ViewportExtent{
+                        .width_points = 640,
+                        .height_points = 360,
+                        .pixels_per_point = 1.0F,
+                    }),
+                    0);
   presenter->set_visible(true);
 
   const auto request = [&](const std::uint64_t sequence,
@@ -109,25 +132,50 @@ int main() {
         .render_program = render_program,
     };
   };
-  for (std::uint64_t frame = 0; frame < 3; ++frame) {
-    require(presenter->present(request(frame, frame * 16'666'667)).succeeded());
+  constexpr std::uint64_t frames_before_resize = 120;
+  for (std::uint64_t frame = 0; frame < frames_before_resize; ++frame) {
+    pump_window_messages();
+    require_presented(presenter->present(request(frame, frame * 16'666'667)),
+                      frame);
   }
-  require(presenter->resize(ViewportExtent{
-      .width_points = 800,
-      .height_points = 450,
-      .pixels_per_point = 1.0F,
-  }).succeeded());
-  require(presenter->present(request(3, 50'000'001)).succeeded());
+  require_presented(presenter->resize(ViewportExtent{
+                        .width_points = 800,
+                        .height_points = 450,
+                        .pixels_per_point = 1.0F,
+                    }),
+                    frames_before_resize);
+  constexpr std::uint64_t frames_after_resize = 120;
+  for (std::uint64_t frame = 0; frame < frames_after_resize; ++frame) {
+    const auto sequence = frames_before_resize + frame;
+    pump_window_messages();
+    require_presented(
+        presenter->present(request(sequence, sequence * 16'666'667)), sequence);
+  }
 
   presenter->set_visible(false);
-  const auto hidden_result = presenter->present(request(4, 66'666'668));
+  const auto submitted_frames = frames_before_resize + frames_after_resize;
+  const auto hidden_result = presenter->present(
+      request(submitted_frames, submitted_frames * 16'666'667));
   require(hidden_result.status == FrameStatus::skipped);
   require(hidden_result.failure == FrameFailureKind::unavailable);
   const auto telemetry = presenter->telemetry();
-  require(telemetry.renderer_submissions == 4);
-  require(telemetry.present_submissions == 4);
+  require(telemetry.renderer_submissions == submitted_frames);
+  require(telemetry.present_submissions == submitted_frames);
   require(telemetry.skipped_frames == 1);
   require(telemetry.native_wait_timeouts == 0);
   require(telemetry.zero_cpu_pixel_transfer());
+  require(telemetry.presentation_profile.valid());
+  require(telemetry.presentation_profile.bytes_per_pixel() == 4 ||
+          telemetry.presentation_profile.bytes_per_pixel() == 8);
   presenter->detach();
+  return 0;
+}
+
+int main() {
+  try {
+    return run_test();
+  } catch (const std::exception& error) {
+    std::fprintf(stderr, "%s\n", error.what());
+    return 1;
+  }
 }

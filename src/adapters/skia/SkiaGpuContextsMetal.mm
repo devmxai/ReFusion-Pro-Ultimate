@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -64,7 +65,6 @@ using runtime::presentation::PresentationFrameRequest;
 using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
 using runtime::presentation::BackendFrameTargetLease;
-using runtime::presentation::PixelFormat;
 
 void draw_decoded_video_fixture(SkCanvas &canvas, const SkImage &image, const float target_width,
                                 const float target_height) {
@@ -261,7 +261,6 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     const runtime::presentation::PresentationFrameRequest &frame) {
   if (!implementation_ || !target.valid() ||
       target.device.backend != runtime::gpu::Backend::metal ||
-      target.pixel_format != PixelFormat::bgra8_unorm ||
       target.device != implementation_->lease.identity() || !frame.valid() ||
       frame.device != target.device) {
     return FrameResult{
@@ -275,8 +274,28 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   id<MTLDevice> expected_device =
       (__bridge id<MTLDevice>)(const_cast<void *>(
           implementation_->lease.backend_private_device()));
+  MTLPixelFormat expected_pixel_format = MTLPixelFormatInvalid;
+  SkColorType target_color_type = kUnknown_SkColorType;
+  sk_sp<SkColorSpace> target_color_space;
+  if (target.presentation_profile ==
+      runtime::presentation::kHighPrecisionSdrPresentationProfile) {
+    expected_pixel_format = MTLPixelFormatRGBA16Float;
+    target_color_type = kRGBA_F16_SkColorType;
+    target_color_space = SkColorSpace::MakeSRGBLinear();
+  } else if (target.presentation_profile ==
+             runtime::presentation::kFallbackSdrPresentationProfile) {
+    expected_pixel_format = MTLPixelFormatBGRA8Unorm;
+    target_color_type = kBGRA_8888_SkColorType;
+    target_color_space = SkColorSpace::MakeSRGB();
+  } else {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic =
+            "Skia received an unadmitted Metal presentation profile",
+    };
+  }
   if (texture == nil || texture.device != expected_device ||
-      texture.pixelFormat != MTLPixelFormatBGRA8Unorm) {
+      texture.pixelFormat != expected_pixel_format) {
     return FrameResult{
         .status = FrameStatus::rejected,
         .diagnostic = "Skia target does not belong to the engine Metal device",
@@ -289,7 +308,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
       static_cast<int>(target.width_pixels), static_cast<int>(target.height_pixels), texture_info);
   auto surface = SkSurfaces::WrapBackendRenderTarget(
       implementation_->ganesh.get(), backend_target, kTopLeft_GrSurfaceOrigin,
-      kBGRA_8888_SkColorType, SkColorSpace::MakeSRGB(),
+      target_color_type, std::move(target_color_space),
       &visual_surface_props());
   if (!surface) {
     return FrameResult{
@@ -301,7 +320,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   try {
     implementation_->visual_executor.execute(
         *surface, *implementation_->text_layout_engine, *frame.render_program,
-        frame.project_time_ns, frame.transport_epoch_id,
+        frame.request_sequence, frame.project_time_ns, frame.transport_epoch_id,
         frame.output_consumer,
         frame.canvas_view, target.width_pixels, target.height_pixels);
   } catch (const std::exception &error) {
@@ -363,6 +382,25 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     };
   }
   return FrameResult{.status = FrameStatus::presented};
+}
+
+runtime::presentation::FrameResult SkiaGpuContexts::retire_frame_targets() {
+  if (!implementation_ || !implementation_->ganesh) {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic = "Skia Metal context is unavailable during target retirement",
+    };
+  }
+  static_cast<void>(implementation_->ganesh->submit(GrSyncCpu::kYes));
+  implementation_->ganesh->performDeferredCleanup(
+      std::chrono::milliseconds::zero());
+  if (implementation_->ganesh->abandoned()) {
+    return FrameResult{
+        .status = FrameStatus::rejected,
+        .diagnostic = "Skia Metal context was abandoned during target retirement",
+    };
+  }
+  return FrameResult{.status = FrameStatus::accepted};
 }
 
 }  // namespace refusion::adapters::skia

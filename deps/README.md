@@ -14,11 +14,15 @@ gate; it remains usable only to capture the first explicit CI fingerprint.
 
 Normal CMake configure/build is offline. `tools/bootstrap.py` is the only
 foundation network-fetch entry point and writes to the ignored ReFusion-local
-`out/deps-src`. For production-intake dependencies, external machine caches and
-another project's checkout are forbidden. `sync --fresh` may remove only the
+`out/deps-src`. Fresh qualification uses that checkout-local path. Ordinary
+development may consume the verified, content-addressed ReFusion machine cache
+proposed by ADR-0016; arbitrary external paths, mutable checkout copies,
+junctions and another project's cache remain forbidden. A machine-cache publish
+re-verifies the current manifest, transitive lock, source inventory, profile,
+patch and artifact before indexing it. `sync --fresh` may remove only the
 validated direct child for the named dependency. Skia remains an official
-GN/Ninja external build; do not replace it with the development-only
-GN-to-CMake output.
+GN/Ninja external build; do not replace it with the development-only GN-to-CMake
+output.
 
 The reproducible Skia flow is:
 
@@ -48,6 +52,11 @@ Qt is not auto-downloaded. Its commercial/LGPL lane and module allowlist must be
 decided before a redistributable Studio build. FFmpeg, Dawn/wgpu, OpenColorIO,
 JUCE, plugin SDKs, updater, cloud telemetry, and AI models are intentionally not
 in the foundation lock until their stage intake/qualification.
+
+The machine cache does not make a build redistributable. Cached Qt is admitted
+only for development and cached Skia is not a fresh physical-qualification
+materialization. Release entitlement and qualification receipts remain separate
+fail-closed gates.
 
 The G1 mobile compile canaries use two additional tracked Skia profiles:
 `ios-arm64-metal-canary` and `android-arm64-vulkan-canary`. The Android profile

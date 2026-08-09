@@ -1,13 +1,20 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 
 ApplicationWindow {
     id: root
-    width: 1440
-    height: 900
-    minimumWidth: 1100
-    minimumHeight: 680
+    readonly property real availableWorkspaceWidth:
+        Screen.desktopAvailableWidth > 0
+        ? Screen.desktopAvailableWidth : 1440
+    readonly property real availableWorkspaceHeight:
+        Screen.desktopAvailableHeight > 0
+        ? Screen.desktopAvailableHeight : 900
+    width: Math.min(1440, availableWorkspaceWidth)
+    height: Math.min(900, availableWorkspaceHeight)
+    minimumWidth: Math.min(1100, availableWorkspaceWidth)
+    minimumHeight: Math.min(680, availableWorkspaceHeight)
     visible: true
     title: "ReFusion Studio — Open Project"
     color: "#252b36"
@@ -261,12 +268,13 @@ ApplicationWindow {
                     anchors.horizontalCenter: viewportFrame.horizontalCenter
                     height: 28
                     spacing: 9
-                    visible: root.portraitWorkspace
+                    visible: engineViewportAvailable
 
                     ToolButton {
                         id: canvasPlaybackToggle
                         width: 30
                         height: 26
+                        visible: root.portraitWorkspace
                         enabled: transportBridge !== null
                         text: transportBridge && transportBridge.running
                               ? "❚❚" : "▶"
@@ -292,7 +300,79 @@ ApplicationWindow {
                         }
                     }
 
+                    Rectangle {
+                        id: canvasViewMode
+                        width: 94
+                        height: 26
+                        radius: 6
+                        color: root.panelRaised
+                        border.width: 1
+                        border.color: root.border
+
+                        Row {
+                            anchors.fill: parent
+
+                            ToolButton {
+                                id: canvasFitMode
+                                width: parent.width / 2
+                                height: parent.height
+                                enabled: engineViewportWindow !== null
+                                text: "Fit"
+                                font.pixelSize: 10
+                                font.bold: engineViewportWindow
+                                           && engineViewportWindow.canvasFit
+                                onClicked: engineViewportWindow.setCanvasFit()
+                                ToolTip.visible: hovered
+                                ToolTip.text: "Fit Canvas"
+                                background: Rectangle {
+                                    radius: 5
+                                    color: engineViewportWindow
+                                           && engineViewportWindow.canvasFit
+                                           ? "#303747" : "transparent"
+                                }
+                                contentItem: Label {
+                                    text: canvasFitMode.text
+                                    color: canvasFitMode.enabled
+                                           ? root.textMain : root.textMuted
+                                    font: canvasFitMode.font
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            ToolButton {
+                                id: canvasActualPixelsMode
+                                width: parent.width / 2
+                                height: parent.height
+                                enabled: engineViewportWindow !== null
+                                text: "100%"
+                                font.pixelSize: 10
+                                font.bold: engineViewportWindow
+                                           && !engineViewportWindow.canvasFit
+                                onClicked:
+                                    engineViewportWindow.setCanvasActualPixels()
+                                ToolTip.visible: hovered
+                                ToolTip.text: "Actual pixels"
+                                background: Rectangle {
+                                    radius: 5
+                                    color: engineViewportWindow
+                                           && !engineViewportWindow.canvasFit
+                                           ? "#303747" : "transparent"
+                                }
+                                contentItem: Label {
+                                    text: canvasActualPixelsMode.text
+                                    color: canvasActualPixelsMode.enabled
+                                           ? root.textMain : root.textMuted
+                                    font: canvasActualPixelsMode.font
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
+                    }
+
                     Label {
+                        visible: root.portraitWorkspace
                         anchors.verticalCenter: parent.verticalCenter
                         text: transportBridge
                               ? transportBridge.positionTimecode + "  /  "
@@ -307,7 +387,7 @@ ApplicationWindow {
                 Label {
                     anchors.left: viewportFrame.left
                     anchors.right: viewportFrame.right
-                    anchors.top: root.portraitWorkspace
+                    anchors.top: canvasTransport.visible
                                  ? canvasTransport.bottom : viewportFrame.bottom
                     anchors.topMargin: 4
                     visible: engineViewportDiagnostic.length > 0
@@ -1493,6 +1573,13 @@ ApplicationWindow {
                                 + engineViewportWindow.projectPath
                                 + "\n\nGPU LIFECYCLE: "
                                 + engineViewportWindow.deviceStatus
+                                + "\nPresentation: "
+                                + engineViewportWindow.presentationFormat
+                                + "  Canvas: "
+                                + (engineViewportWindow.canvasFit
+                                   ? "FIT"
+                                   : engineViewportWindow.canvasZoomPercent
+                                     + "%")
                                 + "  events="
                                 + engineViewportWindow.deviceEventSequence
                                 + "\nVisibility suspend/resume: "

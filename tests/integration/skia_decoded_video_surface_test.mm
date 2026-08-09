@@ -135,7 +135,8 @@ int main() {
   RendererPresenter presenter(
       *renderer, BackendFrameTargetLease{
                      .device = device_service->identity(),
-                     .pixel_format = PixelFormat::bgra8_unorm,
+                     .presentation_profile =
+                         kFallbackSdrPresentationProfile,
                      .target_id = 1,
                      .width_pixels = 640,
                      .height_pixels = 360,

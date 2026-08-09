@@ -5,10 +5,12 @@
 #include <QEvent>
 #include <QExposeEvent>
 #include <QMetaObject>
+#include <QMouseEvent>
 #include <QPlatformSurfaceEvent>
 #include <QResizeEvent>
 #include <QSurface>
 
+#include <cmath>
 #include <utility>
 
 EngineViewportWindow::EngineViewportWindow(
@@ -132,6 +134,47 @@ qulonglong EngineViewportWindow::deviceLossRejections() const noexcept {
   return render_session_.telemetry().device_loss_rejections;
 }
 
+QString EngineViewportWindow::presentationFormat() const {
+  const auto profile = render_session_.telemetry().presentation_profile;
+  if (profile == refusion::runtime::presentation::
+                     kHighPrecisionSdrPresentationProfile) {
+    return QStringLiteral("RGBA16F / LINEAR sRGB");
+  }
+  if (profile == refusion::runtime::presentation::
+                     kFallbackSdrPresentationProfile) {
+    return QStringLiteral("BGRA8 / sRGB");
+  }
+  return QStringLiteral("UNAVAILABLE");
+}
+
+bool EngineViewportWindow::canvasFit() const noexcept {
+  return render_session_.canvas_view().mode ==
+         refusion::runtime::render::CanvasViewportMode::fit;
+}
+
+uint EngineViewportWindow::canvasZoomPercent() const noexcept {
+  const auto view = render_session_.canvas_view();
+  return static_cast<uint>(std::lround(view.zoom * 100.0));
+}
+
+void EngineViewportWindow::setCanvasFit() {
+  apply_canvas_view({
+      .mode = refusion::runtime::render::CanvasViewportMode::fit,
+      .raster_quality =
+          refusion::runtime::render::CanvasRasterQuality::full_resolution,
+      .zoom = 1.0,
+  });
+}
+
+void EngineViewportWindow::setCanvasActualPixels() {
+  apply_canvas_view({
+      .mode = refusion::runtime::render::CanvasViewportMode::custom_zoom,
+      .raster_quality =
+          refusion::runtime::render::CanvasRasterQuality::full_resolution,
+      .zoom = 1.0,
+  });
+}
+
 void EngineViewportWindow::publishComposition(
     std::shared_ptr<const refusion::core::CompositionSnapshot>
         composition) noexcept {
@@ -170,6 +213,42 @@ void EngineViewportWindow::resizeEvent(QResizeEvent* event) {
   update_extent();
 }
 
+void EngineViewportWindow::mousePressEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton && !canvasFit()) {
+    panning_ = true;
+    last_pan_position_ = event->position();
+    setCursor(Qt::ClosedHandCursor);
+    event->accept();
+    return;
+  }
+  QWindow::mousePressEvent(event);
+}
+
+void EngineViewportWindow::mouseMoveEvent(QMouseEvent* event) {
+  if (!panning_) {
+    QWindow::mouseMoveEvent(event);
+    return;
+  }
+  const auto delta = event->position() - last_pan_position_;
+  last_pan_position_ = event->position();
+  auto canvas_view = render_session_.canvas_view();
+  const auto pixel_ratio = static_cast<double>(devicePixelRatio());
+  canvas_view.pan_x_pixels += delta.x() * pixel_ratio;
+  canvas_view.pan_y_pixels += delta.y() * pixel_ratio;
+  apply_canvas_view(canvas_view);
+  event->accept();
+}
+
+void EngineViewportWindow::mouseReleaseEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton && panning_) {
+    panning_ = false;
+    setCursor(canvasFit() ? Qt::ArrowCursor : Qt::OpenHandCursor);
+    event->accept();
+    return;
+  }
+  QWindow::mouseReleaseEvent(event);
+}
+
 void EngineViewportWindow::ensure_attached() {
   if (attached_) {
     return;
@@ -193,6 +272,27 @@ void EngineViewportWindow::update_extent() {
       });
   if (result.status == refusion::runtime::presentation::FrameStatus::rejected) {
     set_diagnostic(QString::fromStdString(result.diagnostic));
+  }
+}
+
+void EngineViewportWindow::apply_canvas_view(
+    const refusion::runtime::render::CanvasViewportState canvas_view) {
+  if (!render_session_.set_canvas_view(canvas_view)) {
+    set_diagnostic(QStringLiteral(
+        "RFX-CANVAS-VIEW-001: invalid Canvas presentation state"));
+    return;
+  }
+  setCursor(canvas_view.mode ==
+                    refusion::runtime::render::CanvasViewportMode::fit
+                ? Qt::ArrowCursor
+                : Qt::OpenHandCursor);
+  emit canvasViewChanged();
+  if (attached_ && !render_session_.playback_state().running) {
+    const auto result = render_session_.render_once();
+    if (result.status ==
+        refusion::runtime::presentation::FrameStatus::rejected) {
+      set_diagnostic(QString::fromStdString(result.diagnostic));
+    }
   }
 }
 

@@ -12,8 +12,8 @@ active_work_packages:
 active_guardrails:
   - PLAN-XPLAT-FIX-001
 baseline_commit: 1a70f5a
-last_green_commit: 235d67f900ac63b319502f3c5b140c90871d6760
-last_checkpoint: CP-G1-0010
+last_green_commit: 47948b29525ce8bf42aaab5e021d2bf32e6e6338
+last_checkpoint: CP-G1-0011
 blocking_risks:
   - RISK-002
   - RISK-003
@@ -54,21 +54,24 @@ does not claim product MP4 import, Windows decode or G4 exit.
 
 The cross-platform remediation guardrail
 [`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) remains
-active. The physical Windows handoff has returned and is reconciled by
-[`EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09`](../evidence/reviews/XPF-WP05B-windows-physical-bringup.md).
-Tested source `1e2dc89` passed Windows Core 30/30, hardware D3D12 Graphics
-38/38, Qt Visual 44/44 and manual Intel Studio playback without WARP or CPU
-project pixels. This advances the Windows profile through compile, physical run
-and semantic match only; calibrated visual tolerance, performance and complete
-qualification remain false.
+active. The later Windows Canvas-quality correction on
+`fix/windows-canvas-quality` is now reconciled by
+[`EVID-XPF-WP05C-MACOS-RECONCILIATION-2026-08-09`](../evidence/reviews/XPF-WP05C-windows-canvas-macos-reconciliation.md)
+and checkpoint [`CP-G1-0011`](checkpoints/CP-G1-0011.md). Tested integration
+source `47948b2` passes macOS Core 31/31, Graphics 40/40 and Visual 52/52.
+Physical Apple-M1 Studio selected RGBA16F/linear-sRGB, survived real-project
+transport and live resize, and a 240-frame Metal stress recorded zero CPU pixel
+maps/uploads, GPU readbacks or unattributed copies.
 
-Checkpoint [`CP-G1-0010`](checkpoints/CP-G1-0010.md) integrates that Windows
-base with the portrait/Reels workspace and compact Timeline/transport UI. The
-result passes macOS Core 30/30, Visual 51/51, docs-doctor and
-architecture-check. The new UI has not yet been rerun on Windows, so the exact
-resume point is to publish the checkpoint on `main`, pull that exact commit on
-Windows, and produce a new UI/Studio receipt. A same-commit Metal and D3D12
-capture comparison must then run under the unchanged accepted bounds.
+The correction retains full-resolution Composition raster, scaling, dither and
+color-transfer execution in shared Skia code. Metal and D3D12 select only a
+complete native presentation profile and target mechanics. It is eligible for
+promotion through the canonical macOS integration owner; it is not permission
+to call the entire product cross-platform qualified. After promotion, the exact
+implementation resume point is to merge that `main` into
+`feature/shared-video-import-v1`, rerun its macOS demux/import foundation lane
+and continue the next Video Import work package without manually replaying the
+Windows patch.
 
 Android official-NDK compile evidence, Windows Media Foundation Video
 import/decode, full performance qualification, packaging and production Export

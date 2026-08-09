@@ -9,8 +9,7 @@ namespace refusion::adapters::skia {
 
 const SkSurfaceProps& visual_surface_props() noexcept {
   static const SkSurfaceProps properties{
-      SkSurfaceProps::kUseDeviceIndependentFonts_Flag |
-          SkSurfaceProps::kAlwaysDither_Flag,
+      SkSurfaceProps::kUseDeviceIndependentFonts_Flag,
       kUnknown_SkPixelGeometry};
   return properties;
 }

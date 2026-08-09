@@ -102,6 +102,12 @@ Failure of `--ff-only`, a dirty integration worktree, missing evidence or a red
 check is a stop condition. Force push, `reset --hard`, copying files between
 platform branches and weakening a check are not recovery procedures.
 
+Dependency acceleration is host-local and branch-neutral. A verified ReFusion
+machine-cache entry may be reused by development branches when its complete
+content identity matches, but it is never committed, copied between platform
+branches or counted as fresh qualification evidence. Local source changes do
+not mutate the cache. A pin/profile/patch/lock/host mismatch is a cache miss.
+
 ### Handoff and evidence invalidation
 
 Every pushed branch handoff records: base commit, head commit, branch purpose,

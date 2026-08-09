@@ -232,8 +232,10 @@
     { "name": "macos-graphics", "configurePreset": "macos-graphics" },
     { "name": "macos-visual", "configurePreset": "macos-visual" },
     { "name": "macos-media", "configurePreset": "macos-media" },
+    { "name": "macos-demux", "configurePreset": "macos-demux" },
     { "name": "windows-core", "configurePreset": "windows-core" },
     { "name": "windows-studio", "configurePreset": "windows-studio" },
+    { "name": "windows-demux", "configurePreset": "windows-demux" },
     { "name": "windows-graphics", "configurePreset": "windows-graphics" },
     { "name": "windows-visual", "configurePreset": "windows-visual" },
     { "name": "windows-media", "configurePreset": "windows-media" },
@@ -278,6 +280,11 @@
       "output": { "outputOnFailure": true }
     },
     {
+      "name": "macos-demux",
+      "configurePreset": "macos-demux",
+      "output": { "outputOnFailure": true }
+    },
+    {
       "name": "windows-core",
       "configurePreset": "windows-core",
       "output": { "outputOnFailure": true }
@@ -285,6 +292,11 @@
     {
       "name": "windows-studio",
       "configurePreset": "windows-studio",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-demux",
+      "configurePreset": "windows-demux",
       "output": { "outputOnFailure": true }
     },
     {
@@ -353,6 +365,14 @@
       ]
     },
     {
+      "name": "macos-demux",
+      "steps": [
+        { "type": "configure", "name": "macos-demux" },
+        { "type": "build", "name": "macos-demux" },
+        { "type": "test", "name": "macos-demux" }
+      ]
+    },
+    {
       "name": "windows-core",
       "steps": [
         { "type": "configure", "name": "windows-core" },
@@ -366,6 +386,14 @@
         { "type": "configure", "name": "windows-studio" },
         { "type": "build", "name": "windows-studio" },
         { "type": "test", "name": "windows-studio" }
+      ]
+    },
+    {
+      "name": "windows-demux",
+      "steps": [
+        { "type": "configure", "name": "windows-demux" },
+        { "type": "build", "name": "windows-demux" },
+        { "type": "test", "name": "windows-demux" }
       ]
     },
     {

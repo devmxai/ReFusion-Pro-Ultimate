@@ -8,7 +8,8 @@
 namespace refusion::adapters::skia {
 
 // One surface policy is used by every Skia backend. Unknown pixel geometry
-// prevents platform subpixel assumptions from entering project Canvas text.
+// prevents platform subpixel assumptions from entering project Canvas text;
+// final quantization uses the shared presentation shader, not backend dithering.
 [[nodiscard]] const SkSurfaceProps& visual_surface_props() noexcept;
 
 // Desktop-v1 keeps its accepted sRGB-encoded compositing semantics while the

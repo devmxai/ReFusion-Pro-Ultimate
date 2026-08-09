@@ -2101,3 +2101,13 @@ and `XPF-PRE-WINDOWS-READY` review are now linked. The plan remains active only
 for its truthfully external Windows/Android and full-profile qualification
 inputs; the exact resume point moves to Phase B GitHub handoff and Phase C
 Windows lock/build/device evidence.
+
+Version 23 reconciles the later physical Windows Canvas-quality correction on
+the official macOS host. The shared full-resolution/F16 presentation path now
+passes macOS Core 31/31, Graphics 40/40 and Visual 52/52; physical Studio selects
+RGBA16F/linear-sRGB on Apple M1, survives transport and resize, and the returned
+240-frame Metal stress has zero CPU pixel transfer or GPU readback. ADR number
+collisions and the cache-aware dependency tamper test were corrected before the
+candidate became promotion-ready. This does not close the plan: calibrated
+same-commit Metal/D3D12 pixels, complete performance qualification, Android NDK
+evidence and Windows Media Foundation Video remain open.
