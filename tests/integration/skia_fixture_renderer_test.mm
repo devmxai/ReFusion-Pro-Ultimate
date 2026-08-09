@@ -89,6 +89,34 @@ void write_reference_ppm(const std::string& path,
   return result;
 }
 
+void qualify_actual_pixel_crop(
+    const std::vector<std::uint8_t>& actual,
+    const std::vector<std::uint8_t>& reference,
+    const std::size_t reference_width, const std::size_t crop_left,
+    const std::size_t crop_top, const std::size_t crop_width,
+    const std::size_t crop_height) {
+  require(actual.size() == crop_width * crop_height * 4U,
+          "Metal actual-pixel Canvas has an unexpected extent");
+  std::uint8_t maximum_delta = 0;
+  for (std::size_t y = 0; y < crop_height; ++y) {
+    for (std::size_t x = 0; x < crop_width; ++x) {
+      const auto actual_index = (y * crop_width + x) * 4U;
+      const auto reference_index =
+          ((y + crop_top) * reference_width + x + crop_left) * 4U;
+      for (std::size_t channel = 0; channel < 4; ++channel) {
+        maximum_delta = std::max(
+            maximum_delta,
+            static_cast<std::uint8_t>(std::abs(
+                static_cast<int>(actual[actual_index + channel]) -
+                static_cast<int>(reference[reference_index + channel]))));
+      }
+    }
+  }
+  require(maximum_delta <= 2,
+          "Metal 100% Canvas is not a pixel-true centered crop; max delta=" +
+              std::to_string(maximum_delta));
+}
+
 }  // namespace
 
 int main() {
@@ -123,7 +151,7 @@ int main() {
 
   const BackendFrameTargetLease target{
       .device = device_service->identity(),
-      .pixel_format = PixelFormat::bgra8_unorm,
+      .presentation_profile = kFallbackSdrPresentationProfile,
       .target_id = 1,
       .width_pixels = 640,
       .height_pixels = 360,
@@ -188,7 +216,7 @@ int main() {
   require(fit_texture != nil);
   const BackendFrameTargetLease fit_target{
       .device = device_service->identity(),
-      .pixel_format = PixelFormat::bgra8_unorm,
+      .presentation_profile = kFallbackSdrPresentationProfile,
       .target_id = 3,
       .width_pixels = 320,
       .height_pixels = 180,
@@ -224,6 +252,94 @@ int main() {
   require(fit_qualification.changed_from_background > 3'000,
           "full-resolution Canvas downsample lost foreground detail");
 
+  id<MTLTexture> actual_pixel_texture =
+      [device newTextureWithDescriptor:fit_descriptor];
+  require(actual_pixel_texture != nil);
+  const BackendFrameTargetLease actual_pixel_target{
+      .device = device_service->identity(),
+      .presentation_profile = kFallbackSdrPresentationProfile,
+      .target_id = 5,
+      .width_pixels = 320,
+      .height_pixels = 180,
+      .backend_private_state = std::shared_ptr<const void>(
+          CFBridgingRetain(actual_pixel_texture),
+          [](const void* value) { CFRelease(value); }),
+  };
+  const auto actual_pixel_rendered = contexts->render(
+      actual_pixel_target,
+      PresentationFrameRequest{
+          .request_sequence = 60,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = refusion::runtime::render::
+              VisualOutputConsumer::interactive_preview,
+          .canvas_view = {
+              .mode = refusion::runtime::render::
+                  CanvasViewportMode::custom_zoom,
+              .raster_quality = refusion::runtime::render::
+                  CanvasRasterQuality::full_resolution,
+              .zoom = 1.0,
+          },
+          .render_program = render_program,
+      });
+  require(actual_pixel_rendered.succeeded(),
+          actual_pixel_rendered.diagnostic);
+  id<MTLCommandBuffer> actual_pixel_barrier = [command_queue commandBuffer];
+  require(actual_pixel_barrier != nil);
+  [actual_pixel_barrier commit];
+  [actual_pixel_barrier waitUntilCompleted];
+  require(actual_pixel_barrier.status == MTLCommandBufferStatusCompleted);
+  std::vector<std::uint8_t> actual_pixel_pixels(
+      320U * 180U * bytes_per_pixel);
+  [actual_pixel_texture getBytes:actual_pixel_pixels.data()
+                     bytesPerRow:320U * bytes_per_pixel
+                      fromRegion:MTLRegionMake2D(0, 0, 320, 180)
+                     mipmapLevel:0];
+  qualify_actual_pixel_crop(actual_pixel_pixels, pixels, width, 160, 90, 320,
+                            180);
+
+  MTLTextureDescriptor* high_precision_descriptor = [MTLTextureDescriptor
+      texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
+                                width:320
+                               height:180
+                            mipmapped:NO];
+  high_precision_descriptor.usage = MTLTextureUsageRenderTarget;
+  high_precision_descriptor.storageMode = MTLStorageModePrivate;
+  id<MTLTexture> high_precision_texture =
+      [device newTextureWithDescriptor:high_precision_descriptor];
+  require(high_precision_texture != nil,
+          "Metal device rejected the RGBA16F presentation fixture");
+  const BackendFrameTargetLease high_precision_target{
+      .device = device_service->identity(),
+      .presentation_profile = kHighPrecisionSdrPresentationProfile,
+      .target_id = 4,
+      .width_pixels = 320,
+      .height_pixels = 180,
+      .backend_private_state = std::shared_ptr<const void>(
+          CFBridgingRetain(high_precision_texture),
+          [](const void* value) { CFRelease(value); }),
+  };
+  const auto high_precision_rendered = contexts->render(
+      high_precision_target,
+      PresentationFrameRequest{
+          .request_sequence = 62,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = refusion::runtime::render::
+              VisualOutputConsumer::interactive_preview,
+          .render_program = render_program,
+      });
+  require(high_precision_rendered.succeeded(),
+          high_precision_rendered.diagnostic);
+  id<MTLCommandBuffer> high_precision_barrier =
+      [command_queue commandBuffer];
+  require(high_precision_barrier != nil);
+  [high_precision_barrier commit];
+  [high_precision_barrier waitUntilCompleted];
+  require(high_precision_barrier.status == MTLCommandBufferStatusCompleted);
+
   // Offline qualification is a distinct output consumer but must execute the
   // same immutable program, exact ProjectTime, lowering and Skia compositor.
   // A second offscreen GPU target proves that the consumer identity does not
@@ -233,7 +349,7 @@ int main() {
   require(offline_texture != nil);
   const BackendFrameTargetLease offline_target{
       .device = device_service->identity(),
-      .pixel_format = PixelFormat::bgra8_unorm,
+      .presentation_profile = kFallbackSdrPresentationProfile,
       .target_id = 2,
       .width_pixels = 640,
       .height_pixels = 360,

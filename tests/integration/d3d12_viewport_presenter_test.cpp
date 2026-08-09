@@ -164,6 +164,9 @@ int run_test() {
   require(telemetry.skipped_frames == 1);
   require(telemetry.native_wait_timeouts == 0);
   require(telemetry.zero_cpu_pixel_transfer());
+  require(telemetry.presentation_profile.valid());
+  require(telemetry.presentation_profile.bytes_per_pixel() == 4 ||
+          telemetry.presentation_profile.bytes_per_pixel() == 8);
   presenter->detach();
   return 0;
 }

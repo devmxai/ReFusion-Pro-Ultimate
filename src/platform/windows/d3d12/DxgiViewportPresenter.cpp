@@ -32,7 +32,7 @@ using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
 using runtime::presentation::NativeViewportHostLease;
 using runtime::presentation::NativeWindowSystem;
-using runtime::presentation::PixelFormat;
+using runtime::presentation::PresentationTargetProfile;
 using runtime::presentation::PresentationFrameRequest;
 using runtime::presentation::PresentationTelemetry;
 using runtime::presentation::ViewportExtent;
@@ -41,6 +41,29 @@ using runtime::presentation::ViewportPresenter;
 
 constexpr UINT kBufferCount = 3;
 constexpr DWORD kFenceWaitTimeoutMs = 2'000;
+
+struct DxgiPresentationProfile final {
+  PresentationTargetProfile portable;
+  DXGI_FORMAT format{DXGI_FORMAT_UNKNOWN};
+  DXGI_COLOR_SPACE_TYPE color_space{
+      DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709};
+};
+
+constexpr std::array<DxgiPresentationProfile, 2>
+    kPreferredPresentationProfiles{{
+        {
+            .portable = runtime::presentation::
+                kHighPrecisionSdrPresentationProfile,
+            .format = DXGI_FORMAT_R16G16B16A16_FLOAT,
+            .color_space = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709,
+        },
+        {
+            .portable = runtime::presentation::
+                kFallbackSdrPresentationProfile,
+            .format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .color_space = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+        },
+    }};
 
 [[nodiscard]] FrameResult rejected(
     std::string diagnostic,
@@ -73,6 +96,11 @@ struct Win32HostRegistration final {
 
 struct DxgiSwapchainState final {
   ComPtr<IDXGISwapChain3> swapchain;
+  PresentationTargetProfile presentation_profile{
+      runtime::presentation::kFallbackSdrPresentationProfile};
+  DXGI_FORMAT format{DXGI_FORMAT_B8G8R8A8_UNORM};
+  DXGI_COLOR_SPACE_TYPE color_space{
+      DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709};
   std::array<ComPtr<ID3D12Resource>, kBufferCount> buffers;
   ComPtr<ID3D12Fence> fence;
   HANDLE fence_event{nullptr};
@@ -248,7 +276,8 @@ class DxgiViewportPresenter final : public ViewportPresenter {
       try {
         const auto resident_bytes =
             static_cast<std::uint64_t>(extent_.width_pixels()) *
-            extent_.height_pixels() * 4ULL;
+            extent_.height_pixels() *
+            swapchain_state_->presentation_profile.bytes_per_pixel();
         observed_buffer =
             std::make_shared<runtime::gpu::GpuObservedResourceLease>(
                 observability_, runtime::gpu::GpuSubsystem::presentation,
@@ -262,7 +291,7 @@ class DxgiViewportPresenter final : public ViewportPresenter {
 
     const BackendFrameTargetLease target{
         .device = health.identity,
-        .pixel_format = PixelFormat::bgra8_unorm,
+        .presentation_profile = swapchain_state_->presentation_profile,
         .target_id = next_target_id_++,
         .width_pixels = extent_.width_pixels(),
         .height_pixels = extent_.height_pixels(),
@@ -354,25 +383,63 @@ class DxgiViewportPresenter final : public ViewportPresenter {
         ++telemetry_.rejected_frames;
         return rejected("DXGI factory creation failed");
       }
-      DXGI_SWAP_CHAIN_DESC1 description{};
-      description.Width = extent_.width_pixels();
-      description.Height = extent_.height_pixels();
-      description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-      description.Stereo = FALSE;
-      description.SampleDesc.Count = 1;
-      description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-      description.BufferCount = kBufferCount;
-      description.Scaling = DXGI_SCALING_STRETCH;
-      description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-      description.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+      bool selected = false;
+      for (const auto& candidate : kPreferredPresentationProfiles) {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT format_support{
+            .Format = candidate.format,
+        };
+        if (FAILED(device->CheckFeatureSupport(
+                D3D12_FEATURE_FORMAT_SUPPORT, &format_support,
+                sizeof(format_support))) ||
+            (format_support.Support1 & D3D12_FORMAT_SUPPORT1_TEXTURE2D) == 0 ||
+            (format_support.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) ==
+                0) {
+          continue;
+        }
 
-      ComPtr<IDXGISwapChain1> swapchain;
-      if (FAILED(factory->CreateSwapChainForHwnd(
-              queue, window_, &description, nullptr, nullptr, &swapchain)) ||
-          FAILED(factory->MakeWindowAssociation(window_, DXGI_MWA_NO_ALT_ENTER)) ||
-          FAILED(swapchain.As(&state->swapchain))) {
+        DXGI_SWAP_CHAIN_DESC1 description{};
+        description.Width = extent_.width_pixels();
+        description.Height = extent_.height_pixels();
+        description.Format = candidate.format;
+        description.Stereo = FALSE;
+        description.SampleDesc.Count = 1;
+        description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        description.BufferCount = kBufferCount;
+        description.Scaling = DXGI_SCALING_STRETCH;
+        description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        description.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+
+        ComPtr<IDXGISwapChain1> candidate_swapchain;
+        ComPtr<IDXGISwapChain3> candidate_swapchain3;
+        if (FAILED(factory->CreateSwapChainForHwnd(
+                queue, window_, &description, nullptr, nullptr,
+                &candidate_swapchain)) ||
+            FAILED(candidate_swapchain.As(&candidate_swapchain3))) {
+          continue;
+        }
+        UINT color_space_support = 0;
+        if (FAILED(candidate_swapchain3->CheckColorSpaceSupport(
+                candidate.color_space, &color_space_support)) ||
+            (color_space_support &
+             DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == 0 ||
+            FAILED(candidate_swapchain3->SetColorSpace1(
+                candidate.color_space))) {
+          continue;
+        }
+        state->swapchain = std::move(candidate_swapchain3);
+        state->presentation_profile = candidate.portable;
+        state->format = candidate.format;
+        state->color_space = candidate.color_space;
+        selected = true;
+        break;
+      }
+      if (!selected ||
+          FAILED(factory->MakeWindowAssociation(
+              window_, DXGI_MWA_NO_ALT_ENTER))) {
         ++telemetry_.rejected_frames;
-        return rejected("DXGI HWND swapchain creation failed");
+        return rejected(
+            "DXGI could not create an admitted linear-F16 or sRGB-BGRA8 "
+            "presentation target");
       }
       if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
                                      IID_PPV_ARGS(&state->fence)))) {
@@ -384,6 +451,7 @@ class DxgiViewportPresenter final : public ViewportPresenter {
         ++telemetry_.rejected_frames;
         return rejected("D3D12 presentation fence event creation failed");
       }
+      telemetry_.presentation_profile = state->presentation_profile;
       swapchain_state_ = std::move(state);
     } else {
       auto waited = wait_for_gpu_idle();
@@ -400,19 +468,17 @@ class DxgiViewportPresenter final : public ViewportPresenter {
       }
       const HRESULT resized = swapchain_state_->swapchain->ResizeBuffers(
           kBufferCount, extent_.width_pixels(), extent_.height_pixels(),
-          DXGI_FORMAT_B8G8R8A8_UNORM, 0);
+          swapchain_state_->format, 0);
       if (FAILED(resized)) {
         return report_native_failure("RFX-DXGI-RESIZE",
                                      "ResizeBuffers failed", resized);
       }
     }
 
-    constexpr auto color_space =
-        DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
     UINT color_space_support = 0;
     const HRESULT color_space_query =
         swapchain_state_->swapchain->CheckColorSpaceSupport(
-            color_space, &color_space_support);
+            swapchain_state_->color_space, &color_space_support);
     if (FAILED(color_space_query)) {
       return report_native_failure(
           "RFX-DXGI-COLOR-QUERY",
@@ -428,7 +494,8 @@ class DxgiViewportPresenter final : public ViewportPresenter {
           FrameFailureKind::incompatible, "RFX-DXGI-COLOR-UNSUPPORTED");
     }
     const HRESULT color_space_set =
-        swapchain_state_->swapchain->SetColorSpace1(color_space);
+        swapchain_state_->swapchain->SetColorSpace1(
+            swapchain_state_->color_space);
     if (FAILED(color_space_set)) {
       return report_native_failure(
           "RFX-DXGI-COLOR-SET",

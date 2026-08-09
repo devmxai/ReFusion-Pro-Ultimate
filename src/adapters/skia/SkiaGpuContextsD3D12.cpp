@@ -38,7 +38,6 @@ using Microsoft::WRL::ComPtr;
 using runtime::presentation::BackendFrameTargetLease;
 using runtime::presentation::FrameResult;
 using runtime::presentation::FrameStatus;
-using runtime::presentation::PixelFormat;
 using runtime::presentation::PresentationFrameRequest;
 
 [[nodiscard]] LUID adapter_luid(const std::uint64_t adapter_id) noexcept {
@@ -220,10 +219,26 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
     const PresentationFrameRequest& frame) {
   if (!implementation_ || !target.valid() ||
       target.device.backend != runtime::gpu::Backend::direct3d12 ||
-      target.pixel_format != PixelFormat::bgra8_unorm ||
       target.device != implementation_->lease.identity() || !frame.valid() ||
       frame.device != target.device) {
     return rejected("Skia rejected an incompatible D3D12 render target");
+  }
+
+  DXGI_FORMAT target_format = DXGI_FORMAT_UNKNOWN;
+  SkColorType target_color_type = kUnknown_SkColorType;
+  sk_sp<SkColorSpace> target_color_space;
+  if (target.presentation_profile ==
+      runtime::presentation::kHighPrecisionSdrPresentationProfile) {
+    target_format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    target_color_type = kRGBA_F16_SkColorType;
+    target_color_space = SkColorSpace::MakeSRGBLinear();
+  } else if (target.presentation_profile ==
+             runtime::presentation::kFallbackSdrPresentationProfile) {
+    target_format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    target_color_type = kBGRA_8888_SkColorType;
+    target_color_space = SkColorSpace::MakeSRGB();
+  } else {
+    return rejected("Skia received an unadmitted D3D12 presentation profile");
   }
 
   auto* resource = static_cast<ID3D12Resource*>(
@@ -241,14 +256,14 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   if (description.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D ||
       description.Width != target.width_pixels ||
       description.Height != target.height_pixels ||
-      description.Format != DXGI_FORMAT_B8G8R8A8_UNORM ||
+      description.Format != target_format ||
       description.SampleDesc.Count != 1) {
     return rejected("Skia received an incompatible DXGI back buffer");
   }
 
   GrD3DTextureResourceInfo resource_info(
       nullptr, nullptr, D3D12_RESOURCE_STATE_PRESENT,
-      DXGI_FORMAT_B8G8R8A8_UNORM, 1, 1,
+      target_format, 1, 1,
       DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN);
   // The raw-pointer constructor adopts a COM reference. The swapchain owns the
   // pointer supplied by the target lease, so Skia must retain its own reference.
@@ -258,8 +273,8 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
       static_cast<int>(target.height_pixels), resource_info);
   auto surface = SkSurfaces::WrapBackendRenderTarget(
       implementation_->ganesh.get(), backend_target,
-      kTopLeft_GrSurfaceOrigin, kBGRA_8888_SkColorType,
-      SkColorSpace::MakeSRGB(), &visual_surface_props());
+      kTopLeft_GrSurfaceOrigin, target_color_type,
+      std::move(target_color_space), &visual_surface_props());
   if (!surface) {
     return rejected("Skia could not wrap the DXGI back buffer");
   }
@@ -267,7 +282,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   try {
     implementation_->visual_executor.execute(
         *surface, *implementation_->text_layout_engine,
-        *frame.render_program, frame.project_time_ns,
+        *frame.render_program, frame.request_sequence, frame.project_time_ns,
         frame.transport_epoch_id, frame.output_consumer,
         frame.canvas_view, target.width_pixels, target.height_pixels);
   } catch (const std::exception& error) {

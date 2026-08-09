@@ -79,6 +79,19 @@ int main() {
   require(retina_extent.height_pixels() == 720);
   require(!ViewportExtent{}.valid());
 
+  require(kHighPrecisionSdrPresentationProfile.valid());
+  require(kHighPrecisionSdrPresentationProfile.bytes_per_pixel() == 8);
+  require(kFallbackSdrPresentationProfile.valid());
+  require(kFallbackSdrPresentationProfile.bytes_per_pixel() == 4);
+  require(!PresentationTargetProfile{}.valid());
+  require(PresentationTargetProfile{}.bytes_per_pixel() == 0);
+  const PresentationTargetProfile invalid_presentation_profile{
+      .pixel_format = PixelFormat::rgba16_float,
+      .transfer = PresentationTransferFunction::srgb,
+  };
+  require(!invalid_presentation_profile.valid());
+  require(invalid_presentation_profile.bytes_per_pixel() == 0);
+
   const auto fit_mapping =
       refusion::runtime::render::resolve_viewport_mapping({
           .canvas_width_pixels = 1080,
@@ -126,7 +139,7 @@ int main() {
                  .adapter_name = "fake",
                  .adapter_id = 1,
                  .generation = 1},
-      .pixel_format = PixelFormat::bgra8_unorm,
+      .presentation_profile = kFallbackSdrPresentationProfile,
       .target_id = 1,
       .width_pixels = 1280,
       .height_pixels = 720,

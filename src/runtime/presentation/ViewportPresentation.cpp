@@ -40,6 +40,18 @@ bool ViewportExtent::valid() const noexcept {
   return width_pixels() != 0 && height_pixels() != 0;
 }
 
+bool PresentationTargetProfile::valid() const noexcept {
+  return (*this == kHighPrecisionSdrPresentationProfile) ||
+         (*this == kFallbackSdrPresentationProfile);
+}
+
+std::uint32_t PresentationTargetProfile::bytes_per_pixel() const noexcept {
+  if (!valid()) {
+    return 0;
+  }
+  return pixel_format == PixelFormat::rgba16_float ? 8U : 4U;
+}
+
 std::uint32_t ViewportExtent::width_pixels() const noexcept {
   return scaled_extent(width_points, pixels_per_point);
 }
@@ -59,6 +71,7 @@ const void* NativeViewportHostLease::backend_private_host() const noexcept {
 bool BackendFrameTargetLease::valid() const noexcept {
   return target_id != 0 && width_pixels != 0 && height_pixels != 0 &&
          device.generation != 0 && !device.adapter_name.empty() &&
+         presentation_profile.valid() &&
          static_cast<bool>(backend_private_state);
 }
 

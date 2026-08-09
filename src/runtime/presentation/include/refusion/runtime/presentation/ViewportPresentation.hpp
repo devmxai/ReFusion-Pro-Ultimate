@@ -24,7 +24,40 @@ enum class NativeWindowSystem : std::uint8_t {
 };
 
 enum class PixelFormat : std::uint8_t {
+  unknown,
   bgra8_unorm,
+  rgba16_float,
+};
+
+enum class PresentationTransferFunction : std::uint8_t {
+  unknown,
+  srgb,
+  linear_srgb,
+};
+
+// Presentation precision is runtime display state, not project semantics.
+// Only these admitted storage/transfer pairs may cross a native target lease.
+struct PresentationTargetProfile final {
+  PixelFormat pixel_format{PixelFormat::unknown};
+  PresentationTransferFunction transfer{
+      PresentationTransferFunction::unknown};
+
+  [[nodiscard]] bool valid() const noexcept;
+  [[nodiscard]] std::uint32_t bytes_per_pixel() const noexcept;
+
+  friend bool operator==(const PresentationTargetProfile&,
+                         const PresentationTargetProfile&) = default;
+};
+
+inline constexpr PresentationTargetProfile
+    kHighPrecisionSdrPresentationProfile{
+        .pixel_format = PixelFormat::rgba16_float,
+        .transfer = PresentationTransferFunction::linear_srgb,
+    };
+
+inline constexpr PresentationTargetProfile kFallbackSdrPresentationProfile{
+    .pixel_format = PixelFormat::bgra8_unorm,
+    .transfer = PresentationTransferFunction::srgb,
 };
 
 enum class FrameStatus : std::uint8_t {
@@ -70,7 +103,7 @@ struct NativeViewportHostLease final {
 // matching native renderer bridge may inspect it.
 struct BackendFrameTargetLease final {
   gpu::DeviceIdentity device;
-  PixelFormat pixel_format{PixelFormat::bgra8_unorm};
+  PresentationTargetProfile presentation_profile;
   std::uint64_t target_id{0};
   std::uint32_t width_pixels{0};
   std::uint32_t height_pixels{0};
@@ -156,6 +189,7 @@ struct FrameResult final {
 struct PresentationTelemetry final {
   std::uint64_t device_generation{0};
   gpu::DeviceStatus device_status{gpu::DeviceStatus::lost};
+  PresentationTargetProfile presentation_profile;
   std::uint64_t device_event_sequence{0};
   std::uint64_t frame_requests{0};
   std::uint64_t drawable_acquisitions{0};
