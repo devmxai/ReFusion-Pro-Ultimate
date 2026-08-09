@@ -49,13 +49,13 @@
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
-          "compiled": false,
-          "physically_run": false,
-          "semantically_matched": false,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
           "visual_tolerance_passed": false,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08", "EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09"]
         },
         "ios-metal-contract-canary": {
           "defined": true,
@@ -95,13 +95,13 @@
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
-          "compiled": false,
-          "physically_run": false,
-          "semantically_matched": false,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
           "visual_tolerance_passed": false,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08", "EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09"]
         },
         "ios-metal-contract-canary": {
           "defined": true,
@@ -141,13 +141,13 @@
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
-          "compiled": false,
-          "physically_run": false,
-          "semantically_matched": false,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
           "visual_tolerance_passed": false,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08", "EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09"]
         },
         "ios-metal-contract-canary": {
           "defined": true,
@@ -187,13 +187,13 @@
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
-          "compiled": false,
-          "physically_run": false,
-          "semantically_matched": false,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
           "visual_tolerance_passed": false,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08", "EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09"]
         },
         "ios-metal-contract-canary": {
           "defined": true,
@@ -233,13 +233,13 @@
         },
         "windows-d3d12-desktop-v1": {
           "defined": true,
-          "compiled": false,
-          "physically_run": false,
-          "semantically_matched": false,
+          "compiled": true,
+          "physically_run": true,
+          "semantically_matched": true,
           "visual_tolerance_passed": false,
           "performance_qualified": false,
           "qualified": false,
-          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08"]
+          "evidence": ["EVID-XPF-WP05A-SOURCE-2026-08-08", "EVID-XPF-WP05B-WINDOWS-PHYSICAL-2026-08-09"]
         },
         "ios-metal-contract-canary": {
           "defined": true,

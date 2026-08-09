@@ -25,8 +25,10 @@ Read in this order:
 Visual development is single-source: portable descriptors/evaluation compile
 to one RenderPlan executed by one common Skia compositor. Metal, D3D12 and
 Vulkan targets differ only in native device/target/import/sync/present mechanics.
-The D3D12/DXGI source route and `windows-visual` lane are defined, but Windows
-build/device/pixel evidence remains `not-run` until a real Windows lab exists.
+The D3D12/DXGI source route has now compiled and physically run on hardware
+Windows for the bounded Canvas/Studio profile. The final same-commit
+Metal/D3D12 pixel comparison, performance qualification, the post-checkpoint UI
+rerun and Windows Video import/decode remain open; see `CURRENT.md`.
 
 The large foundation discussion is preserved in
 `docs/research/foundation-screening-draft.md`; it is research evidence, not an

@@ -220,7 +220,7 @@ def main() -> None:
         bad_matrix = pathlib.Path(temporary) / "matrix.json"
         skipped_evidence = deepcopy(capability_matrix)
         state = skipped_evidence["capabilities"][0]["profiles"][
-            "windows-d3d12-desktop-v1"
+            "android-vulkan-contract-canary"
         ]
         state["physically_run"] = True
         bad_matrix.write_text(json.dumps(skipped_evidence), encoding="utf-8")

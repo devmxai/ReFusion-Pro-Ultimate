@@ -1620,10 +1620,11 @@ streams, but WP05 may not claim parity until all three provide their inputs.
 `XPF-WP00A`, the macOS/common `XPF-WP02A` relocation, locally executable
 `XPF-WP02B` conformance corpus and local `XPF-WP01A/B` canonical project,
 command-coordinate/workspace slices and `XPF-WP03A` deterministic-font slice
-and the common/Metal `XPF-WP04A` lease slice are complete. `XPF-WP05A` now
-defines the D3D12/DXGI/Windows-Studio source route without copying semantic
-execution. Windows build/device receipts remain `not-run`; this prevents formal
-WP01 through WP05 closure. `XPF-WP06A` completes the locally executable
+and the common/Metal `XPF-WP04A` lease slice are complete. `XPF-WP05A` defines
+the D3D12/DXGI/Windows-Studio source route without copying semantic execution;
+`XPF-WP05B` records the first physical Windows compile/run/semantic pass. Its
+calibrated visual comparison and performance states remain false, preventing
+formal WP01 through WP05 closure. `XPF-WP06A` completes the locally executable
 descriptor/Inspector/Agent, generic RFX5 codec, Registry-bound RenderPlan
 identity and guarded matrix slice while keeping formal WP06 open. `XPF-WP07A`
 now compiles the complete iPhoneOS Core and shared-graphics closures;
@@ -1669,7 +1670,7 @@ host produces their receipts.
 |---|---|---|
 | Portable/shared | Core authority, canonical RFX5, exact-time evaluation, Registry-bound contributions, common `VisualRenderPlan`, common Skia compositor, deterministic packaged-font path, backend leases, Preview/Offline qualification consumer and full fixed conformance corpus exist; active native-semantic debt is zero. ADR-0010 and its paired visual bounds are accepted; `XPF-PRE-WINDOWS-READY` binds the immutable source. | No additional Phase-A work. Any shared-source change invalidates the receipt and must rerun the affected gates. |
 | macOS Metal | The application physically renders through the common route; Core 30/30, sanitized Core 30/30 and Visual 51/51 pass; the bounded 10,000-frame Preview receipt and committed 640x360 Desktop-v1 reference capture exist. The commit-bound machine receipt is issued. | Retain this profile as the Windows comparison reference and rerun it only if an affected shared contract/source changes. |
-| Windows D3D12 | The hardware-only device, Skia binding, DXGI presenter, Windows Studio route, bounded/typed fence failures and same-program offscreen capture executable are source-defined without a semantic renderer fork. | On Windows, first generate/review/commit the host-specific Skia transitive lock; then compile/link with MSVC, exercise a named non-WARP device, open/resave the same projects, run the semantic/pixel/performance corpus and retain receipts. |
+| Windows D3D12 | The hardware-only route physically passed Core 30/30, Graphics 38/38, Visual 44/44 and manual Studio playback on Intel D3D12 for tested source `1e2dc89`, without WARP or CPU project pixels. | Rerun the promoted UI checkpoint on Windows, produce same-commit D3D12/Metal captures, pass calibrated visual bounds and complete performance qualification. |
 | iOS Metal canary | The Core and shared Graphics closures compile and the product presenter fails closed by design. | No Desktop-v1 product runtime is required here; retain the compile canary and honest non-runtime matrix state. |
 | Android Vulkan canary | The source/profile/official-NDK CI route is defined and fails closed as a product presenter. | Obtain the official-NDK Core/Graphics compile receipt. Full Android product runtime remains G9. |
 

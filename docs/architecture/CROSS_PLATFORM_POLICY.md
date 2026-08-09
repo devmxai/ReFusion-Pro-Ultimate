@@ -17,8 +17,10 @@ accepted_by: product-owner-user-instruction-2026-08-07
   media, audio, or export semantics.
 - Mobile: iOS and Android receive portable-contract compile canaries during G1;
   full product/runtime qualification remains G9.
-- The current physical runtime lab is macOS only. Windows, iOS, and Android
-  runtime state is `not-run`, never `passed`, `unsupported`, or silently waived.
+- Physical Desktop evidence now exists on macOS and Windows, but every
+  capability retains independent compiled/run/semantic/visual/performance
+  states. iOS and Android product runtime remains `not-run`; no evidence from
+  one platform silently advances another state.
 
 ## Canonical two-host Git workflow
 
