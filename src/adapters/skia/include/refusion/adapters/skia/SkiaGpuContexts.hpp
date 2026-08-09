@@ -49,6 +49,8 @@ class SkiaGpuContexts final
   [[nodiscard]] runtime::presentation::FrameResult render(
       const runtime::presentation::BackendFrameTargetLease& target,
       const runtime::presentation::PresentationFrameRequest& frame) override;
+  [[nodiscard]] runtime::presentation::FrameResult retire_frame_targets()
+      override;
 
  private:
   struct Implementation;

@@ -81,7 +81,8 @@ conformance_render_program() {
 
 [[nodiscard]] ComPtr<ID3D12Resource> create_target_texture(
     ID3D12Device& device, const std::uint32_t width,
-    const std::uint32_t height) {
+    const std::uint32_t height,
+    const DXGI_FORMAT format = DXGI_FORMAT_B8G8R8A8_UNORM) {
   D3D12_HEAP_PROPERTIES heap{};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;
   heap.CreationNodeMask = 1;
@@ -92,7 +93,7 @@ conformance_render_program() {
   description.Height = height;
   description.DepthOrArraySize = 1;
   description.MipLevels = 1;
-  description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  description.Format = format;
   description.SampleDesc.Count = 1;
   description.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   description.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -110,12 +111,14 @@ target_lease(const refusion::runtime::gpu::DeviceIdentity& identity,
              const std::uint64_t target_id,
              const std::uint32_t width,
              const std::uint32_t height,
-             const ComPtr<ID3D12Resource>& texture) {
+             const ComPtr<ID3D12Resource>& texture,
+             const refusion::runtime::presentation::PresentationTargetProfile
+                 presentation_profile = refusion::runtime::presentation::
+                     kFallbackSdrPresentationProfile) {
   auto owner = std::make_shared<ComPtr<ID3D12Resource>>(texture);
   return {
       .device = identity,
-      .pixel_format =
-          refusion::runtime::presentation::PixelFormat::bgra8_unorm,
+      .presentation_profile = presentation_profile,
       .target_id = target_id,
       .width_pixels = width,
       .height_pixels = height,
@@ -267,6 +270,38 @@ void qualify_downsampled_pixels(const std::vector<std::uint8_t>& pixels) {
           "D3D12 full-resolution Canvas downsample lost foreground detail");
 }
 
+void qualify_actual_pixel_crop(
+    const std::vector<std::uint8_t>& actual,
+    const std::vector<std::uint8_t>& reference,
+    const std::uint32_t reference_width, const std::uint32_t crop_left,
+    const std::uint32_t crop_top, const std::uint32_t crop_width,
+    const std::uint32_t crop_height) {
+  require(actual.size() ==
+              static_cast<std::size_t>(crop_width) * crop_height * 4U,
+          "D3D12 actual-pixel Canvas has an unexpected extent");
+  std::uint8_t maximum_delta = 0;
+  for (std::uint32_t y = 0; y < crop_height; ++y) {
+    for (std::uint32_t x = 0; x < crop_width; ++x) {
+      const auto actual_index =
+          (static_cast<std::size_t>(y) * crop_width + x) * 4U;
+      const auto reference_index =
+          (static_cast<std::size_t>(y + crop_top) * reference_width +
+           x + crop_left) *
+          4U;
+      for (std::size_t channel = 0; channel < 4; ++channel) {
+        maximum_delta = std::max(
+            maximum_delta,
+            static_cast<std::uint8_t>(std::abs(
+                static_cast<int>(actual[actual_index + channel]) -
+                static_cast<int>(reference[reference_index + channel]))));
+      }
+    }
+  }
+  require(maximum_delta <= 2,
+          "D3D12 100% Canvas is not a pixel-true centered crop; max delta=" +
+              std::to_string(maximum_delta));
+}
+
 void write_reference_ppm(const std::string& path,
                          const std::vector<std::uint8_t>& pixels,
                          const std::uint32_t width,
@@ -345,6 +380,55 @@ int main() {
   require(fit_result.succeeded(), fit_result.diagnostic);
   qualify_downsampled_pixels(
       read_bgra(*device, *queue, *fit_texture.Get(), fit_width, fit_height));
+
+  const auto actual_pixel_texture =
+      create_target_texture(*device, fit_width, fit_height);
+  const auto actual_pixel_target =
+      target_lease(device_service->identity(), 5, fit_width, fit_height,
+                   actual_pixel_texture);
+  const auto actual_pixel_result = renderer->render(
+      actual_pixel_target,
+      PresentationFrameRequest{
+          .request_sequence = 60,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = VisualOutputConsumer::interactive_preview,
+          .canvas_view = {
+              .mode = refusion::runtime::render::
+                  CanvasViewportMode::custom_zoom,
+              .raster_quality = refusion::runtime::render::
+                  CanvasRasterQuality::full_resolution,
+              .zoom = 1.0,
+          },
+          .render_program = program,
+      });
+  require(actual_pixel_result.succeeded(), actual_pixel_result.diagnostic);
+  const auto actual_pixel_pixels = read_bgra(
+      *device, *queue, *actual_pixel_texture.Get(), fit_width, fit_height);
+  qualify_actual_pixel_crop(actual_pixel_pixels, preview_pixels, width, 160,
+                            90, fit_width, fit_height);
+
+  const auto high_precision_texture = create_target_texture(
+      *device, fit_width, fit_height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+  const auto high_precision_target = target_lease(
+      device_service->identity(), 4, fit_width, fit_height,
+      high_precision_texture,
+      refusion::runtime::presentation::
+          kHighPrecisionSdrPresentationProfile);
+  const auto high_precision_result = renderer->render(
+      high_precision_target,
+      PresentationFrameRequest{
+          .request_sequence = 62,
+          .project_time_ns = 1'000'000'000,
+          .transport_epoch_id = 77,
+          .device = device_service->identity(),
+          .output_consumer = VisualOutputConsumer::interactive_preview,
+          .render_program = program,
+      });
+  require(high_precision_result.succeeded(),
+          high_precision_result.diagnostic);
+  wait_for_queue(*device, *queue);
 
   const auto offline_texture = create_target_texture(*device, width, height);
   const auto offline_target = target_lease(

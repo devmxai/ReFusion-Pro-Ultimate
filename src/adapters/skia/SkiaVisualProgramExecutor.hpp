@@ -29,6 +29,7 @@ class SkiaVisualProgramExecutor final {
       SkSurface& target_surface,
       SkiaTextLayoutEngine& text_layout_engine,
       const runtime::render::VisualRenderProgram& program,
+      std::uint64_t presentation_sequence,
       runtime::render::ProjectTimeNs project_time_ns,
       std::uint64_t transport_epoch_id,
       runtime::render::VisualOutputConsumer output_consumer,

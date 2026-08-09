@@ -17,6 +17,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QScreen>
 #include <QTimer>
 #include <QWindow>
 
@@ -25,6 +26,35 @@
 #include <utility>
 
 namespace {
+
+void constrain_window_to_available_geometry(QWindow& window) {
+  const auto* screen = window.screen();
+  if (screen == nullptr) {
+    return;
+  }
+  const auto available = screen->availableGeometry().size();
+  const auto margins = window.frameMargins();
+  const auto frame_geometry = window.frameGeometry();
+  const auto horizontal_frame = qMax(
+      margins.left() + margins.right(), frame_geometry.width() - window.width());
+  const auto vertical_frame = qMax(
+      margins.top() + margins.bottom(),
+      frame_geometry.height() - window.height());
+  const QSize maximum_client_size{
+      qMax(1, available.width() - horizontal_frame),
+      qMax(1, available.height() - vertical_frame),
+  };
+  window.setMinimumSize(window.minimumSize().boundedTo(maximum_client_size));
+  window.resize(window.size().boundedTo(maximum_client_size));
+}
+
+void fit_window_to_available_geometry(QWindow& window) {
+  const auto fit = [&window] {
+    constrain_window_to_available_geometry(window);
+  };
+  QTimer::singleShot(0, &window, fit);
+  QTimer::singleShot(100, &window, fit);
+}
 
 class ActiveStudioSession final {
  public:
@@ -95,6 +125,10 @@ class ActiveStudioSession final {
     if (engine.rootObjects().size() == root_count) {
       diagnostic = QStringLiteral("RFX-STUDIO-QML-001: Main UI failed to load");
       return false;
+    }
+    if (auto* studio_window =
+            qobject_cast<QWindow*>(engine.rootObjects().constLast())) {
+      fit_window_to_available_geometry(*studio_window);
     }
     return true;
   }

@@ -33,20 +33,19 @@ Adopt one common Canvas-preview policy:
   the declared project dimensions;
 - reduction uses reusable GPU surfaces, linear stages with no stage reducing
   either dimension by more than two, then one Mitchell cubic presentation pass
-  with dithering into the native BGRA8 target;
+  through the shared final dither defined by ADR-0013;
 - Canvas text uses device-independent font rasterization with unknown subpixel
   geometry, preventing platform display geometry from changing project text;
 - Metal, D3D12 and future Vulkan bindings call the same executor and supply only
   native target mechanics; they do not select scaling, text, gradient, color or
   sampling semantics;
-- native presenters explicitly bind the accepted Desktop-v1 SDR output color
-  meaning, using sRGB on CAMetalLayer and
-  `DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709` on DXGI.
+- native presenters bind one complete storage/transfer pair admitted by
+  ADR-0013 and expose the selected profile through portable telemetry.
 
 The Desktop-v1 SDR project and compositing contract in ADR-0010 remains
 unchanged. The floating-point intermediate prevents early 8-bit quantization;
-the delivered swapchain format remains BGRA8 UNORM with the accepted sRGB
-output meaning.
+the interactive display prefers a linear-sRGB RGBA16F carrier and falls back
+to BGRA8/sRGB without changing project semantics.
 
 # Failure behavior
 
@@ -62,8 +61,9 @@ passed the same D3D12 render fixture on the Intel adapter.
 
 # Qualification
 
-- Portable tests must prove aspect-preserving Fit and separation of raster
-  quality from presentation mapping.
+- Portable tests must prove aspect-preserving Fit, separation of raster quality
+  from presentation mapping and Actual Pixels zoom 1.0 as a true centered
+  one-source-pixel to one-physical-target-pixel crop.
 - D3D12 and Metal integration fixtures must render the same semantic program at
   native and reduced target sizes and retain opaque output and foreground
   coverage.
@@ -75,9 +75,9 @@ passed the same D3D12 render fixture on the Intel adapter.
 
 # Consequences
 
-Fit cannot display all source pixels when a Composition is physically smaller
+Fit cannot display all source pixels when a Composition is physically larger
 than its on-screen destination; information loss is mathematically unavoidable.
 This policy makes that loss deterministic and high quality, removes aspect
-distortion and prevents low-resolution direct text rasterization. Presentation
-zoom can be exposed later without changing project semantics or claiming that
-`100%` is a quality mode.
+distortion and prevents low-resolution direct text rasterization. Studio exposes
+Fit and Actual Pixels as presentation-only state; 100% means pixel mapping and
+does not select a different project quality or backend renderer.

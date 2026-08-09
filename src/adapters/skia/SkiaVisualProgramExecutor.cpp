@@ -10,9 +10,12 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkImage.h"
+#include "include/core/SkMatrix.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkSamplingOptions.h"
+#include "include/core/SkString.h"
 #include "include/core/SkSurface.h"
+#include "include/effects/SkRuntimeEffect.h"
 
 #include <algorithm>
 #include <cmath>
@@ -20,6 +23,78 @@
 #include <vector>
 
 namespace refusion::adapters::skia {
+namespace {
+
+[[nodiscard]] const sk_sp<SkRuntimeEffect>& presentation_dither_effect() {
+  static const sk_sp<SkRuntimeEffect> effect = [] {
+    const auto result = SkRuntimeEffect::MakeForShader(SkString(R"(
+      uniform shader source;
+      uniform float seed;
+      uniform float ditherRange;
+      uniform float linearTarget;
+
+      half4 main(float2 position) {
+        half4 color = source.eval(position);
+        if (color.a <= 0.0) {
+          return color;
+        }
+        half3 straight = color.rgb / color.a;
+        half3 encoded = linearTarget > 0.5
+                            ? fromLinearSrgb(straight)
+                            : straight;
+        float2 pixel = floor(max(position, float2(0.0)));
+        float3 hash = fract(float3(pixel, seed) *
+                            float3(0.1031, 0.1030, 0.0973));
+        hash += dot(hash, hash.yzx + 33.33);
+        float noise = fract((hash.x + hash.y) * hash.z) - 0.5;
+        encoded = clamp(encoded + half(noise * ditherRange), 0.0, 1.0);
+        half3 resultColor = linearTarget > 0.5
+                                ? toLinearSrgb(encoded)
+                                : encoded;
+        return half4(resultColor * color.a, color.a);
+      }
+    )"));
+    if (!result.effect) {
+      throw std::runtime_error(
+          "RFX-CANVAS-DITHER-001: Skia rejected the common presentation "
+          "shader: " +
+          std::string(result.errorText.c_str()));
+    }
+    return result.effect;
+  }();
+  return effect;
+}
+
+void draw_presented_image(
+    SkCanvas& canvas, const sk_sp<SkImage>& image, const SkRect& source,
+    const SkRect& destination, const SkSamplingOptions& sampling,
+    const std::uint64_t presentation_sequence, const bool linear_target) {
+  const auto image_matrix = SkMatrix::RectToRect(source, destination);
+  auto image_shader = image->makeShader(
+      SkTileMode::kClamp, SkTileMode::kClamp, sampling, image_matrix);
+  if (!image_shader) {
+    throw std::runtime_error(
+        "RFX-CANVAS-DITHER-002: Skia could not create the presentation "
+        "image shader");
+  }
+  SkRuntimeShaderBuilder builder(presentation_dither_effect());
+  builder.child("source") = std::move(image_shader);
+  builder.uniform("seed") = static_cast<float>(presentation_sequence % 4096U);
+  builder.uniform("ditherRange") = 0.999F / 255.0F;
+  builder.uniform("linearTarget") = linear_target ? 1.0F : 0.0F;
+  auto shader = builder.makeShader();
+  if (!shader) {
+    throw std::runtime_error(
+        "RFX-CANVAS-DITHER-003: Skia could not instantiate the common "
+        "presentation shader");
+  }
+  SkPaint paint;
+  paint.setAntiAlias(true);
+  paint.setShader(std::move(shader));
+  canvas.drawRect(destination, paint);
+}
+
+}  // namespace
 
 struct SkiaVisualProgramExecutor::Implementation final {
   struct DownsampleSurface final {
@@ -49,6 +124,7 @@ void SkiaVisualProgramExecutor::execute(
     SkSurface& target_surface,
     SkiaTextLayoutEngine& text_layout_engine,
     const runtime::render::VisualRenderProgram& program,
+    const std::uint64_t presentation_sequence,
     const runtime::render::ProjectTimeNs project_time_ns,
     const std::uint64_t transport_epoch_id,
     const runtime::render::VisualOutputConsumer output_consumer,
@@ -83,7 +159,7 @@ void SkiaVisualProgramExecutor::execute(
                        static_cast<float>(mapping.destination_width),
                        static_cast<float>(mapping.destination_height));
 
-  if (mapping.requires_full_resolution_intermediate) {
+  {
     if (!implementation_->composition_surface ||
         implementation_->width_pixels != frame.plan.canvas_width_pixels ||
         implementation_->height_pixels != frame.plan.canvas_height_pixels) {
@@ -111,9 +187,6 @@ void SkiaVisualProgramExecutor::execute(
           "Composition surface");
     }
 
-    SkPaint presentation_paint;
-    presentation_paint.setAntiAlias(true);
-    presentation_paint.setDither(true);
     sk_sp<SkImage> downsampled_image = std::move(composition_image);
     std::uint32_t downsampled_width = frame.plan.canvas_width_pixels;
     std::uint32_t downsampled_height = frame.plan.canvas_height_pixels;
@@ -171,23 +244,17 @@ void SkiaVisualProgramExecutor::execute(
       ++stage_index;
     }
     implementation_->downsample_surfaces.resize(stage_index);
-    target_canvas.drawImageRect(
-        downsampled_image,
+    const auto presentation_sampling =
+        mapping.canvas_to_target_scale == 1.0
+            ? SkSamplingOptions(SkFilterMode::kNearest)
+            : SkSamplingOptions(SkCubicResampler::Mitchell());
+    draw_presented_image(
+        target_canvas, downsampled_image,
         SkRect::MakeWH(static_cast<float>(downsampled_width),
                        static_cast<float>(downsampled_height)),
-        destination, SkSamplingOptions(SkCubicResampler::Mitchell()),
-        &presentation_paint, SkCanvas::kStrict_SrcRectConstraint);
-    return;
+        destination, presentation_sampling, presentation_sequence,
+        target_surface.imageInfo().colorType() == kRGBA_F16_SkColorType);
   }
-
-  target_canvas.save();
-  target_canvas.clipRect(destination, SkClipOp::kIntersect, true);
-  target_canvas.translate(static_cast<float>(mapping.destination_left),
-                          static_cast<float>(mapping.destination_top));
-  target_canvas.scale(static_cast<float>(mapping.canvas_to_target_scale),
-                      static_cast<float>(mapping.canvas_to_target_scale));
-  draw_visual_render_plan(target_canvas, text_layout_engine, frame.plan);
-  target_canvas.restore();
 }
 
 }  // namespace refusion::adapters::skia

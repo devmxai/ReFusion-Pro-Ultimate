@@ -1,4 +1,20 @@
 include_guard(GLOBAL)
+include(MachineCache)
+
+function(refusion_require_portable_text_sha256 path expected diagnostic)
+  file(SHA256 "${path}" raw_sha256)
+  file(READ "${path}" text_content)
+  string(REPLACE "\r\n" "\n" lf_content "${text_content}")
+  string(REPLACE "\r" "\n" lf_content "${lf_content}")
+  string(SHA256 lf_sha256 "${lf_content}")
+  string(REPLACE "\n" "\r\n" crlf_content "${lf_content}")
+  string(SHA256 crlf_sha256 "${crlf_content}")
+  if(NOT expected STREQUAL raw_sha256 AND
+     NOT expected STREQUAL lf_sha256 AND
+     NOT expected STREQUAL crlf_sha256)
+    message(FATAL_ERROR "${diagnostic}")
+  endif()
+endfunction()
 
 function(refusion_deploy_skia_runtime target)
   if(NOT WIN32)
@@ -61,6 +77,8 @@ function(refusion_import_skia)
     endif()
   endif()
 
+  refusion_resolve_skia_machine_cache()
+
   file(REAL_PATH "${CMAKE_SOURCE_DIR}" refusion_repo_root)
   file(REAL_PATH "${REFUSION_SKIA_SOURCE_DIR}" refusion_skia_source_real)
   file(REAL_PATH "${REFUSION_SKIA_BUILD_DIR}" refusion_skia_build_real)
@@ -68,9 +86,21 @@ function(refusion_import_skia)
              NORMALIZE refusion_skia_source_is_local)
   cmake_path(IS_PREFIX refusion_repo_root "${refusion_skia_build_real}"
              NORMALIZE refusion_skia_build_is_local)
-  if(NOT refusion_skia_source_is_local OR NOT refusion_skia_build_is_local)
+  if((NOT refusion_skia_source_is_local OR NOT refusion_skia_build_is_local) AND
+     NOT REFUSION_MACHINE_CACHE_ACTIVE)
     message(FATAL_ERROR
-      "Skia sources and build artifacts must remain inside this ReFusion checkout")
+      "Skia sources and build artifacts must remain inside this ReFusion checkout "
+      "or resolve from the verified ReFusion development machine cache")
+  endif()
+  if(REFUSION_MACHINE_CACHE_ACTIVE)
+    file(REAL_PATH "${REFUSION_DEPENDENCY_SOURCE_DIR}"
+         refusion_dependency_source_real)
+    cmake_path(GET refusion_skia_source_real PARENT_PATH
+               refusion_skia_source_parent)
+    if(NOT refusion_skia_source_parent STREQUAL refusion_dependency_source_real)
+      message(FATAL_ERROR
+        "Verified machine-cache Skia source does not belong to its dependency root")
+    endif()
   endif()
 
   file(READ "${CMAKE_SOURCE_DIR}/deps/manifest.lock.json" refusion_dependency_lock)
@@ -118,6 +148,7 @@ function(refusion_import_skia)
   execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/bootstrap.py"
             verify-skia-materialization
+            --source-cache "${REFUSION_DEPENDENCY_SOURCE_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     RESULT_VARIABLE materialization_result
     OUTPUT_VARIABLE materialization_output
@@ -171,10 +202,9 @@ function(refusion_import_skia)
     if(NOT built_source_patch_is_local)
       message(FATAL_ERROR "Skia source patch is outside the admitted patch root")
     endif()
-    file(SHA256 "${built_source_patch_real}" actual_source_patch_sha256)
-    if(NOT actual_source_patch_sha256 STREQUAL expected_source_patch_sha256)
-      message(FATAL_ERROR "Skia Windows source patch changed after the build")
-    endif()
+    refusion_require_portable_text_sha256(
+      "${built_source_patch_real}" "${expected_source_patch_sha256}"
+      "Skia Windows source patch changed after the build")
   endif()
   string(JSON expected_target_count LENGTH "${skia_profile_catalog}"
          profiles "${built_profile}" targets)
@@ -202,21 +232,19 @@ function(refusion_import_skia)
   if(NOT built_args_is_local)
     message(FATAL_ERROR "Skia build record references a GN profile outside ReFusion")
   endif()
-  file(SHA256 "${built_args_real}" actual_args_sha256)
-  if(NOT actual_args_sha256 STREQUAL expected_args_sha256)
-    message(FATAL_ERROR "Skia GN profile changed after the recorded build")
-  endif()
+  refusion_require_portable_text_sha256(
+    "${built_args_real}" "${expected_args_sha256}"
+    "Skia GN profile changed after the recorded build")
   string(JSON dependency_record_path GET "${skia_build_record}" dependency_record)
   string(JSON expected_dependency_sha256 GET "${skia_build_record}"
          dependency_record_sha256)
   if(NOT dependency_record_path STREQUAL "out/deps-src/skia-dependencies.lock.json")
     message(FATAL_ERROR "Skia build record references an unexpected dependency inventory")
   endif()
-  file(SHA256 "${CMAKE_SOURCE_DIR}/${dependency_record_path}"
-       actual_dependency_sha256)
-  if(NOT actual_dependency_sha256 STREQUAL expected_dependency_sha256)
-    message(FATAL_ERROR "Skia dependency inventory changed after the recorded build")
-  endif()
+  refusion_require_portable_text_sha256(
+    "${REFUSION_DEPENDENCY_SOURCE_DIR}/skia-dependencies.lock.json"
+    "${expected_dependency_sha256}"
+    "Skia dependency inventory changed after the recorded build")
   string(JSON tracked_dependency_path GET "${skia_build_record}"
          tracked_dependency_lock)
   string(JSON expected_tracked_dependency_sha256 GET "${skia_build_record}"
@@ -229,11 +257,9 @@ function(refusion_import_skia)
   if(NOT tracked_dependency_is_local)
     message(FATAL_ERROR "Skia build record references an untracked dependency lock path")
   endif()
-  file(SHA256 "${tracked_dependency_real}" actual_tracked_dependency_sha256)
-  if(NOT actual_tracked_dependency_sha256 STREQUAL
-         expected_tracked_dependency_sha256)
-    message(FATAL_ERROR "Tracked Skia dependency lock changed after the build")
-  endif()
+  refusion_require_portable_text_sha256(
+    "${tracked_dependency_real}" "${expected_tracked_dependency_sha256}"
+    "Tracked Skia dependency lock changed after the build")
 
   if(WIN32)
     set(skia_library "${REFUSION_SKIA_BUILD_DIR}/refusion_skia_bundle.lib")

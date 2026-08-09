@@ -85,4 +85,10 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
   };
 }
 
+runtime::presentation::FrameResult SkiaGpuContexts::retire_frame_targets() {
+  return runtime::presentation::FrameResult{
+      .status = runtime::presentation::FrameStatus::accepted,
+  };
+}
+
 }  // namespace refusion::adapters::skia
