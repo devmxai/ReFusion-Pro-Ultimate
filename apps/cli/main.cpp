@@ -206,7 +206,12 @@ void describe(const ProjectSnapshot& project) {
             << outline.frame_rate.denominator << " duration_frames="
             << clock.frame_at_time(outline.duration) << " duration_ns="
             << outline.duration << '\n'
-            << "visual_property_registry=" << outline.registry_digest << '\n';
+            << "visual_property_registry=" << outline.registry_digest << '\n'
+            << "media assets=" << outline.assets.size()
+            << " sources=" << outline.media_sources.size()
+            << " linked_imports=" << outline.linked_imports.size()
+            << " video_clips=" << outline.video_clips.size()
+            << " audio_clips=" << outline.audio_clips.size() << '\n';
   for (const auto& node : outline.nodes) {
     std::cout << visual_ref(node.node) << " name=\"" << node.display_name
               << "\" timeline_row=" << node.timeline_row << " parent_path=";

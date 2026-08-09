@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "macos-arm64-demux-shared": {
+      "host": "macos-arm64",
+      "configure_args": [
+        "--disable-everything",
+        "--enable-shared",
+        "--disable-static",
+        "--disable-programs",
+        "--disable-doc",
+        "--disable-network",
+        "--disable-autodetect",
+        "--disable-avdevice",
+        "--disable-avfilter",
+        "--disable-swscale",
+        "--disable-swresample",
+        "--disable-decoders",
+        "--disable-encoders",
+        "--disable-muxers",
+        "--disable-filters",
+        "--disable-bsfs",
+        "--disable-parsers",
+        "--disable-protocols",
+        "--disable-asm",
+        "--enable-avformat",
+        "--enable-avcodec",
+        "--enable-avutil",
+        "--enable-demuxer=mov",
+        "--install-name-dir=@rpath",
+        "--cc=/usr/bin/clang",
+        "--arch=arm64",
+        "--target-os=darwin"
+      ]
+    },
+    "windows-x64-demux-shared": {
+      "host": "windows-x64",
+      "configure_args": [
+        "--disable-everything",
+        "--enable-shared",
+        "--disable-static",
+        "--disable-programs",
+        "--disable-doc",
+        "--disable-network",
+        "--disable-autodetect",
+        "--disable-avdevice",
+        "--disable-avfilter",
+        "--disable-swscale",
+        "--disable-swresample",
+        "--disable-decoders",
+        "--disable-encoders",
+        "--disable-muxers",
+        "--disable-filters",
+        "--disable-bsfs",
+        "--disable-parsers",
+        "--disable-protocols",
+        "--disable-asm",
+        "--enable-avformat",
+        "--enable-avcodec",
+        "--enable-avutil",
+        "--enable-demuxer=mov",
+        "--toolchain=msvc",
+        "--arch=x86_64",
+        "--target-os=win64"
+      ],
+      "build_shell_requirement": "pinned MSYS2 bash launched from an admitted MSVC x64 environment"
+    }
+  },
+  "allowlist_receipt": {
+    "required_enabled_demuxers": ["MOV"],
+    "forbidden_enabled_categories": [
+      "DECODER",
+      "ENCODER",
+      "MUXER",
+      "FILTER",
+      "BSF",
+      "PARSER",
+      "PROTOCOL"
+    ]
+  }
+}

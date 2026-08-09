@@ -8,6 +8,10 @@ option(REFUSION_BUILD_PLATFORM_GPU "Build the native engine-owned GPU service" O
 option(REFUSION_BUILD_PLATFORM_MEDIA
        "Build the strict native hardware-media capability probe" OFF)
 option(REFUSION_ENABLE_SKIA "Build the Skia adapter from a verified local source tree" OFF)
+option(REFUSION_ENABLE_FFMPEG_DEMUX
+       "Build the pinned shared FFmpeg demux-only adapter" OFF)
+set(REFUSION_FFMPEG_ROOT "" CACHE PATH
+    "Verified demux-only FFmpeg installation root")
 option(REFUSION_STRICT_WARNINGS "Treat warnings in ReFusion-owned code as errors" ON)
 option(REFUSION_RELEASE_BUILD "Enable fail-closed redistributable build gates" OFF)
 set(REFUSION_QT_COMMERCIAL_SDK_ROOT "" CACHE PATH
@@ -40,7 +44,7 @@ if(REFUSION_BUILD_PLATFORM_GPU OR REFUSION_BUILD_PLATFORM_MEDIA)
   add_subdirectory(src/platform)
 endif()
 
-if(REFUSION_ENABLE_SKIA)
+if(REFUSION_ENABLE_SKIA OR REFUSION_ENABLE_FFMPEG_DEMUX)
   add_subdirectory(src/adapters)
 endif()
 

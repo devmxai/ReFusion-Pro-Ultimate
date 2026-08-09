@@ -1,0 +1,20 @@
+{
+  "byte_size": 37459,
+  "expected": "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=320x180:rate=30:duration=1 -an -c:v libx265 -threads:v 1 -preset ultrafast -pix_fmt yuv420p -tag:v hvc1 -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv '$TMP/mp4-unsupported-hevc.mp4'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-unsupported-hevc",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "99cfffc4237cf795e0fb40239345e393e0feb078e237b1ac68e16476f94040d4",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "c76310952bacba26d53f966c9bd5312017e8834a86f3c7620f2f19ab5671fe9b"
+}

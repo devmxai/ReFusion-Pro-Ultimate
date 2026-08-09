@@ -1,0 +1,7 @@
+{
+  "construction": "accepted-source-tail-truncated",
+  "expected_diagnostic": "RFX-MEDIA-IMPORT-CORRUPT",
+  "original_source_sha256": "f1f236f5e63c1fe52ad15888a6436fb757af4ced9d863dc867399645407f980e",
+  "removed_tail_bytes": 8192,
+  "schema_version": 1
+}

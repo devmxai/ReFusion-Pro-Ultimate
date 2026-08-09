@@ -41,6 +41,12 @@ struct CompressedSampleDescriptor final {
   SourceFrameTiming timing;
   ExactMediaTime decode_time;
   bool sync_sample{false};
+  // Populated by the production MediaIndex projection. The older bounded G1
+  // elementary-stream proof leaves these zero and indexes its immutable test
+  // access-unit table by access_unit_index.
+  std::uint64_t source_byte_offset{0};
+  std::uint32_t source_byte_size{0};
+  std::uint32_t sample_description_index{0};
 
   [[nodiscard]] bool valid() const noexcept;
 };

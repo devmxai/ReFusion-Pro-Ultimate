@@ -1,0 +1,13 @@
+{
+  "all_markers_present": true,
+  "expected_diagnostic": "RFX-MEDIA-IMPORT-ENCRYPTED",
+  "required_iso_bmff_box_markers": [
+    "sinf",
+    "schm",
+    "tenc",
+    "senc",
+    "saiz",
+    "saio"
+  ],
+  "schema_version": 1
+}

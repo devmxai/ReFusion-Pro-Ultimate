@@ -43,6 +43,54 @@ namespace {
                      });
 }
 
+[[nodiscard]] bool portable_project_relative_path(
+    const std::string& value) noexcept {
+  if (value.empty() || value.front() == '/' || value.front() == '\\' ||
+      value.find('\\') != std::string::npos ||
+      value.find(':') != std::string::npos ||
+      !validate_preserved_utf8(value).valid()) {
+    return false;
+  }
+  std::size_t begin = 0;
+  while (begin <= value.size()) {
+    const auto end = value.find('/', begin);
+    const auto component = value.substr(
+        begin, end == std::string::npos ? std::string::npos : end - begin);
+    if (component.empty() || component == "." || component == "..") {
+      return false;
+    }
+    if (end == std::string::npos) {
+      break;
+    }
+    begin = end + 1;
+  }
+  return true;
+}
+
+[[nodiscard]] bool portable_file_name(const std::string& value) noexcept {
+  return !blank(value) && value.find('/') == std::string::npos &&
+         value.find('\\') == std::string::npos &&
+         value.find(':') == std::string::npos &&
+         validate_preserved_utf8(value).valid();
+}
+
+[[nodiscard]] bool media_range_contains(
+    const std::int64_t stream_start,
+    const std::uint64_t stream_duration,
+    const MediaTickRange& range) noexcept {
+  if (!range.valid() || stream_duration == 0 ||
+      stream_duration > static_cast<std::uint64_t>(
+                            std::numeric_limits<std::int64_t>::max()) ||
+      stream_start > std::numeric_limits<std::int64_t>::max() -
+                         static_cast<std::int64_t>(stream_duration)) {
+    return false;
+  }
+  const auto stream_end = stream_start +
+                          static_cast<std::int64_t>(stream_duration);
+  const auto range_end = range.start + static_cast<std::int64_t>(range.duration);
+  return range.start >= stream_start && range_end <= stream_end;
+}
+
 [[nodiscard]] CompositionValidation rejected(std::string code,
                                              std::string message) {
   return CompositionValidation{
@@ -260,6 +308,18 @@ bool TimeRangeNs::contains(const ProjectTimeNs time) const noexcept {
 
 bool CanvasExtent::valid() const noexcept {
   return width_pixels != 0 && height_pixels != 0;
+}
+
+bool MediaTimeBase::valid() const noexcept {
+  return numerator > 0 && denominator > 0;
+}
+
+bool MediaTickRange::valid() const noexcept {
+  return duration != 0 &&
+         duration <= static_cast<std::uint64_t>(
+                         std::numeric_limits<std::int64_t>::max()) &&
+         start <= std::numeric_limits<std::int64_t>::max() -
+                      static_cast<std::int64_t>(duration);
 }
 
 bool FontIdentity::qualified() const noexcept {
@@ -495,6 +555,53 @@ CompositionValidation validate_composition(
     }
   }
 
+  std::unordered_set<std::string> video_clip_ids;
+  for (const auto& clip : composition.video_clips) {
+    if (!portable_ascii_identifier(clip.video_clip_id.value) ||
+        !video_clip_ids.emplace(clip.video_clip_id.value).second) {
+      return rejected("RFX-MEDIA-PROJECT-101",
+                      "VideoClip IDs must be portable and unique");
+    }
+    if (!portable_ascii_identifier(clip.linked_import_id.value) ||
+        !portable_ascii_identifier(clip.media_source_id.value) ||
+        !portable_ascii_identifier(clip.stream_id.value)) {
+      return rejected("RFX-MEDIA-PROJECT-102",
+                      "VideoClip references must be portable identifiers");
+    }
+    if (blank(clip.display_name) ||
+        !validate_preserved_utf8(clip.display_name).valid() ||
+        !clip.active_range.valid() ||
+        clip.active_range.end() > composition.duration ||
+        !clip.source_range.valid()) {
+      return rejected("RFX-MEDIA-PROJECT-103",
+                      "VideoClip range or display name is invalid");
+    }
+  }
+
+  std::unordered_set<std::string> audio_clip_ids;
+  for (const auto& clip : composition.audio_clips) {
+    if (!portable_ascii_identifier(clip.audio_clip_id.value) ||
+        !audio_clip_ids.emplace(clip.audio_clip_id.value).second) {
+      return rejected("RFX-MEDIA-PROJECT-104",
+                      "AudioClip IDs must be portable and unique");
+    }
+    if (!portable_ascii_identifier(clip.linked_import_id.value) ||
+        !portable_ascii_identifier(clip.media_source_id.value) ||
+        !portable_ascii_identifier(clip.stream_id.value)) {
+      return rejected("RFX-MEDIA-PROJECT-105",
+                      "AudioClip references must be portable identifiers");
+    }
+    if (blank(clip.display_name) ||
+        !validate_preserved_utf8(clip.display_name).valid() ||
+        !clip.active_range.valid() ||
+        clip.active_range.end() > composition.duration ||
+        !clip.source_range.valid() || !finite(clip.gain) ||
+        clip.gain < 0.0 || clip.gain > 16.0) {
+      return rejected("RFX-MEDIA-PROJECT-106",
+                      "AudioClip range, gain or display name is invalid");
+    }
+  }
+
   std::unordered_set<std::string> group_ids;
   for (const auto& group : composition.groups) {
     if (!portable_ascii_identifier(group.group_id.value) ||
@@ -637,6 +744,239 @@ CompositionValidation validate_composition(
   if (visited.size() != composition.layers.size() + composition.groups.size()) {
     return rejected("RFX-PROJECT-126",
                     "every visual node must be reachable from the root order");
+  }
+
+  return CompositionValidation{.valid = true};
+}
+
+CompositionValidation validate_media_stream_descriptor(
+    const MediaStreamDescriptor& stream) {
+  if (!portable_ascii_identifier(stream.stream_id.value) ||
+      stream.container_track_id == 0 ||
+      !sha256_digest(stream.codec_configuration_digest) ||
+      !stream.time_base.valid() || stream.duration == 0 ||
+      stream.duration > static_cast<std::uint64_t>(
+                            std::numeric_limits<std::int64_t>::max()) ||
+      stream.start > std::numeric_limits<std::int64_t>::max() -
+                         static_cast<std::int64_t>(stream.duration)) {
+    return rejected("RFX-MEDIA-PROJECT-007",
+                    "Media stream identity, time base or duration is invalid");
+  }
+  if (stream.kind == MediaStreamKind::video &&
+      stream.codec == MediaCodec::h264_avc &&
+      std::holds_alternative<VideoStreamFormat>(stream.format)) {
+    const auto& format = std::get<VideoStreamFormat>(stream.format);
+    const bool orientation = format.orientation_degrees == 0 ||
+                             format.orientation_degrees == 90 ||
+                             format.orientation_degrees == 180 ||
+                             format.orientation_degrees == 270;
+    if (!format.coded_extent.valid() || !format.display_extent.valid() ||
+        !format.presentation_rate.valid() || format.bit_depth != 8 ||
+        format.chroma_subsampling_x != 2 ||
+        format.chroma_subsampling_y != 2 ||
+        format.color_range != MediaColorRange::video ||
+        format.color_primaries != "bt709" ||
+        format.color_transfer != "bt709" ||
+        format.color_matrix != "bt709" || !orientation ||
+        format.sample_aspect_numerator == 0 ||
+        format.sample_aspect_denominator == 0) {
+      return rejected(
+          "RFX-MEDIA-PROJECT-008",
+          "Video stream format is outside the accepted portable contract");
+    }
+  } else if (stream.kind == MediaStreamKind::audio &&
+             stream.codec == MediaCodec::aac_lc &&
+             std::holds_alternative<AudioStreamFormat>(stream.format)) {
+    const auto& format = std::get<AudioStreamFormat>(stream.format);
+    if ((format.sample_rate_hz != 44100 &&
+         format.sample_rate_hz != 48000) ||
+        (format.channels != 1 && format.channels != 2)) {
+      return rejected(
+          "RFX-MEDIA-PROJECT-009",
+          "Audio stream format is outside the accepted portable contract");
+    }
+  } else {
+    return rejected("RFX-MEDIA-PROJECT-010",
+                    "Media stream kind, codec and format disagree");
+  }
+  return CompositionValidation{.valid = true};
+}
+
+CompositionValidation validate_project(const ProjectSnapshot& project) {
+  if (!portable_ascii_identifier(project.project_id.value) ||
+      project.revision_id.value == 0 || blank(project.display_name) ||
+      !validate_preserved_utf8(project.display_name).valid() ||
+      !project.composition.has_value()) {
+    return rejected("RFX-MEDIA-PROJECT-001",
+                    "project identity, revision, name and Composition are required");
+  }
+  const auto composition_validation =
+      validate_composition(*project.composition);
+  if (!composition_validation.valid) {
+    return composition_validation;
+  }
+  if (project.assets.size() > 4096 || project.media_sources.size() > 4096 ||
+      project.linked_imports.size() > 4096) {
+    return rejected("RFX-MEDIA-PROJECT-002",
+                    "project media collections exceed the admitted bound");
+  }
+
+  std::unordered_set<std::string> asset_ids;
+  for (const auto& asset : project.assets) {
+    if (!portable_ascii_identifier(asset.asset_id.value) ||
+        !asset_ids.emplace(asset.asset_id.value).second) {
+      return rejected("RFX-MEDIA-PROJECT-003",
+                      "Asset IDs must be portable and unique");
+    }
+    const auto expected_prefix =
+        "Assets/Media/" + asset.asset_id.value + "/";
+    if (!sha256_digest(asset.content_digest) || asset.byte_size == 0 ||
+        !portable_project_relative_path(asset.project_relative_original) ||
+        !asset.project_relative_original.starts_with(expected_prefix) ||
+        !portable_file_name(asset.original_display_name) ||
+        asset.media_kind != AssetMediaKind::video_container ||
+        asset.provenance != AssetProvenance::imported_copy) {
+      return rejected("RFX-MEDIA-PROJECT-004",
+                      "Asset content identity or portable Originals path is invalid");
+    }
+  }
+
+  std::unordered_set<std::string> source_ids;
+  std::unordered_set<std::string> stream_ids;
+  for (const auto& source : project.media_sources) {
+    if (!portable_ascii_identifier(source.media_source_id.value) ||
+        !source_ids.emplace(source.media_source_id.value).second ||
+        !asset_ids.contains(source.asset_id.value) ||
+        source.media_index_contract_version != 1 ||
+        !sha256_digest(source.media_index_digest) ||
+        source.streams.empty() || source.streams.size() > 32) {
+      return rejected("RFX-MEDIA-PROJECT-005",
+                      "MediaSource identity, Asset or index contract is invalid");
+    }
+    switch (source.resolution) {
+      case MediaResolutionState::resolved:
+      case MediaResolutionState::missing:
+      case MediaResolutionState::digest_mismatch:
+      case MediaResolutionState::unsupported:
+        break;
+      default:
+        return rejected("RFX-MEDIA-PROJECT-006",
+                        "MediaSource resolution state is invalid");
+    }
+
+    std::unordered_set<std::uint32_t> track_ids;
+    const MediaStreamDescriptor* selected_video = nullptr;
+    const MediaStreamDescriptor* selected_audio = nullptr;
+    for (const auto& stream : source.streams) {
+      if (!portable_ascii_identifier(stream.stream_id.value) ||
+          !stream_ids.emplace(stream.stream_id.value).second ||
+          stream.container_track_id == 0 ||
+          !track_ids.emplace(stream.container_track_id).second) {
+        return rejected("RFX-MEDIA-PROJECT-007",
+                        "Media stream identity, time base or duration is invalid");
+      }
+      const auto stream_validation = validate_media_stream_descriptor(stream);
+      if (!stream_validation.valid) {
+        return stream_validation;
+      }
+      if (source.selected_video_stream == stream.stream_id) {
+        selected_video = &stream;
+      }
+      if (source.selected_audio_stream == stream.stream_id) {
+        selected_audio = &stream;
+      }
+    }
+    if ((source.selected_video_stream.has_value() &&
+         (selected_video == nullptr ||
+          selected_video->kind != MediaStreamKind::video)) ||
+        (source.selected_audio_stream.has_value() &&
+         (selected_audio == nullptr ||
+          selected_audio->kind != MediaStreamKind::audio)) ||
+        !source.selected_video_stream.has_value()) {
+      return rejected("RFX-MEDIA-PROJECT-011",
+                      "selected MediaSource streams are missing or have the wrong kind");
+    }
+  }
+
+  const auto find_source = [&](const MediaSourceId& id) {
+    const auto found = std::find_if(
+        project.media_sources.begin(), project.media_sources.end(),
+        [&](const MediaSource& source) { return source.media_source_id == id; });
+    return found == project.media_sources.end() ? nullptr : &*found;
+  };
+  const auto find_stream = [](const MediaSource& source,
+                              const MediaStreamId& id) {
+    const auto found = std::find_if(
+        source.streams.begin(), source.streams.end(),
+        [&](const MediaStreamDescriptor& stream) {
+          return stream.stream_id == id;
+        });
+    return found == source.streams.end() ? nullptr : &*found;
+  };
+  const auto& composition = *project.composition;
+  const auto find_video_clip = [&](const VideoClipId& id) {
+    const auto found = std::find_if(
+        composition.video_clips.begin(), composition.video_clips.end(),
+        [&](const VideoClipSnapshot& clip) { return clip.video_clip_id == id; });
+    return found == composition.video_clips.end() ? nullptr : &*found;
+  };
+  const auto find_audio_clip = [&](const AudioClipId& id) {
+    const auto found = std::find_if(
+        composition.audio_clips.begin(), composition.audio_clips.end(),
+        [&](const AudioClipSnapshot& clip) { return clip.audio_clip_id == id; });
+    return found == composition.audio_clips.end() ? nullptr : &*found;
+  };
+
+  std::unordered_set<std::string> linked_ids;
+  std::unordered_set<std::string> claimed_video_clips;
+  std::unordered_set<std::string> claimed_audio_clips;
+  for (const auto& linked : project.linked_imports) {
+    const auto* source = find_source(linked.media_source_id);
+    if (!portable_ascii_identifier(linked.linked_import_id.value) ||
+        !linked_ids.emplace(linked.linked_import_id.value).second ||
+        source == nullptr ||
+        (!linked.video_clip_id.has_value() &&
+         !linked.audio_clip_id.has_value())) {
+      return rejected("RFX-MEDIA-PROJECT-012",
+                      "LinkedImport identity or MediaSource is invalid");
+    }
+    if (linked.video_clip_id) {
+      const auto* clip = find_video_clip(*linked.video_clip_id);
+      const auto* stream = clip == nullptr ? nullptr :
+          find_stream(*source, clip->stream_id);
+      if (clip == nullptr || stream == nullptr ||
+          stream->kind != MediaStreamKind::video ||
+          clip->linked_import_id != linked.linked_import_id ||
+          clip->media_source_id != linked.media_source_id ||
+          source->selected_video_stream != clip->stream_id ||
+          !media_range_contains(stream->start, stream->duration,
+                                clip->source_range) ||
+          !claimed_video_clips.emplace(clip->video_clip_id.value).second) {
+        return rejected("RFX-MEDIA-PROJECT-013",
+                        "Linked VideoClip does not match its source stream");
+      }
+    }
+    if (linked.audio_clip_id) {
+      const auto* clip = find_audio_clip(*linked.audio_clip_id);
+      const auto* stream = clip == nullptr ? nullptr :
+          find_stream(*source, clip->stream_id);
+      if (clip == nullptr || stream == nullptr ||
+          stream->kind != MediaStreamKind::audio ||
+          clip->linked_import_id != linked.linked_import_id ||
+          clip->media_source_id != linked.media_source_id ||
+          source->selected_audio_stream != clip->stream_id ||
+          !media_range_contains(stream->start, stream->duration,
+                                clip->source_range) ||
+          !claimed_audio_clips.emplace(clip->audio_clip_id.value).second) {
+        return rejected("RFX-MEDIA-PROJECT-014",
+                        "Linked AudioClip does not match its source stream");
+      }
+    }
+  }
+  if (claimed_video_clips.size() != composition.video_clips.size() ||
+      claimed_audio_clips.size() != composition.audio_clips.size()) {
+    return rejected("RFX-MEDIA-PROJECT-015",
+                    "every VideoClip and AudioClip must belong to one LinkedImport");
   }
 
   return CompositionValidation{.valid = true};

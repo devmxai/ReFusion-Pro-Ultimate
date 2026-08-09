@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "id": "refusion.media.video-import-v1-fixtures",
+  "status": "accepted-materialized",
+  "decision": "ADR-0015",
+  "license": "CC0-1.0",
+  "ownership": "ReFusion-generated synthetic audiovisual patterns",
+  "rows": [
+    {
+      "id": "mp4-vfr-bframes-aac-offset",
+      "purpose": "qualified VFR, long-GOP, B-frame, non-zero-origin and AAC-offset import",
+      "expected": "admitted",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4",
+      "sha256": "f1f236f5e63c1fe52ad15888a6436fb757af4ced9d863dc867399645407f980e",
+      "byte_size": 518513,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/expected-index-or-diagnostic.json",
+      "oracle_sha256": "f1ee8d5a42ade299c428c3f1e90f81c28d2819fc1eda94a72cf8b909c9ad047d"
+    },
+    {
+      "id": "mov-portrait-rotation-aac",
+      "purpose": "quarter-turn orientation, portrait display and linked AAC import",
+      "expected": "admitted",
+      "payload": "tests/fixtures/media/video-import-v1/mov-portrait-rotation-aac/source.mov",
+      "sha256": "588dfa30ac1bfffeedf5726b0e6bbbb1e621d44f1ec2e186337af16c7ec68d62",
+      "byte_size": 267335,
+      "oracle": "tests/fixtures/media/video-import-v1/mov-portrait-rotation-aac/expected-index-or-diagnostic.json",
+      "oracle_sha256": "822c01abfb6f8e59fc29fc8af63c65b608b009d3493a1c39e6c5fe0dd2ae81d2"
+    },
+    {
+      "id": "mp4-landscape-1080p60",
+      "purpose": "physical Desktop performance and playback reference",
+      "expected": "admitted",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-landscape-1080p60/source.mp4",
+      "sha256": "c8ae10cb20f460184e910443383fa44d1c135468e8f0f3bad6f3c0bfd2302622",
+      "byte_size": 2043107,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-landscape-1080p60/expected-index-or-diagnostic.json",
+      "oracle_sha256": "8b68c930453f541e342045b864a7b0439fcca53116c1b573f05cf86af33f5b7f"
+    },
+    {
+      "id": "mp4-unsupported-hevc",
+      "purpose": "valid-container unsupported-codec rejection",
+      "expected": "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-unsupported-hevc/source.mp4",
+      "sha256": "c76310952bacba26d53f966c9bd5312017e8834a86f3c7620f2f19ab5671fe9b",
+      "byte_size": 37459,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-unsupported-hevc/expected-index-or-diagnostic.json",
+      "oracle_sha256": "99cfffc4237cf795e0fb40239345e393e0feb078e237b1ac68e16476f94040d4"
+    },
+    {
+      "id": "mp4-corrupt-truncated",
+      "purpose": "malformed table and out-of-range sample rejection",
+      "expected": "RFX-MEDIA-IMPORT-CORRUPT",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-corrupt-truncated/source.mp4",
+      "sha256": "906c23a62e78b98b4acd95a73c61dcdf8433ce7f83c68c81a08da6ca44fdbbb7",
+      "byte_size": 510321,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-corrupt-truncated/expected-index-or-diagnostic.json",
+      "oracle_sha256": "2a7bd2050b8827cbe20ed3c2d6bf9e7ff7f4d32792b5bba6fcee9366f0fd9807"
+    },
+    {
+      "id": "mp4-encrypted-cenc",
+      "purpose": "encrypted-track rejection without key handling",
+      "expected": "RFX-MEDIA-IMPORT-ENCRYPTED",
+      "payload": "tests/fixtures/media/video-import-v1/mp4-encrypted-cenc/source.mp4",
+      "sha256": "3168851c6687129c9ec264c81be0ed5a8cc8e24685fdd366e9df514712771945",
+      "byte_size": 521286,
+      "oracle": "tests/fixtures/media/video-import-v1/mp4-encrypted-cenc/expected-index-or-diagnostic.json",
+      "oracle_sha256": "7e678e7cac9f9e662c0a5a9dbd1c7f0380e4c8e5b5c4a5ceaa71be1e548d1b40"
+    }
+  ],
+  "completion_rule": "The fixture half of VI-WP00 is complete when repository verification reproduces every committed payload/oracle digest. VI-WP00 as a whole still requires the pinned demux-only dependency receipt and zero-decoder allowlist proof."
+}

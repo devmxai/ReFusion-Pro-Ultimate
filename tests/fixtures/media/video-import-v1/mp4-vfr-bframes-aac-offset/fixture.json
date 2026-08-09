@@ -1,0 +1,20 @@
+{
+  "byte_size": 518513,
+  "expected": "admitted",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=30:duration=3 -f lavfi -i sine=frequency=880:sample_rate=48000:duration=3 -filter:v 'select='\"'\"'not(eq(mod(n,10),0))'\"'\"',setpts=PTS+0.500/TB,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv' -filter:a asetpts=PTS+0.625/TB -map 0:v:0 -map 1:a:0 -fps_mode vfr -copyts -c:v libx264 -threads:v 1 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 60 -bf 3 -b:v 1400k -maxrate 1800k -bufsize 3600k -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -c:a aac -threads:a 1 -profile:a aac_low -b:a 128k -movflags +faststart+write_colr -video_track_timescale 30000 -avoid_negative_ts disabled '$TMP/mp4-vfr-bframes-aac-offset.mp4'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-vfr-bframes-aac-offset",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "f1ee8d5a42ade299c428c3f1e90f81c28d2819fc1eda94a72cf8b909c9ad047d",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "f1f236f5e63c1fe52ad15888a6436fb757af4ced9d863dc867399645407f980e"
+}

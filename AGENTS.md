@@ -29,6 +29,10 @@ plan explicitly routes to unresolved research.
   `docs/architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow`
 - Visual/FX/plugin cross-platform remediation:
   `docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md`
+- Unified creative-authoring, Recipe, motion, Agent/MCP and extension execution:
+  `docs/plans/UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md`
+- First real Video import/hardware-playback vertical slice and two-host handoff:
+  `docs/plans/VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md`
 - Accepted architectural decisions: `docs/decisions/adrs/`
 - Machine-readable contracts: `contracts/`
 - Qualification evidence: `docs/evidence/`

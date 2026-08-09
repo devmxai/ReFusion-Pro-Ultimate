@@ -24,6 +24,18 @@ add_test(NAME refusion.cli_agent_surface
     -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-agent-surface
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_agent_surface_test.cmake)
 
+if(TARGET ReFusion::FfmpegDemux)
+  add_executable(refusion-ffmpeg-media-demux-tests
+    ffmpeg_media_demux_test.cpp)
+  target_link_libraries(refusion-ffmpeg-media-demux-tests
+    PRIVATE ReFusion::FfmpegDemux ReFusion::RuntimeMedia)
+  target_compile_definitions(refusion-ffmpeg-media-demux-tests PRIVATE
+    REFUSION_VIDEO_IMPORT_FIXTURE_ROOT="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1")
+  refusion_enable_warnings(refusion-ffmpeg-media-demux-tests)
+  add_test(NAME refusion.ffmpeg_media_demux
+    COMMAND refusion-ffmpeg-media-demux-tests)
+endif()
+
 if(APPLE AND TARGET ReFusion::PlatformMedia)
   add_executable(refusion-apple-media-capability-tests
     apple_media_capability_test.cpp)

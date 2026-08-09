@@ -379,9 +379,9 @@ class Parser final {
     expect_identifier("rfx");
     const auto version_location = current_.location;
     const auto version = parse_unsigned_integer();
-    if (version < 1 || version > 5) {
+    if (version < 1 || version > 6) {
       fail("RFX-RFX-VERSION-001",
-           "only Project.rfx language versions 1 through 5 are supported",
+           "only Project.rfx language versions 1 through 6 are supported",
            version_location);
     }
     language_version_ = version;
@@ -422,6 +422,12 @@ class Parser final {
     project.display_name = parse_call_string();
     expect(TokenKind::semicolon, "';'");
 
+    if (language_version_ >= 6) {
+      project.assets = parse_assets();
+      project.media_sources = parse_media_sources();
+      project.linked_imports = parse_linked_imports();
+    }
+
     const auto composition_location = current_.location;
     project.composition = parse_composition();
     expect(TokenKind::end_of_file, "end of file");
@@ -441,7 +447,7 @@ class Parser final {
            "project name is required",
            composition_location);
     }
-    const auto validation = validate_composition(*project.composition);
+    const auto validation = validate_project(project);
     if (!validation.valid) {
       fail(validation.code, validation.message, composition_location);
     }
@@ -451,6 +457,16 @@ class Parser final {
  private:
   struct IntegerPair final {
     std::uint64_t first{0};
+    std::uint64_t second{0};
+  };
+
+  struct SignedIntegerPair final {
+    std::int64_t first{0};
+    std::int64_t second{0};
+  };
+
+  struct SignedUnsignedPair final {
+    std::int64_t first{0};
     std::uint64_t second{0};
   };
 
@@ -518,6 +534,23 @@ class Parser final {
     return value;
   }
 
+  [[nodiscard]] std::int64_t parse_signed_integer() {
+    const auto location = current_.location;
+    if (current_.kind != TokenKind::number || current_.text.empty() ||
+        current_.text.find('.') != std::string::npos) {
+      fail("RFX-RFX-NUMBER-004", "expected signed integer", location);
+    }
+    std::int64_t value = 0;
+    const auto* begin = current_.text.data();
+    const auto* end = begin + current_.text.size();
+    const auto parsed = std::from_chars(begin, end, value);
+    if (parsed.ec != std::errc{} || parsed.ptr != end) {
+      fail("RFX-RFX-NUMBER-005", "integer is outside int64 range", location);
+    }
+    advance();
+    return value;
+  }
+
   [[nodiscard]] double parse_number() {
     const auto location = current_.location;
     if (current_.kind != TokenKind::number) {
@@ -546,9 +579,36 @@ class Parser final {
     return value;
   }
 
+  [[nodiscard]] std::string parse_call_identifier() {
+    expect(TokenKind::left_parenthesis, "'('");
+    if (current_.kind != TokenKind::identifier) {
+      fail("RFX-RFX-PARSE-001", "expected identifier", current_.location);
+    }
+    auto value = current_.text;
+    advance();
+    expect(TokenKind::right_parenthesis, "')'");
+    return value;
+  }
+
   [[nodiscard]] std::uint64_t parse_call_integer() {
     expect(TokenKind::left_parenthesis, "'('");
     const auto value = parse_unsigned_integer();
+    expect(TokenKind::right_parenthesis, "')'");
+    return value;
+  }
+
+  [[nodiscard]] std::uint32_t parse_call_uint32() {
+    const auto location = current_.location;
+    const auto value = parse_call_integer();
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      fail("RFX-RFX-NUMBER-006", "integer exceeds uint32", location);
+    }
+    return static_cast<std::uint32_t>(value);
+  }
+
+  [[nodiscard]] std::int64_t parse_call_signed_integer() {
+    expect(TokenKind::left_parenthesis, "'('");
+    const auto value = parse_signed_integer();
     expect(TokenKind::right_parenthesis, "')'");
     return value;
   }
@@ -580,6 +640,24 @@ class Parser final {
     return IntegerPair{.first = first, .second = second};
   }
 
+  [[nodiscard]] SignedIntegerPair parse_call_signed_integer_pair() {
+    expect(TokenKind::left_parenthesis, "'('");
+    const auto first = parse_signed_integer();
+    expect(TokenKind::comma, "','");
+    const auto second = parse_signed_integer();
+    expect(TokenKind::right_parenthesis, "')'");
+    return SignedIntegerPair{.first = first, .second = second};
+  }
+
+  [[nodiscard]] SignedUnsignedPair parse_call_signed_unsigned_pair() {
+    expect(TokenKind::left_parenthesis, "'('");
+    const auto first = parse_signed_integer();
+    expect(TokenKind::comma, "','");
+    const auto second = parse_unsigned_integer();
+    expect(TokenKind::right_parenthesis, "')'");
+    return SignedUnsignedPair{.first = first, .second = second};
+  }
+
   [[nodiscard]] NumberPair parse_call_number_pair() {
     expect(TokenKind::left_parenthesis, "'('");
     const auto first = parse_number();
@@ -605,6 +683,256 @@ class Parser final {
         .third = third,
         .fourth = fourth,
     };
+  }
+
+  [[nodiscard]] std::vector<AssetRecord> parse_assets() {
+    expect_identifier("assets");
+    expect(TokenKind::left_brace, "'{'");
+    std::vector<AssetRecord> assets;
+    while (is_identifier("asset")) {
+      expect_identifier("asset");
+      expect_identifier("id");
+      AssetRecord asset;
+      asset.asset_id = AssetId{parse_call_string()};
+      expect_identifier("digest");
+      asset.content_digest = parse_call_string();
+      expect_identifier("bytes");
+      asset.byte_size = parse_call_integer();
+      expect_identifier("kind");
+      if (parse_call_identifier() != "video_container") {
+        fail("RFX-RFX-MEDIA-001", "asset kind must be video_container",
+             current_.location);
+      }
+      expect_identifier("original");
+      asset.project_relative_original = parse_call_string();
+      expect_identifier("name");
+      asset.original_display_name = parse_call_string();
+      expect_identifier("provenance");
+      if (parse_call_identifier() != "imported_copy") {
+        fail("RFX-RFX-MEDIA-002", "asset provenance must be imported_copy",
+             current_.location);
+      }
+      expect(TokenKind::semicolon, "';'");
+      assets.push_back(std::move(asset));
+    }
+    expect(TokenKind::right_brace, "'}'");
+    return assets;
+  }
+
+  [[nodiscard]] MediaResolutionState parse_media_resolution() {
+    const auto location = current_.location;
+    const auto value = parse_call_identifier();
+    if (value == "resolved") return MediaResolutionState::resolved;
+    if (value == "missing") return MediaResolutionState::missing;
+    if (value == "digest_mismatch") return MediaResolutionState::digest_mismatch;
+    if (value == "unsupported") return MediaResolutionState::unsupported;
+    fail("RFX-RFX-MEDIA-003", "invalid MediaSource resolution state", location);
+  }
+
+  [[nodiscard]] MediaStreamDescriptor parse_media_stream() {
+    expect_identifier("stream");
+    const auto kind_location = current_.location;
+    MediaStreamDescriptor stream;
+    if (is_identifier("video")) {
+      stream.kind = MediaStreamKind::video;
+      advance();
+    } else if (is_identifier("audio")) {
+      stream.kind = MediaStreamKind::audio;
+      advance();
+    } else {
+      fail("RFX-RFX-MEDIA-004", "stream kind must be video or audio",
+           kind_location);
+    }
+    expect_identifier("id");
+    stream.stream_id = MediaStreamId{parse_call_string()};
+    expect_identifier("track");
+    stream.container_track_id = parse_call_uint32();
+    expect_identifier("codec");
+    const auto codec_location = current_.location;
+    const auto codec = parse_call_identifier();
+    if (codec == "h264_avc") {
+      stream.codec = MediaCodec::h264_avc;
+    } else if (codec == "aac_lc") {
+      stream.codec = MediaCodec::aac_lc;
+    } else {
+      fail("RFX-RFX-MEDIA-005", "codec must be h264_avc or aac_lc",
+           codec_location);
+    }
+    expect_identifier("config_digest");
+    stream.codec_configuration_digest = parse_call_string();
+    expect_identifier("time_base");
+    const auto time_base = parse_call_signed_integer_pair();
+    stream.time_base = MediaTimeBase{
+        .numerator = time_base.first,
+        .denominator = time_base.second,
+    };
+    expect_identifier("start");
+    stream.start = parse_call_signed_integer();
+    expect_identifier("duration");
+    stream.duration = parse_call_integer();
+    expect(TokenKind::left_brace, "'{'");
+
+    if (stream.kind == MediaStreamKind::video) {
+      VideoStreamFormat format;
+      expect_identifier("coded_px");
+      const auto coded = parse_call_integer_pair();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("display_px");
+      const auto display = parse_call_integer_pair();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("rate");
+      const auto rate = parse_call_integer_pair();
+      expect(TokenKind::semicolon, "';'");
+      if (coded.first > std::numeric_limits<std::uint32_t>::max() ||
+          coded.second > std::numeric_limits<std::uint32_t>::max() ||
+          display.first > std::numeric_limits<std::uint32_t>::max() ||
+          display.second > std::numeric_limits<std::uint32_t>::max() ||
+          rate.first > std::numeric_limits<std::uint32_t>::max() ||
+          rate.second > std::numeric_limits<std::uint32_t>::max()) {
+        fail("RFX-RFX-MEDIA-006", "video dimensions or rate exceed uint32",
+             kind_location);
+      }
+      format.coded_extent = CanvasExtent{
+          .width_pixels = static_cast<std::uint32_t>(coded.first),
+          .height_pixels = static_cast<std::uint32_t>(coded.second),
+      };
+      format.display_extent = CanvasExtent{
+          .width_pixels = static_cast<std::uint32_t>(display.first),
+          .height_pixels = static_cast<std::uint32_t>(display.second),
+      };
+      format.presentation_rate = RationalRate{
+          .numerator = static_cast<std::uint32_t>(rate.first),
+          .denominator = static_cast<std::uint32_t>(rate.second),
+      };
+      expect_identifier("bit_depth");
+      const auto bit_depth = parse_call_integer();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("chroma");
+      const auto chroma = parse_call_integer_pair();
+      expect(TokenKind::semicolon, "';'");
+      if (bit_depth > std::numeric_limits<std::uint8_t>::max() ||
+          chroma.first > std::numeric_limits<std::uint8_t>::max() ||
+          chroma.second > std::numeric_limits<std::uint8_t>::max()) {
+        fail("RFX-RFX-MEDIA-007", "video format values exceed uint8",
+             kind_location);
+      }
+      format.bit_depth = static_cast<std::uint8_t>(bit_depth);
+      format.chroma_subsampling_x = static_cast<std::uint8_t>(chroma.first);
+      format.chroma_subsampling_y = static_cast<std::uint8_t>(chroma.second);
+      expect_identifier("color_range");
+      if (parse_call_identifier() != "video") {
+        fail("RFX-RFX-MEDIA-008", "color range must be video",
+             current_.location);
+      }
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("primaries");
+      format.color_primaries = parse_call_string();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("transfer");
+      format.color_transfer = parse_call_string();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("matrix");
+      format.color_matrix = parse_call_string();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("orientation");
+      const auto orientation = parse_call_signed_integer();
+      expect(TokenKind::semicolon, "';'");
+      if (orientation < std::numeric_limits<std::int16_t>::min() ||
+          orientation > std::numeric_limits<std::int16_t>::max()) {
+        fail("RFX-RFX-MEDIA-009", "orientation exceeds int16", kind_location);
+      }
+      format.orientation_degrees = static_cast<std::int16_t>(orientation);
+      expect_identifier("sample_aspect");
+      const auto aspect = parse_call_integer_pair();
+      expect(TokenKind::semicolon, "';'");
+      if (aspect.first > std::numeric_limits<std::uint32_t>::max() ||
+          aspect.second > std::numeric_limits<std::uint32_t>::max()) {
+        fail("RFX-RFX-MEDIA-010", "sample aspect exceeds uint32", kind_location);
+      }
+      format.sample_aspect_numerator = static_cast<std::uint32_t>(aspect.first);
+      format.sample_aspect_denominator = static_cast<std::uint32_t>(aspect.second);
+      stream.format = std::move(format);
+    } else {
+      AudioStreamFormat format;
+      expect_identifier("sample_rate");
+      format.sample_rate_hz = parse_call_uint32();
+      expect(TokenKind::semicolon, "';'");
+      expect_identifier("channels");
+      const auto channels = parse_call_integer();
+      expect(TokenKind::semicolon, "';'");
+      if (channels > std::numeric_limits<std::uint8_t>::max()) {
+        fail("RFX-RFX-MEDIA-011", "channel count exceeds uint8", kind_location);
+      }
+      format.channels = static_cast<std::uint8_t>(channels);
+      stream.format = std::move(format);
+    }
+    expect(TokenKind::right_brace, "'}'");
+    return stream;
+  }
+
+  [[nodiscard]] std::vector<MediaSource> parse_media_sources() {
+    expect_identifier("media_sources");
+    expect(TokenKind::left_brace, "'{'");
+    std::vector<MediaSource> sources;
+    while (is_identifier("media_source")) {
+      expect_identifier("media_source");
+      expect_identifier("id");
+      MediaSource source;
+      source.media_source_id = MediaSourceId{parse_call_string()};
+      expect_identifier("asset");
+      source.asset_id = AssetId{parse_call_string()};
+      expect_identifier("index_version");
+      source.media_index_contract_version = parse_call_uint32();
+      expect_identifier("index_digest");
+      source.media_index_digest = parse_call_string();
+      expect_identifier("resolution");
+      source.resolution = parse_media_resolution();
+      expect(TokenKind::left_brace, "'{'");
+      while (is_identifier("stream")) {
+        source.streams.push_back(parse_media_stream());
+      }
+      expect_identifier("selected_video");
+      source.selected_video_stream = MediaStreamId{parse_call_string()};
+      expect(TokenKind::semicolon, "';'");
+      if (is_identifier("selected_audio")) {
+        expect_identifier("selected_audio");
+        source.selected_audio_stream = MediaStreamId{parse_call_string()};
+        expect(TokenKind::semicolon, "';'");
+      }
+      expect(TokenKind::right_brace, "'}'");
+      sources.push_back(std::move(source));
+    }
+    expect(TokenKind::right_brace, "'}'");
+    return sources;
+  }
+
+  [[nodiscard]] std::vector<LinkedImport> parse_linked_imports() {
+    expect_identifier("linked_imports");
+    expect(TokenKind::left_brace, "'{'");
+    std::vector<LinkedImport> links;
+    while (is_identifier("linked_import")) {
+      expect_identifier("linked_import");
+      expect_identifier("id");
+      LinkedImport link;
+      link.linked_import_id = LinkedImportId{parse_call_string()};
+      expect_identifier("source");
+      link.media_source_id = MediaSourceId{parse_call_string()};
+      expect(TokenKind::left_brace, "'{'");
+      if (is_identifier("video_clip")) {
+        expect_identifier("video_clip");
+        link.video_clip_id = VideoClipId{parse_call_string()};
+        expect(TokenKind::semicolon, "';'");
+      }
+      if (is_identifier("audio_clip")) {
+        expect_identifier("audio_clip");
+        link.audio_clip_id = AudioClipId{parse_call_string()};
+        expect(TokenKind::semicolon, "';'");
+      }
+      expect(TokenKind::right_brace, "'}'");
+      links.push_back(std::move(link));
+    }
+    expect(TokenKind::right_brace, "'}'");
+    return links;
   }
 
   [[nodiscard]] CompositionSnapshot parse_composition() {
@@ -688,6 +1016,21 @@ class Parser final {
         composition.groups.push_back(std::move(group));
       }
     }
+    while (is_identifier("video_clip") || is_identifier("audio_clip")) {
+      const auto clip_location = current_.location;
+      if (language_version_ < 6) {
+        fail("RFX-RFX-VERSION-012",
+             "media clips require Project.rfx language version 6",
+             clip_location);
+      }
+      if (is_identifier("video_clip")) {
+        composition.video_clips.push_back(
+            parse_video_clip(composition.frame_rate));
+      } else {
+        composition.audio_clips.push_back(
+            parse_audio_clip(composition.frame_rate));
+      }
+    }
     if (language_version_ >= 2) {
       composition.root_nodes = parse_visual_ref_block("root");
     } else {
@@ -698,6 +1041,109 @@ class Parser final {
     }
     expect(TokenKind::right_brace, "'}'");
     return composition;
+  }
+
+  [[nodiscard]] VideoClipSnapshot parse_video_clip(
+      const RationalRate rate) {
+    expect_identifier("video_clip");
+    expect_identifier("id");
+    VideoClipSnapshot clip;
+    clip.video_clip_id = VideoClipId{parse_call_string()};
+    expect_identifier("link");
+    clip.linked_import_id = LinkedImportId{parse_call_string()};
+    expect_identifier("source");
+    clip.media_source_id = MediaSourceId{parse_call_string()};
+    expect_identifier("stream");
+    clip.stream_id = MediaStreamId{parse_call_string()};
+    expect_identifier("name");
+    clip.display_name = parse_call_string();
+    expect(TokenKind::left_brace, "'{'");
+
+    expect_identifier("range");
+    expect_identifier("frames");
+    const auto range_location = current_.location;
+    const auto range = parse_call_integer_pair();
+    const auto end_frame = add_frames(range.first, range.second, range_location);
+    const auto start_time = frame_to_time(range.first, rate, range_location);
+    const auto end_time = frame_to_time(end_frame, rate, range_location);
+    clip.active_range = TimeRangeNs{
+        .start = start_time,
+        .duration = end_time - start_time,
+    };
+    expect(TokenKind::semicolon, "';'");
+
+    expect_identifier("source_range");
+    expect_identifier("ticks");
+    const auto source_range = parse_call_signed_unsigned_pair();
+    clip.source_range = MediaTickRange{
+        .start = source_range.first,
+        .duration = source_range.second,
+    };
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("enabled");
+    clip.enabled = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("locked");
+    clip.locked = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect(TokenKind::right_brace, "'}'");
+    return clip;
+  }
+
+  [[nodiscard]] AudioClipSnapshot parse_audio_clip(
+      const RationalRate rate) {
+    expect_identifier("audio_clip");
+    expect_identifier("id");
+    AudioClipSnapshot clip;
+    clip.audio_clip_id = AudioClipId{parse_call_string()};
+    expect_identifier("link");
+    clip.linked_import_id = LinkedImportId{parse_call_string()};
+    expect_identifier("source");
+    clip.media_source_id = MediaSourceId{parse_call_string()};
+    expect_identifier("stream");
+    clip.stream_id = MediaStreamId{parse_call_string()};
+    expect_identifier("name");
+    clip.display_name = parse_call_string();
+    expect(TokenKind::left_brace, "'{'");
+
+    expect_identifier("range");
+    expect_identifier("frames");
+    const auto range_location = current_.location;
+    const auto range = parse_call_integer_pair();
+    const auto end_frame = add_frames(range.first, range.second, range_location);
+    const auto start_time = frame_to_time(range.first, rate, range_location);
+    const auto end_time = frame_to_time(end_frame, rate, range_location);
+    clip.active_range = TimeRangeNs{
+        .start = start_time,
+        .duration = end_time - start_time,
+    };
+    expect(TokenKind::semicolon, "';'");
+
+    expect_identifier("source_range");
+    expect_identifier("ticks");
+    const auto source_range = parse_call_signed_unsigned_pair();
+    clip.source_range = MediaTickRange{
+        .start = source_range.first,
+        .duration = source_range.second,
+    };
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("enabled");
+    clip.enabled = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("locked");
+    clip.locked = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("gain");
+    clip.gain = parse_call_number();
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("muted");
+    clip.muted = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect_identifier("solo");
+    clip.solo = parse_call_boolean();
+    expect(TokenKind::semicolon, "';'");
+    expect(TokenKind::right_brace, "'}'");
+    return clip;
   }
 
   [[nodiscard]] LayerSnapshot parse_layer(const RationalRate rate) {
@@ -1539,6 +1985,25 @@ class Parser final {
   throw std::invalid_argument("unknown vertical text alignment");
 }
 
+[[nodiscard]] std::string_view media_resolution_name(
+    const MediaResolutionState state) {
+  switch (state) {
+    case MediaResolutionState::resolved: return "resolved";
+    case MediaResolutionState::missing: return "missing";
+    case MediaResolutionState::digest_mismatch: return "digest_mismatch";
+    case MediaResolutionState::unsupported: return "unsupported";
+  }
+  throw std::invalid_argument("unknown media resolution state");
+}
+
+[[nodiscard]] std::string_view media_codec_name(const MediaCodec codec) {
+  switch (codec) {
+    case MediaCodec::h264_avc: return "h264_avc";
+    case MediaCodec::aac_lc: return "aac_lc";
+  }
+  throw std::invalid_argument("unknown media codec");
+}
+
 [[nodiscard]] std::uint64_t exact_frame_at_time(const ProjectClockSpec& spec,
                                                 const ProjectTimeNs time) {
   const auto frame = spec.frame_at_time(time);
@@ -1637,6 +2102,96 @@ void serialize_mask(std::ostringstream& output,
   output << indent << "}\n";
 }
 
+void serialize_media_contract(std::ostringstream& output,
+                              const ProjectSnapshot& project) {
+  output << "assets {\n";
+  for (const auto& asset : project.assets) {
+    output << "  asset id(" << escaped_string(asset.asset_id.value)
+           << ") digest(" << escaped_string(asset.content_digest)
+           << ") bytes(" << asset.byte_size
+           << ") kind(video_container)\n"
+           << "    original("
+           << escaped_string(asset.project_relative_original) << ") name("
+           << escaped_string(asset.original_display_name)
+           << ") provenance(imported_copy);\n";
+  }
+  output << "}\n\nmedia_sources {\n";
+  for (const auto& source : project.media_sources) {
+    output << "  media_source id("
+           << escaped_string(source.media_source_id.value) << ") asset("
+           << escaped_string(source.asset_id.value) << ") index_version("
+           << source.media_index_contract_version << ")\n"
+           << "    index_digest(" << escaped_string(source.media_index_digest)
+           << ") resolution(" << media_resolution_name(source.resolution)
+           << ") {\n";
+    for (const auto& stream : source.streams) {
+      output << "    stream "
+             << (stream.kind == MediaStreamKind::video ? "video" : "audio")
+             << " id(" << escaped_string(stream.stream_id.value)
+             << ") track(" << stream.container_track_id << ") codec("
+             << media_codec_name(stream.codec) << ")\n"
+             << "      config_digest("
+             << escaped_string(stream.codec_configuration_digest)
+             << ") time_base(" << stream.time_base.numerator << ", "
+             << stream.time_base.denominator << ") start(" << stream.start
+             << ") duration(" << stream.duration << ") {\n";
+      if (const auto* video =
+              std::get_if<VideoStreamFormat>(&stream.format)) {
+        output << "      coded_px(" << video->coded_extent.width_pixels << ", "
+               << video->coded_extent.height_pixels << ");\n"
+               << "      display_px(" << video->display_extent.width_pixels
+               << ", " << video->display_extent.height_pixels << ");\n"
+               << "      rate(" << video->presentation_rate.numerator << ", "
+               << video->presentation_rate.denominator << ");\n"
+               << "      bit_depth(" << static_cast<unsigned>(video->bit_depth)
+               << ");\n"
+               << "      chroma("
+               << static_cast<unsigned>(video->chroma_subsampling_x) << ", "
+               << static_cast<unsigned>(video->chroma_subsampling_y) << ");\n"
+               << "      color_range(video);\n"
+               << "      primaries(" << escaped_string(video->color_primaries)
+               << ");\n"
+               << "      transfer(" << escaped_string(video->color_transfer)
+               << ");\n"
+               << "      matrix(" << escaped_string(video->color_matrix)
+               << ");\n"
+               << "      orientation(" << video->orientation_degrees << ");\n"
+               << "      sample_aspect(" << video->sample_aspect_numerator
+               << ", " << video->sample_aspect_denominator << ");\n";
+      } else {
+        const auto& audio = std::get<AudioStreamFormat>(stream.format);
+        output << "      sample_rate(" << audio.sample_rate_hz << ");\n"
+               << "      channels(" << static_cast<unsigned>(audio.channels)
+               << ");\n";
+      }
+      output << "    }\n";
+    }
+    output << "    selected_video("
+           << escaped_string(source.selected_video_stream->value) << ");\n";
+    if (source.selected_audio_stream) {
+      output << "    selected_audio("
+             << escaped_string(source.selected_audio_stream->value) << ");\n";
+    }
+    output << "  }\n";
+  }
+  output << "}\n\nlinked_imports {\n";
+  for (const auto& link : project.linked_imports) {
+    output << "  linked_import id("
+           << escaped_string(link.linked_import_id.value) << ") source("
+           << escaped_string(link.media_source_id.value) << ") {\n";
+    if (link.video_clip_id) {
+      output << "    video_clip("
+             << escaped_string(link.video_clip_id->value) << ");\n";
+    }
+    if (link.audio_clip_id) {
+      output << "    audio_clip("
+             << escaped_string(link.audio_clip_id->value) << ");\n";
+    }
+    output << "  }\n";
+  }
+  output << "}\n\n";
+}
+
 }  // namespace
 
 RfxCompileResult compile_project_rfx(const std::string_view source) noexcept {
@@ -1668,7 +2223,7 @@ std::string serialize_project_rfx(const ProjectSnapshot& project) {
       !project.composition.has_value()) {
     throw std::invalid_argument("Project.rfx serializer requires a complete project");
   }
-  const auto validation = validate_composition(*project.composition);
+  const auto validation = validate_project(project);
   if (!validation.valid) {
     throw std::invalid_argument(validation.message);
   }
@@ -1685,15 +2240,23 @@ std::string serialize_project_rfx(const ProjectSnapshot& project) {
 
   std::ostringstream output;
   output.imbue(std::locale::classic());
-  output << "rfx 5;\n"
+  const bool has_media = !project.assets.empty() ||
+                         !project.media_sources.empty() ||
+                         !project.linked_imports.empty() ||
+                         !composition.video_clips.empty() ||
+                         !composition.audio_clips.empty();
+  output << "rfx " << (has_media ? 6 : 5) << ";\n"
          << "registry digest("
          << escaped_string(visual_property_registry_digest()) << ");\n"
          << "contributions digest("
          << escaped_string(visual_contribution_registry_digest()) << ");\n\n"
          << "project id(" << escaped_string(project.project_id.value) << ") "
          << "revision(" << project.revision_id.value << ")\n"
-         << "  name(" << escaped_string(project.display_name) << ");\n\n"
-         << "composition id(" << escaped_string(composition.composition_id.value)
+         << "  name(" << escaped_string(project.display_name) << ");\n\n";
+  if (has_media) {
+    serialize_media_contract(output, project);
+  }
+  output << "composition id(" << escaped_string(composition.composition_id.value)
          << ") name(" << escaped_string(composition.display_name) << ") {\n"
          << "  canvas px(" << composition.canvas.width_pixels << ", "
          << composition.canvas.height_pixels << ");\n"
@@ -1841,6 +2404,49 @@ std::string serialize_project_rfx(const ProjectSnapshot& project) {
       output << "    }\n";
     }
     output << "  }\n\n";
+  }
+
+  for (const auto& clip : composition.video_clips) {
+    const auto start_frame =
+        exact_frame_at_time(clock_spec, clip.active_range.start);
+    const auto end_frame =
+        exact_frame_at_time(clock_spec, clip.active_range.end());
+    output << "  video_clip id("
+           << escaped_string(clip.video_clip_id.value) << ") link("
+           << escaped_string(clip.linked_import_id.value) << ") source("
+           << escaped_string(clip.media_source_id.value) << ") stream("
+           << escaped_string(clip.stream_id.value) << ") name("
+           << escaped_string(clip.display_name) << ") {\n"
+           << "    range frames(" << start_frame << ", "
+           << end_frame - start_frame << ");\n"
+           << "    source_range ticks(" << clip.source_range.start << ", "
+           << clip.source_range.duration << ");\n"
+           << "    enabled(" << (clip.enabled ? "true" : "false") << ");\n"
+           << "    locked(" << (clip.locked ? "true" : "false") << ");\n"
+           << "  }\n\n";
+  }
+
+  for (const auto& clip : composition.audio_clips) {
+    const auto start_frame =
+        exact_frame_at_time(clock_spec, clip.active_range.start);
+    const auto end_frame =
+        exact_frame_at_time(clock_spec, clip.active_range.end());
+    output << "  audio_clip id("
+           << escaped_string(clip.audio_clip_id.value) << ") link("
+           << escaped_string(clip.linked_import_id.value) << ") source("
+           << escaped_string(clip.media_source_id.value) << ") stream("
+           << escaped_string(clip.stream_id.value) << ") name("
+           << escaped_string(clip.display_name) << ") {\n"
+           << "    range frames(" << start_frame << ", "
+           << end_frame - start_frame << ");\n"
+           << "    source_range ticks(" << clip.source_range.start << ", "
+           << clip.source_range.duration << ");\n"
+           << "    enabled(" << (clip.enabled ? "true" : "false") << ");\n"
+           << "    locked(" << (clip.locked ? "true" : "false") << ");\n"
+           << "    gain(" << formatted_number(clip.gain) << ");\n"
+           << "    muted(" << (clip.muted ? "true" : "false") << ");\n"
+           << "    solo(" << (clip.solo ? "true" : "false") << ");\n"
+           << "  }\n\n";
   }
 
   output << "  root {\n";

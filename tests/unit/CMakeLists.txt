@@ -91,6 +91,30 @@ refusion_enable_warnings(refusion-project-rfx-tests)
 
 add_test(NAME refusion.project_rfx COMMAND refusion-project-rfx-tests)
 
+add_executable(refusion-media-project-schema-tests
+  media_project_schema_test.cpp)
+target_link_libraries(refusion-media-project-schema-tests
+  PRIVATE ReFusion::Core)
+refusion_enable_warnings(refusion-media-project-schema-tests)
+
+add_test(NAME refusion.media_project_schema
+  COMMAND refusion-media-project-schema-tests)
+
+add_executable(refusion-media-index-tests media_index_test.cpp)
+target_link_libraries(refusion-media-index-tests PRIVATE ReFusion::Core)
+refusion_enable_warnings(refusion-media-index-tests)
+
+add_test(NAME refusion.media_index COMMAND refusion-media-index-tests)
+
+add_executable(refusion-media-indexing-service-tests
+  media_indexing_service_test.cpp)
+target_link_libraries(refusion-media-indexing-service-tests
+  PRIVATE ReFusion::Application)
+refusion_enable_warnings(refusion-media-indexing-service-tests)
+
+add_test(NAME refusion.media_indexing_service
+  COMMAND refusion-media-indexing-service-tests)
+
 add_executable(refusion-xplat-project-conformance-tests
   xplat_project_conformance_test.cpp)
 target_link_libraries(refusion-xplat-project-conformance-tests
@@ -208,6 +232,15 @@ refusion_enable_warnings(refusion-hardware-video-decode-scheduler-tests)
 
 add_test(NAME refusion.hardware_video_decode_scheduler
   COMMAND refusion-hardware-video-decode-scheduler-tests)
+
+add_executable(refusion-media-index-decode-projection-tests
+  media_index_decode_projection_test.cpp)
+target_link_libraries(refusion-media-index-decode-projection-tests
+  PRIVATE ReFusion::RuntimeMedia)
+refusion_enable_warnings(refusion-media-index-decode-projection-tests)
+
+add_test(NAME refusion.media_index_decode_projection
+  COMMAND refusion-media-index-decode-projection-tests)
 
 add_executable(refusion-gpu-observability-tests
   gpu_observability_test.cpp)

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "id": "refusion.media.desktop-video-import.v1",
+  "status": "accepted",
+  "decision": "ADR-0015",
+  "container": {
+    "families": ["iso-bmff-mp4", "quicktime-mov"],
+    "seekable_local_source_required": true,
+    "fragmented": false,
+    "encrypted": false,
+    "external_data_references": false,
+    "selected_video_tracks": 1,
+    "selected_audio_tracks_maximum": 1,
+    "legal_edits": ["single-normal-rate-media-edit", "optional-leading-empty-edit"]
+  },
+  "video": {
+    "codec": "h264-avc",
+    "profiles": ["baseline", "main", "high"],
+    "maximum_level": "4.2",
+    "bit_depth": 8,
+    "chroma": "4:2:0",
+    "scan": "progressive",
+    "maximum_coded_pixels": 2073600,
+    "maximum_presentation_rate": {"numerator": 60, "denominator": 1},
+    "maximum_bitrate_bits_per_second": 50000000,
+    "decoded_surface": "native-nv12-video-range-two-plane",
+    "hardware_decode_required": true,
+    "color": {
+      "primaries": "bt709",
+      "transfer": "bt709",
+      "matrix": "bt709",
+      "range": "video",
+      "metadata_required": true
+    },
+    "sample_aspect_ratio": {"numerator": 1, "denominator": 1},
+    "orientations_degrees": [0, 90, 180, 270],
+    "mirroring": false
+  },
+  "audio": {
+    "codec": "mpeg4-aac-lc",
+    "channels": [1, 2],
+    "sample_rates_hz": [44100, 48000],
+    "engine_pcm": "planar-float32-source-rate",
+    "he_aac": false,
+    "dynamic_format_change": false
+  },
+  "source_limits": {
+    "maximum_duration_seconds": 600,
+    "maximum_byte_size": 8589934592
+  },
+  "runtime_limits": {
+    "maximum_native_video_surfaces": 12,
+    "maximum_queued_compressed_samples": 32,
+    "maximum_active_video_surface_bytes": 134217728,
+    "frame_deadline_nanoseconds_at_60fps": 16666667,
+    "maximum_missed_or_repeated_fraction_after_warmup": 0.001,
+    "first_visible_frame_p95_nanoseconds": 250000000,
+    "seek_visible_frame_p95_nanoseconds": 200000000,
+    "seek_visible_frame_maximum_nanoseconds": 350000000,
+    "av_drift_p95_nanoseconds": 10000000,
+    "av_drift_maximum_nanoseconds": 20000000
+  },
+  "forbidden_production_counters": {
+    "software_video_decode": 0,
+    "cpu_video_pixel_map": 0,
+    "cpu_video_pixel_conversion": 0,
+    "cpu_video_pixel_upload": 0,
+    "gpu_video_readback": 0,
+    "cross_adapter_video_transfer": 0,
+    "silent_fallback": 0
+  },
+  "diagnostics": {
+    "unsupported_container": "RFX-MEDIA-IMPORT-CONTAINER-UNSUPPORTED",
+    "encrypted": "RFX-MEDIA-IMPORT-ENCRYPTED",
+    "corrupt": "RFX-MEDIA-IMPORT-CORRUPT",
+    "unsupported_profile": "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
+    "missing_color_metadata": "RFX-MEDIA-IMPORT-COLOR-MISSING",
+    "hardware_unavailable": "RFX-MEDIA-IMPORT-HARDWARE-UNAVAILABLE"
+  }
+}

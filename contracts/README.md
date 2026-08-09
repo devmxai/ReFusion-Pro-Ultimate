@@ -74,3 +74,22 @@ hand-written FX bodies plus one mask body with a single ordered typed parameter
 grammar. RFX1–RFX4 stay readable migration inputs; canonical experimental
 writing migrates to RFX5. A new contribution extends the Registry and common
 lowering/execution path, never a platform-specific project syntax.
+
+`project/refusion-project-rfx-exp6.ebnf` is the bounded `VI-WP01` portable
+media-project extension. It adds content-addressed Asset records, MediaSource
+and exact Stream descriptors, stable LinkedImport ownership, and independently
+editable VideoClip/AudioClip tracks with project-frame and source-tick ranges.
+RFX1–RFX5 remain readable migration inputs. Canonical writing remains RFX5 for
+projects without media and moves to RFX6 only when portable media truth exists.
+Absolute host paths, native handles and derived decoder/cache state are not
+legal project truth.
+
+`media/desktop-video-import-v1.json` is the accepted machine-readable first
+Desktop MP4/MOV H.264/AAC profile governed by ADR-0015. It fixes the admitted
+container/codec/color/time/resource boundaries and the zero-video-pixel-fallback
+counters. `media/video-import-v1-fixtures.json` and its six generated payloads
+are materialized and digest-verified with normalized positive/negative oracles.
+`media/media-index-v1.json` fixes the provider-neutral derived Stream/config/
+sample projection, bounded asynchronous indexing and the one shared conversion
+into hardware-scheduler inputs. None of these files claims that product import
+or native decoding exists.

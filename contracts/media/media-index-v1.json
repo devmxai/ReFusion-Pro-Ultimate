@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "id": "refusion.media.index.v1",
+  "status": "accepted",
+  "decision": "ADR-0012",
+  "authority": "shared-core-derived-cache",
+  "provider_neutral": true,
+  "project_truth": false,
+  "canonical_digest": "sha256",
+  "source_identity": {
+    "content_digest": "sha256-lowercase-hex",
+    "byte_size_minimum": 1,
+    "byte_size_maximum": 8589934592,
+    "host_path_permitted": false,
+    "native_handle_permitted": false
+  },
+  "containers": ["iso_bmff_mp4", "quicktime_mov"],
+  "ordered_records": {
+    "streams": {
+      "maximum": 32,
+      "identity": ["stream_id", "container_track_id"],
+      "fields": [
+        "kind",
+        "codec",
+        "codec_configuration_digest",
+        "time_base",
+        "signed_start",
+        "unsigned_duration",
+        "typed_video_or_audio_format"
+      ]
+    },
+    "codec_configurations": {
+      "one_per_selected_stream": true,
+      "maximum_bytes_each": 1048576,
+      "identity": ["stream_id", "sample_description_index"],
+      "content_digest_required": true
+    },
+    "samples_decode_order": {
+      "fields": [
+        "stream_id",
+        "per_stream_sample_index",
+        "source_byte_offset",
+        "source_byte_size",
+        "pts",
+        "dts",
+        "duration",
+        "time_base",
+        "sync_sample",
+        "discard_sample",
+        "dependency_flags",
+        "sample_description_index"
+      ],
+      "per_stream_dts_strictly_increasing": true,
+      "source_byte_ranges_non_overlapping": true,
+      "decoded_pixels_permitted": false
+    }
+  },
+  "indexing": {
+    "metadata_cpu_parsing_permitted": true,
+    "video_decode_permitted": false,
+    "video_pixel_conversion_permitted": false,
+    "bounded_async_concurrency_minimum": 1,
+    "bounded_async_concurrency_maximum": 4,
+    "cancellation_before_cache_publication": true,
+    "cache_key": ["contract_version", "source_digest", "source_byte_size"],
+    "invalid_cache_entry_action": "invalidate-and-rebuild"
+  },
+  "hardware_scheduler_projection": {
+    "shared_only": true,
+    "decode_order_preserved": true,
+    "presentation_frame_identity": "stable-rank-by-exact-pts",
+    "duplicate_video_pts": "reject-first-profile",
+    "video_discard_access_units": "reject-first-profile",
+    "platform_container_parser_permitted": false
+  },
+  "diagnostics": {
+    "invalid_index": "RFX-MEDIA-DECODE-INDEX-INVALID",
+    "stream_missing": "RFX-MEDIA-DECODE-STREAM-MISSING",
+    "unsupported_profile": "RFX-MEDIA-DECODE-PROFILE-UNSUPPORTED",
+    "timing_not_representable": "RFX-MEDIA-DECODE-TIME-UNREPRESENTABLE",
+    "ambiguous_presentation_order": "RFX-MEDIA-DECODE-PRESENTATION-AMBIGUOUS",
+    "cancelled": "RFX-MEDIA-IMPORT-CANCELLED",
+    "capacity": "RFX-MEDIA-INDEX-CAPACITY"
+  },
+  "macos_fixture_receipts": {
+    "mp4-vfr-bframes-aac-offset": "sha256:bebd0bf5ad5e88563ab81ea63662ddc643180db520375b962371790ee151c91a",
+    "mov-portrait-rotation-aac": "sha256:0f53e5900bb1d93fc6d45866dd369817cccca2c8d4a47e4e5149b5c33e8a4a7a",
+    "mp4-landscape-1080p60": "sha256:70c092e5ca8c75830c4ccfa561eec97ae376b2189898e899a8fab3bd12b4b1c2"
+  }
+}

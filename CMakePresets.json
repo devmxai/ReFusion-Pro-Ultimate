@@ -124,6 +124,15 @@
       }
     },
     {
+      "name": "macos-demux",
+      "inherits": "macos-core",
+      "displayName": "macOS shared demux and MediaIndex",
+      "cacheVariables": {
+        "REFUSION_ENABLE_FFMPEG_DEMUX": "ON",
+        "REFUSION_FFMPEG_ROOT": "${sourceDir}/out/deps-build/ffmpeg/macos-arm64-demux-shared/install"
+      }
+    },
+    {
       "name": "windows-core",
       "inherits": "base",
       "displayName": "Windows portable core",
@@ -139,6 +148,15 @@
       "displayName": "Windows Qt Studio foundation shell",
       "cacheVariables": {
         "REFUSION_BUILD_STUDIO": "ON"
+      }
+    },
+    {
+      "name": "windows-demux",
+      "inherits": "windows-core",
+      "displayName": "Windows shared demux and MediaIndex",
+      "cacheVariables": {
+        "REFUSION_ENABLE_FFMPEG_DEMUX": "ON",
+        "REFUSION_FFMPEG_ROOT": "${sourceDir}/out/deps-build/ffmpeg/windows-x64-demux-shared/install"
       }
     },
     {

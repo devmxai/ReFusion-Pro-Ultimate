@@ -55,6 +55,18 @@
       "status": "official-pinned-and-hydrated-inside-refusion",
       "profile": "graphics-spike"
     },
+    "ffmpeg": {
+      "kind": "git",
+      "official_origin": "https://github.com/FFmpeg/FFmpeg.git",
+      "canonical_upstream": "https://git.ffmpeg.org/ffmpeg.git",
+      "tag": "n8.0.3",
+      "tag_object": "3b9813e76f3d2a6663de825ccebbef3968d7a576",
+      "revision": "8ae0b34901ba60a802f183ee75a250a9fc3e09a5",
+      "license": "LGPL-2.1-or-later candidate; release legal receipt required",
+      "status": "demux-only-macos-built-windows-profile-not-run",
+      "source_policy": "fresh-official-checkout-inside-refusion-only",
+      "profile": "iso-bmff-demux-only"
+    },
     "noto_sans_latin_baseline": {
       "kind": "font-archive",
       "family": "Noto Sans",

@@ -22,6 +22,34 @@ last_updated: 2026-08-09
 
 # Current program status
 
+## Approved future execution baseline
+
+The product owner approved
+[`PLAN-UCAS-001`](../plans/UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md) as the
+official cross-stage execution baseline for unified creative authoring,
+parameterized Recipes, professional motion, Agent/CLI/MCP parity and future
+extensions. It is gated by MP-001 and is not an active guardrail or stage:
+UCAS-WP00 may prepare documentation/evidence, while code packages remain locked
+until their owning Master Plan gate and entry decisions are active.
+
+The product owner also approved
+[`PLAN-VIDEO-VS-001`](../plans/VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md)
+for a bounded macOS-first Video import/hardware-playback slice followed by a
+same-commit Windows Media Foundation/D3D qualification. Execution has `VI-WP00`
+passed and `VI-WP01` locally code-complete on macOS as of 2026-08-09. The owner
+accepted ADR-0012 through ADR-0015;
+the six-row synthetic corpus and normalized oracles are materialized and
+verified; official FFmpeg `n8.0.3` source is pinned; and the macOS shared build
+receipt proves exactly one enabled demuxer (`MOV`) with zero decoders, encoders,
+muxers, filters, parsers, protocols or bitstream filters. RFX6 now round-trips
+portable Assets, MediaSources, one linked Video/Audio import and independent
+Clips with fixed AppleClang receipt `rfx-project-fnv1a64:36eb03d9474173bc`.
+The equivalent MSVC profile and RFX6 conformance remain pending. Work continues
+on `feature/shared-video-import-v1` with VI-WP02 shared demux/index implemented
+and macOS-passed while the fixed MSVC receipts remain pending. VI-WP03 atomic
+ImportVideo transaction/recovery is the next local package. This
+does not claim product MP4 import, Windows decode or G4 exit.
+
 ## Exact resume point
 
 The cross-platform remediation guardrail

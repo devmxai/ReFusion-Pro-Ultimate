@@ -280,7 +280,7 @@ ProjectAuthority::ProjectAuthority(
     throw std::invalid_argument("project name must be valid preserved UTF-8");
   }
   if (active_.composition) {
-    const auto validation = validate_composition(*active_.composition);
+    const auto validation = validate_project(active_);
     if (!validation.valid) {
       throw std::invalid_argument(validation.code + ": " + validation.message);
     }
@@ -474,7 +474,7 @@ ApplyResult ProjectAuthority::apply(const ReplaceProjectCommand& command) {
     return rejected(command.envelope.command_id, "RFX-SCHEMA-002",
                     "candidate composition is required");
   }
-  const auto validation = validate_composition(*command.candidate.composition);
+  const auto validation = validate_project(command.candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -576,7 +576,7 @@ ApplyResult ProjectAuthority::apply(const SetVisualTransformCommand& command) {
                     "visual transform target does not exist");
   }
 
-  const auto validation = validate_composition(*candidate.composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -748,7 +748,7 @@ ApplyResult ProjectAuthority::apply(const SetLayerEffectsCommand& command) {
                     "effect target Layer does not exist");
   }
   layer->effects = command.effects;
-  const auto validation = validate_composition(*candidate.composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -843,7 +843,7 @@ ApplyResult ProjectAuthority::apply(const SetLayerMasksCommand& command) {
                     "mask target Layer does not exist");
   }
   layer->masks = command.masks;
-  const auto validation = validate_composition(*candidate.composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -1052,7 +1052,7 @@ ApplyResult ProjectAuthority::apply(const AddVisualLayerCommand& command) {
   }
   composition.root_nodes = std::move(roots);
 
-  const auto validation = validate_composition(composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -1218,7 +1218,7 @@ ApplyResult ProjectAuthority::apply(const GroupNodesCommand& command) {
       .children = std::move(children),
   });
 
-  const auto validation = validate_composition(composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -1381,7 +1381,7 @@ ApplyResult ProjectAuthority::apply(const ReparentNodesCommand& command) {
         moved.begin(), moved.end());
   }
 
-  const auto validation = validate_composition(composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -1485,7 +1485,7 @@ ApplyResult ProjectAuthority::apply(const AddEffectCommand& command) {
     return rejected(command.envelope.command_id, "RFX-INTENT-TOPOLOGY-001",
                     "AddEffect must preserve visual topology");
   }
-  const auto validation = validate_composition(composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);
@@ -1654,7 +1654,7 @@ ApplyResult ProjectAuthority::apply(const AlignNodesCommand& command) {
     return rejected(command.envelope.command_id, "RFX-INTENT-TOPOLOGY-001",
                     "AlignNodes must preserve visual topology");
   }
-  const auto validation = validate_composition(*candidate.composition);
+  const auto validation = validate_project(candidate);
   if (!validation.valid) {
     return rejected(command.envelope.command_id, validation.code,
                     validation.message);

@@ -500,6 +500,65 @@ def cross_platform_contract_problems(root: pathlib.Path) -> list[str]:
     return problems
 
 
+def media_dependency_problems(root: pathlib.Path) -> list[str]:
+    problems: list[str] = []
+    profile_path = root / "deps/profiles/ffmpeg/profiles.json"
+    if not profile_path.is_file():
+        return ["FFmpeg demux-only profiles are missing"]
+    try:
+        document = json.loads(profile_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as error:
+        return [f"invalid FFmpeg demux-only profiles: {error}"]
+
+    required = {
+        "--disable-everything",
+        "--enable-shared",
+        "--disable-static",
+        "--disable-network",
+        "--disable-autodetect",
+        "--disable-decoders",
+        "--disable-encoders",
+        "--disable-muxers",
+        "--disable-filters",
+        "--disable-bsfs",
+        "--disable-parsers",
+        "--disable-protocols",
+        "--disable-asm",
+        "--enable-demuxer=mov",
+    }
+    forbidden = {"--enable-gpl", "--enable-nonfree", "--enable-version3"}
+    for name, profile in document.get("profiles", {}).items():
+        arguments = set(profile.get("configure_args", []))
+        for argument in sorted(required - arguments):
+            problems.append(f"FFmpeg profile {name} is missing {argument}")
+        for argument in sorted(forbidden & arguments):
+            problems.append(f"FFmpeg profile {name} enables forbidden {argument}")
+
+    allowed_adapter = "src/adapters/media/ffmpeg/"
+    forbidden_decode_tokens = (
+        "avcodec_send_packet",
+        "avcodec_receive_frame",
+        "sws_getContext",
+        "sws_scale",
+        "swr_alloc",
+        "swr_convert",
+    )
+    for base in (root / "src", root / "apps"):
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if path.suffix not in {".h", ".hpp", ".c", ".cc", ".cpp", ".mm", ".ixx"}:
+                continue
+            relative = path.relative_to(root).as_posix()
+            text = path.read_text(encoding="utf-8")
+            if ("libavformat/" in text or "libavcodec/" in text or "libavutil/" in text) and not relative.startswith(allowed_adapter):
+                problems.append(f"{relative} imports FFmpeg outside the demux adapter")
+            for token in forbidden_decode_tokens:
+                if token in text:
+                    problems.append(f"{relative} contains forbidden FFmpeg decode/conversion token {token}")
+    return problems
+
+
 def mobile_contract_canary_problems(root: pathlib.Path) -> list[str]:
     problems: list[str] = []
     required_text = {
@@ -1250,6 +1309,7 @@ def command_architecture_check() -> int:
     visual_boundary_findings = collect_visual_boundary_findings(ROOT)
     problems.extend(studio_authority_problems(ROOT))
     problems.extend(cross_platform_contract_problems(ROOT))
+    problems.extend(media_dependency_problems(ROOT))
     problems.extend(mobile_contract_canary_problems(ROOT))
     problems.extend(visual_color_contract_problems(ROOT))
     problems.extend(visual_qualification_contract_problems(ROOT))

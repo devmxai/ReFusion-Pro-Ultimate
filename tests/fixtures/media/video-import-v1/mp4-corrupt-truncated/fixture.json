@@ -1,0 +1,20 @@
+{
+  "byte_size": 510321,
+  "expected": "RFX-MEDIA-IMPORT-CORRUPT",
+  "generation": {
+    "commands": [
+      "python-byte-truncate --source mp4-vfr-bframes-aac-offset.mp4 --remove-tail-bytes 8192"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-corrupt-truncated",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "2a7bd2050b8827cbe20ed3c2d6bf9e7ff7f4d32792b5bba6fcee9366f0fd9807",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "906c23a62e78b98b4acd95a73c61dcdf8433ce7f83c68c81a08da6ca44fdbbb7"
+}

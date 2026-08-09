@@ -38,6 +38,12 @@
       "owner": "visual-authoring"
     },
     {
+      "id": "RFX-PROJECT-RFX-EXP6",
+      "path": "project/refusion-project-rfx-exp6.ebnf",
+      "status": "experimenting",
+      "owner": "shared-media-architecture"
+    },
+    {
       "id": "RFX-XPLAT-VISUAL-BOUNDARY-EXCEPTIONS-1",
       "path": "architecture/cross-platform-visual-boundary-exceptions.json",
       "status": "active-shrink-only",
@@ -60,7 +66,25 @@
       "path": "visual/xplat-qualification-receipt-v1.schema.json",
       "status": "active",
       "owner": "principal-cross-platform-architecture"
+    },
+    {
+      "id": "RFX-MEDIA-DESKTOP-VIDEO-IMPORT-1",
+      "path": "media/desktop-video-import-v1.json",
+      "status": "accepted",
+      "owner": "product-media"
+    },
+    {
+      "id": "RFX-MEDIA-INDEX-1",
+      "path": "media/media-index-v1.json",
+      "status": "accepted-macos-verified-msvc-pending",
+      "owner": "shared-media-architecture"
+    },
+    {
+      "id": "RFX-MEDIA-VIDEO-IMPORT-FIXTURES-1",
+      "path": "media/video-import-v1-fixtures.json",
+      "status": "materialized-verified",
+      "owner": "shared-media-architecture"
     }
   ],
-  "note": "RFX1-RFX4 remain readable migration inputs. RFX5 binds the Mask/FX contribution Registry and uses one descriptor-driven typed parameter grammar; none is a stable shipping-format claim."
+  "note": "RFX1-RFX5 remain readable migration inputs. RFX6 adds portable AssetRecord, MediaSource, LinkedImport, VideoClip and AudioClip truth while retaining the same visual Registry grammar; none is a stable shipping-format claim. The media profile and verified fixture manifest do not claim product import support."
 }

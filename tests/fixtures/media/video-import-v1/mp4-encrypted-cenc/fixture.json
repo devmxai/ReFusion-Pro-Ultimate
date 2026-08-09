@@ -1,0 +1,20 @@
+{
+  "byte_size": 521286,
+  "expected": "RFX-MEDIA-IMPORT-ENCRYPTED",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -i '$TMP/mp4-vfr-bframes-aac-offset.mp4' -map 0 -c copy -encryption_scheme cenc-aes-ctr -encryption_key 000102030405060708090a0b0c0d0e0f -encryption_kid 00112233445566778899aabbccddeeff '$TMP/mp4-encrypted-cenc.mp4'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-encrypted-cenc",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "7e678e7cac9f9e662c0a5a9dbd1c7f0380e4c8e5b5c4a5ceaa71be1e548d1b40",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "3168851c6687129c9ec264c81be0ed5a8cc8e24685fdd366e9df514712771945"
+}

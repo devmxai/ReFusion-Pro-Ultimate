@@ -9,9 +9,11 @@ import json
 import os
 import pathlib
 import platform
+import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -19,10 +21,12 @@ import zipfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LOCK = ROOT / "deps" / "manifest.lock.json"
 SKIA_PROFILES = ROOT / "deps" / "profiles" / "skia" / "profiles.json"
+FFMPEG_PROFILES = ROOT / "deps" / "profiles" / "ffmpeg" / "profiles.json"
 TOOLCHAIN_ROOT = ROOT / "deps" / "toolchains"
 TRANSITIVE_LOCK_ROOT = ROOT / "deps" / "locks"
 SOURCE_CACHE = ROOT / "out" / "deps-src"
 SKIA_BUILD_ROOT = ROOT / "out" / "deps-build" / "skia"
+FFMPEG_BUILD_ROOT = ROOT / "out" / "deps-build" / "ffmpeg"
 SKIA_DEPENDENCY_RECORD = SOURCE_CACHE / "skia-dependencies.lock.json"
 
 
@@ -170,10 +174,22 @@ def verify_git(name: str, source: pathlib.Path) -> int:
     expected_head = spec["revision"]
     expected_origin = spec["official_origin"]
     dirty = run(["git", "status", "--porcelain"], cwd=source)
+    tag = spec.get("tag")
+    tag_object = None
+    peeled_tag = None
+    tag_ok = True
+    if tag:
+        tag_object = run(["git", "rev-parse", f"refs/tags/{tag}"], cwd=source)
+        peeled_tag = run(["git", "rev-parse", f"refs/tags/{tag}^{{}}"], cwd=source)
+        tag_ok = (
+            tag_object == spec.get("tag_object")
+            and peeled_tag == expected_head
+        )
     ok = (
         head == expected_head
         and origin.rstrip("/") == expected_origin.rstrip("/")
         and not dirty
+        and tag_ok
     )
     print(json.dumps({
         "component": name,
@@ -183,6 +199,10 @@ def verify_git(name: str, source: pathlib.Path) -> int:
         "head": head,
         "expected_head": expected_head,
         "clean": not dirty,
+        "tag": tag,
+        "tag_object": tag_object,
+        "peeled_tag": peeled_tag,
+        "tag_verified": tag_ok,
         "verified": ok,
     }, indent=2))
     return 0 if ok else 2
@@ -203,7 +223,14 @@ def sync_git(name: str, cache: pathlib.Path, fresh: bool) -> int:
     origin = run(["git", "remote", "get-url", "origin"], cwd=destination)
     if origin.rstrip("/") != spec["official_origin"].rstrip("/"):
         raise RuntimeError(f"refusing unexpected origin for {name}: {origin}")
-    run(["git", "fetch", "--depth", "1", "origin", spec["revision"]], cwd=destination)
+    if spec.get("tag"):
+        tag = spec["tag"]
+        run([
+            "git", "fetch", "--depth", "1", "origin",
+            f"refs/tags/{tag}:refs/tags/{tag}",
+        ], cwd=destination)
+    else:
+        run(["git", "fetch", "--depth", "1", "origin", spec["revision"]], cwd=destination)
     run(["git", "checkout", "--detach", spec["revision"]], cwd=destination)
     return verify_git(name, destination)
 
@@ -439,6 +466,169 @@ def skia_profiles() -> dict:
     return json.loads(SKIA_PROFILES.read_text(encoding="utf-8"))["profiles"]
 
 
+def ffmpeg_profile_document() -> dict:
+    return json.loads(FFMPEG_PROFILES.read_text(encoding="utf-8"))
+
+
+def ffmpeg_profiles() -> dict:
+    return ffmpeg_profile_document()["profiles"]
+
+
+def ffmpeg_workspace_alias() -> pathlib.Path:
+    """Return a no-space alias for upstream configure scripts that reject spaces."""
+    digest = hashlib.sha256(str(ROOT.resolve()).encode("utf-8")).hexdigest()[:12]
+    alias = pathlib.Path(tempfile.gettempdir()) / f"refusion-ffmpeg-{digest}"
+    if alias.exists() or alias.is_symlink():
+        if not alias.is_symlink() or alias.resolve() != ROOT.resolve():
+            raise RuntimeError(f"refusing unexpected FFmpeg workspace alias: {alias}")
+    else:
+        alias.symlink_to(ROOT.resolve(), target_is_directory=True)
+    return alias
+
+
+def ffmpeg_enabled_components(config_path: pathlib.Path) -> dict[str, list[str]]:
+    if not config_path.is_file():
+        raise RuntimeError(f"FFmpeg component configuration is missing: {config_path}")
+    categories = {
+        "DECODER",
+        "ENCODER",
+        "DEMUXER",
+        "MUXER",
+        "FILTER",
+        "BSF",
+        "PARSER",
+        "PROTOCOL",
+    }
+    enabled: dict[str, list[str]] = {category: [] for category in categories}
+    pattern = re.compile(r"^#define CONFIG_([A-Z0-9_]+)_([A-Z]+) 1$")
+    for line in config_path.read_text(encoding="utf-8").splitlines():
+        match = pattern.match(line)
+        if match and match.group(2) in enabled:
+            enabled[match.group(2)].append(match.group(1))
+    for values in enabled.values():
+        values.sort()
+    return dict(sorted(enabled.items()))
+
+
+def verify_ffmpeg_allowlist(config_path: pathlib.Path) -> dict[str, list[str]]:
+    enabled = ffmpeg_enabled_components(config_path)
+    receipt = ffmpeg_profile_document()["allowlist_receipt"]
+    expected_demuxers = sorted(receipt["required_enabled_demuxers"])
+    if enabled["DEMUXER"] != expected_demuxers:
+        raise RuntimeError(
+            f"FFmpeg demuxer allowlist drifted: {enabled['DEMUXER']} != {expected_demuxers}"
+        )
+    for category in receipt["forbidden_enabled_categories"]:
+        if enabled[category]:
+            raise RuntimeError(
+                f"FFmpeg forbidden {category.lower()} components are enabled: "
+                f"{enabled[category]}"
+            )
+    return enabled
+
+
+def build_ffmpeg(
+    profile_name: str,
+    cache: pathlib.Path,
+    build_root: pathlib.Path,
+    fresh: bool = False,
+) -> int:
+    profiles = ffmpeg_profiles()
+    if profile_name not in profiles:
+        raise RuntimeError(f"unknown FFmpeg build profile: {profile_name}")
+    profile = profiles[profile_name]
+    if profile["host"] != host_key():
+        raise RuntimeError(
+            f"FFmpeg profile {profile_name} requires {profile['host']}, host is {host_key()}"
+        )
+
+    cache = cache.resolve()
+    source = controlled_destination("ffmpeg", cache)
+    if verify_git("ffmpeg", source) != 0:
+        raise RuntimeError("refusing to build unverified FFmpeg sources")
+    if build_root.resolve() != FFMPEG_BUILD_ROOT.resolve():
+        raise RuntimeError(f"FFmpeg builds must remain inside ReFusion: {FFMPEG_BUILD_ROOT}")
+
+    output = build_root.resolve() / profile_name
+    if fresh and output.exists():
+        if output.parent != FFMPEG_BUILD_ROOT.resolve():
+            raise RuntimeError(f"refusing uncontrolled FFmpeg build cleanup: {output}")
+        shutil.rmtree(output)
+    output.mkdir(parents=True, exist_ok=True)
+    install = output / "install"
+    workspace_alias = ffmpeg_workspace_alias()
+    source_alias = workspace_alias / source.relative_to(ROOT)
+    output_alias = workspace_alias / output.relative_to(ROOT)
+    install_alias = workspace_alias / install.relative_to(ROOT)
+    configure_args = [*profile["configure_args"], f"--prefix={install_alias}"]
+    receipt_configure_args = [
+        argument.replace(str(workspace_alias), "$REFUSION_ROOT")
+        for argument in configure_args
+    ]
+    configure = source_alias / "configure"
+
+    if os.name == "nt":
+        bash_value = os.environ.get("REFUSION_MSYS2_BASH")
+        if not bash_value:
+            raise RuntimeError(
+                "REFUSION_MSYS2_BASH must name the pinned MSYS2 bash for the MSVC profile"
+            )
+        bash = pathlib.Path(bash_value)
+        if not bash.is_file():
+            raise RuntimeError(f"pinned MSYS2 bash is missing: {bash}")
+        run([str(bash), configure.as_posix(), *configure_args], cwd=output_alias)
+        jobs = str(max(1, os.cpu_count() or 1))
+        run([str(bash), "-c", f"make -j{jobs}"], cwd=output_alias)
+        run([str(bash), "-c", "make install"], cwd=output_alias)
+    elif sys.platform == "darwin":
+        run([str(configure), *configure_args], cwd=output_alias)
+        run(["/usr/bin/make", f"-j{max(1, os.cpu_count() or 1)}"], cwd=output_alias)
+        run(["/usr/bin/make", "install"], cwd=output_alias)
+    else:
+        raise RuntimeError("no admitted FFmpeg demux profile for this host")
+
+    config_path = output / "config_components.h"
+    enabled = verify_ffmpeg_allowlist(config_path)
+    library_patterns = ("*.dll", "*.lib") if os.name == "nt" else ("*.dylib",)
+    libraries = sorted(
+        path
+        for pattern in library_patterns
+        for path in (install / "lib").glob(pattern)
+        if path.is_file()
+    )
+    if not libraries:
+        raise RuntimeError("FFmpeg shared-library installation is empty")
+    record = {
+        "schema_version": 1,
+        "profile": profile_name,
+        "source_origin": component("ffmpeg")["official_origin"],
+        "source_tag": component("ffmpeg")["tag"],
+        "source_revision": component("ffmpeg")["revision"],
+        "configure_args": receipt_configure_args,
+        "configure_args_sha256": hashlib.sha256(
+            ("\n".join(receipt_configure_args) + "\n").encode("utf-8")
+        ).hexdigest(),
+        "config_components_sha256": sha256_file(config_path),
+        "enabled_components": enabled,
+        "libraries": [
+            {
+                "path": path.relative_to(ROOT).as_posix(),
+                "size": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+            for path in libraries
+        ],
+        "host": {
+            "system": platform.system(),
+            "release": platform.release(),
+            "machine": platform.machine(),
+        },
+    }
+    write_json_atomic(output / "refusion-build.json", record)
+    print(json.dumps(record, indent=2))
+    return 0
+
+
 def build_skia(profile_name: str, cache: pathlib.Path, build_root: pathlib.Path) -> int:
     profiles = skia_profiles()
     if profile_name not in profiles:
@@ -623,6 +813,11 @@ def main() -> int:
     sub.add_parser("lock-skia-materialization")
     build = sub.add_parser("build-skia")
     build.add_argument("--profile", required=True, choices=tuple(skia_profiles()))
+    build_ffmpeg_parser = sub.add_parser("build-ffmpeg")
+    build_ffmpeg_parser.add_argument(
+        "--profile", required=True, choices=tuple(ffmpeg_profiles())
+    )
+    build_ffmpeg_parser.add_argument("--fresh", action="store_true")
     args = parser.parse_args()
     try:
         if args.command == "doctor":
@@ -642,6 +837,10 @@ def main() -> int:
             return 0
         if args.command == "lock-skia-materialization":
             return lock_skia_materialization(SOURCE_CACHE)
+        if args.command == "build-ffmpeg":
+            return build_ffmpeg(
+                args.profile, SOURCE_CACHE, FFMPEG_BUILD_ROOT, args.fresh
+            )
         return build_skia(args.profile, SOURCE_CACHE, SKIA_BUILD_ROOT)
     except (RuntimeError, OSError, json.JSONDecodeError) as error:
         print(f"bootstrap error: {error}", file=sys.stderr)

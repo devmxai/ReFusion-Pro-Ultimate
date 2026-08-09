@@ -41,6 +41,42 @@ struct LayerGroupId final {
   friend bool operator==(const LayerGroupId&, const LayerGroupId&) = default;
 };
 
+struct AssetId final {
+  std::string value;
+
+  friend bool operator==(const AssetId&, const AssetId&) = default;
+};
+
+struct MediaSourceId final {
+  std::string value;
+
+  friend bool operator==(const MediaSourceId&, const MediaSourceId&) = default;
+};
+
+struct MediaStreamId final {
+  std::string value;
+
+  friend bool operator==(const MediaStreamId&, const MediaStreamId&) = default;
+};
+
+struct LinkedImportId final {
+  std::string value;
+
+  friend bool operator==(const LinkedImportId&, const LinkedImportId&) = default;
+};
+
+struct VideoClipId final {
+  std::string value;
+
+  friend bool operator==(const VideoClipId&, const VideoClipId&) = default;
+};
+
+struct AudioClipId final {
+  std::string value;
+
+  friend bool operator==(const AudioClipId&, const AudioClipId&) = default;
+};
+
 using VisualNodeRef = std::variant<LayerId, LayerGroupId>;
 
 struct RationalRate final {
@@ -70,6 +106,131 @@ struct CanvasExtent final {
   [[nodiscard]] bool valid() const noexcept;
 
   friend bool operator==(const CanvasExtent&, const CanvasExtent&) = default;
+};
+
+enum class AssetMediaKind : std::uint8_t {
+  video_container,
+};
+
+enum class AssetProvenance : std::uint8_t {
+  imported_copy,
+};
+
+struct AssetRecord final {
+  AssetId asset_id;
+  std::string content_digest;
+  std::uint64_t byte_size{0};
+  AssetMediaKind media_kind{AssetMediaKind::video_container};
+  std::string project_relative_original;
+  std::string original_display_name;
+  AssetProvenance provenance{AssetProvenance::imported_copy};
+
+  friend bool operator==(const AssetRecord&, const AssetRecord&) = default;
+};
+
+struct MediaTimeBase final {
+  std::int64_t numerator{1};
+  std::int64_t denominator{1};
+
+  [[nodiscard]] bool valid() const noexcept;
+
+  friend bool operator==(const MediaTimeBase&, const MediaTimeBase&) = default;
+};
+
+struct MediaTickRange final {
+  std::int64_t start{0};
+  std::uint64_t duration{0};
+
+  [[nodiscard]] bool valid() const noexcept;
+
+  friend bool operator==(const MediaTickRange&, const MediaTickRange&) = default;
+};
+
+enum class MediaStreamKind : std::uint8_t {
+  video,
+  audio,
+};
+
+enum class MediaCodec : std::uint8_t {
+  h264_avc,
+  aac_lc,
+};
+
+enum class MediaColorRange : std::uint8_t {
+  video,
+};
+
+struct VideoStreamFormat final {
+  CanvasExtent coded_extent;
+  CanvasExtent display_extent;
+  RationalRate presentation_rate;
+  std::uint8_t bit_depth{8};
+  std::uint8_t chroma_subsampling_x{2};
+  std::uint8_t chroma_subsampling_y{2};
+  MediaColorRange color_range{MediaColorRange::video};
+  std::string color_primaries;
+  std::string color_transfer;
+  std::string color_matrix;
+  std::int16_t orientation_degrees{0};
+  std::uint32_t sample_aspect_numerator{1};
+  std::uint32_t sample_aspect_denominator{1};
+
+  friend bool operator==(const VideoStreamFormat&,
+                         const VideoStreamFormat&) = default;
+};
+
+struct AudioStreamFormat final {
+  std::uint32_t sample_rate_hz{0};
+  std::uint8_t channels{0};
+
+  friend bool operator==(const AudioStreamFormat&,
+                         const AudioStreamFormat&) = default;
+};
+
+using MediaStreamFormat = std::variant<VideoStreamFormat, AudioStreamFormat>;
+
+struct MediaStreamDescriptor final {
+  MediaStreamId stream_id;
+  std::uint32_t container_track_id{0};
+  MediaStreamKind kind{MediaStreamKind::video};
+  MediaCodec codec{MediaCodec::h264_avc};
+  std::string codec_configuration_digest;
+  MediaTimeBase time_base;
+  std::int64_t start{0};
+  std::uint64_t duration{0};
+  MediaStreamFormat format;
+
+  friend bool operator==(const MediaStreamDescriptor&,
+                         const MediaStreamDescriptor&) = default;
+};
+
+enum class MediaResolutionState : std::uint8_t {
+  resolved,
+  missing,
+  digest_mismatch,
+  unsupported,
+};
+
+struct MediaSource final {
+  MediaSourceId media_source_id;
+  AssetId asset_id;
+  std::uint32_t media_index_contract_version{1};
+  std::string media_index_digest;
+  MediaResolutionState resolution{MediaResolutionState::resolved};
+  std::vector<MediaStreamDescriptor> streams;
+  std::optional<MediaStreamId> selected_video_stream;
+  std::optional<MediaStreamId> selected_audio_stream;
+
+  friend bool operator==(const MediaSource&, const MediaSource&) = default;
+};
+
+struct LinkedImport final {
+  LinkedImportId linked_import_id;
+  MediaSourceId media_source_id;
+  std::optional<VideoClipId> video_clip_id;
+  std::optional<AudioClipId> audio_clip_id;
+
+  friend bool operator==(const LinkedImport&, const LinkedImport&) = default;
 };
 
 struct ColorRgba8 final {
@@ -405,6 +566,39 @@ struct LayerGroupSnapshot final {
                          const LayerGroupSnapshot&) = default;
 };
 
+struct VideoClipSnapshot final {
+  VideoClipId video_clip_id;
+  LinkedImportId linked_import_id;
+  MediaSourceId media_source_id;
+  MediaStreamId stream_id;
+  std::string display_name;
+  TimeRangeNs active_range;
+  MediaTickRange source_range;
+  bool enabled{true};
+  bool locked{false};
+
+  friend bool operator==(const VideoClipSnapshot&,
+                         const VideoClipSnapshot&) = default;
+};
+
+struct AudioClipSnapshot final {
+  AudioClipId audio_clip_id;
+  LinkedImportId linked_import_id;
+  MediaSourceId media_source_id;
+  MediaStreamId stream_id;
+  std::string display_name;
+  TimeRangeNs active_range;
+  MediaTickRange source_range;
+  bool enabled{true};
+  bool locked{false};
+  double gain{1.0};
+  bool muted{false};
+  bool solo{false};
+
+  friend bool operator==(const AudioClipSnapshot&,
+                         const AudioClipSnapshot&) = default;
+};
+
 struct CompositionSnapshot final {
   CompositionId composition_id;
   std::string display_name;
@@ -414,6 +608,8 @@ struct CompositionSnapshot final {
   std::vector<LayerSnapshot> layers;
   std::vector<LayerGroupSnapshot> groups;
   std::vector<VisualNodeRef> root_nodes;
+  std::vector<VideoClipSnapshot> video_clips;
+  std::vector<AudioClipSnapshot> audio_clips;
 
   friend bool operator==(const CompositionSnapshot&, const CompositionSnapshot&) = default;
 };
@@ -474,6 +670,9 @@ struct ProjectSnapshot final {
   RevisionId revision_id;
   std::string display_name;
   std::optional<CompositionSnapshot> composition;
+  std::vector<AssetRecord> assets;
+  std::vector<MediaSource> media_sources;
+  std::vector<LinkedImport> linked_imports;
 
   friend bool operator==(const ProjectSnapshot&, const ProjectSnapshot&) = default;
 };
@@ -486,6 +685,12 @@ struct CompositionValidation final {
 
 [[nodiscard]] CompositionValidation validate_composition(
     const CompositionSnapshot& composition);
+
+[[nodiscard]] CompositionValidation validate_media_stream_descriptor(
+    const MediaStreamDescriptor& stream);
+
+[[nodiscard]] CompositionValidation validate_project(
+    const ProjectSnapshot& project);
 
 // Authored TextBox geometry is centered in Layer-local pixels. These bounds
 // are schema geometry only, not shaped glyph/logical/ink measurement.

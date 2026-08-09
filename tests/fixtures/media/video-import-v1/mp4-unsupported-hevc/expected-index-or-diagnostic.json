@@ -1,0 +1,6 @@
+{
+  "expected_diagnostic": "RFX-MEDIA-IMPORT-PROFILE-UNSUPPORTED",
+  "observed_codec": "hevc",
+  "observed_codec_tag": "hvc1",
+  "schema_version": 1
+}

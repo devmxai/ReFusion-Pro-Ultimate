@@ -31,13 +31,14 @@ struct RfxCompileResult final {
   }
 };
 
-// Compile strict RFX1-RFX4 migration inputs or the bounded RFX5 contribution schema
+// Compile strict RFX1-RFX5 migration inputs or the bounded RFX6 media schema
 // into the same portable Core snapshot consumed by UI, evaluator and renderer.
 [[nodiscard]] RfxCompileResult compile_project_rfx(
     std::string_view source) noexcept;
 
-// Produce canonical RFX5 spelling. This is intentionally a whole-document
-// writer: project state is never persisted through ad-hoc text edits.
+// Produce canonical RFX5 for visual-only projects or RFX6 when media state is
+// present. This is intentionally a whole-document writer: project state is
+// never persisted through ad-hoc text edits.
 [[nodiscard]] std::string serialize_project_rfx(
     const ProjectSnapshot& project);
 

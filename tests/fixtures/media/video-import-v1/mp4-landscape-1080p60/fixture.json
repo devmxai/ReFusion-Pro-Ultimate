@@ -1,0 +1,20 @@
+{
+  "byte_size": 2043107,
+  "expected": "admitted",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=1920x1080:rate=60:duration=2 -f lavfi -i sine=frequency=440:sample_rate=48000:duration=2 -map 0:v:0 -map 1:a:0 -filter:v setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv -c:v libx264 -threads:v 1 -preset veryfast -pix_fmt yuv420p -profile:v high -level:v 4.2 -g 120 -bf 3 -b:v 8M -maxrate 10M -bufsize 20M -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -c:a aac -threads:a 1 -profile:a aac_low -b:a 128k -shortest -movflags +faststart+write_colr '$TMP/mp4-landscape-1080p60.mp4'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mp4-landscape-1080p60",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "8b68c930453f541e342045b864a7b0439fcca53116c1b573f05cf86af33f5b7f",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mp4",
+  "schema_version": 1,
+  "sha256": "c8ae10cb20f460184e910443383fa44d1c135468e8f0f3bad6f3c0bfd2302622"
+}

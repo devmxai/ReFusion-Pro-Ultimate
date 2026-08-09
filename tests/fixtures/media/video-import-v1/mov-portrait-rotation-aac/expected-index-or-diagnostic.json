@@ -1,0 +1,1386 @@
+{
+  "format": {
+    "duration": "2.000000",
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "size": "267335",
+    "start_time": "0.000000"
+  },
+  "kind": "provider-assisted-media-index-oracle",
+  "packets_decode_order": [
+    {
+      "dts": -1024,
+      "duration": 512,
+      "flags": "K__",
+      "pos": "36",
+      "pts": 0,
+      "size": "9891",
+      "stream_index": 0
+    },
+    {
+      "dts": -512,
+      "duration": 512,
+      "flags": "___",
+      "pos": "9927",
+      "pts": 1536,
+      "size": "5292",
+      "stream_index": 0
+    },
+    {
+      "dts": -1024,
+      "duration": 1024,
+      "flags": "KD_",
+      "pos": "15219",
+      "pts": -1024,
+      "size": "317",
+      "stream_index": 1
+    },
+    {
+      "dts": 0,
+      "duration": 512,
+      "flags": "___",
+      "pos": "15536",
+      "pts": 512,
+      "size": "3613",
+      "stream_index": 0
+    },
+    {
+      "dts": 0,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "19149",
+      "pts": 0,
+      "size": "362",
+      "stream_index": 1
+    },
+    {
+      "dts": 1024,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "19511",
+      "pts": 1024,
+      "size": "241",
+      "stream_index": 1
+    },
+    {
+      "dts": 512,
+      "duration": 512,
+      "flags": "___",
+      "pos": "19752",
+      "pts": 1024,
+      "size": "3052",
+      "stream_index": 0
+    },
+    {
+      "dts": 2048,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "22804",
+      "pts": 2048,
+      "size": "272",
+      "stream_index": 1
+    },
+    {
+      "dts": 1024,
+      "duration": 512,
+      "flags": "___",
+      "pos": "23076",
+      "pts": 3072,
+      "size": "4754",
+      "stream_index": 0
+    },
+    {
+      "dts": 3072,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "27830",
+      "pts": 3072,
+      "size": "255",
+      "stream_index": 1
+    },
+    {
+      "dts": 4096,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "28085",
+      "pts": 4096,
+      "size": "280",
+      "stream_index": 1
+    },
+    {
+      "dts": 1536,
+      "duration": 512,
+      "flags": "___",
+      "pos": "28365",
+      "pts": 2048,
+      "size": "3480",
+      "stream_index": 0
+    },
+    {
+      "dts": 5120,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "31845",
+      "pts": 5120,
+      "size": "293",
+      "stream_index": 1
+    },
+    {
+      "dts": 2048,
+      "duration": 512,
+      "flags": "___",
+      "pos": "32138",
+      "pts": 2560,
+      "size": "3070",
+      "stream_index": 0
+    },
+    {
+      "dts": 6144,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "35208",
+      "pts": 6144,
+      "size": "277",
+      "stream_index": 1
+    },
+    {
+      "dts": 7168,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "35485",
+      "pts": 7168,
+      "size": "276",
+      "stream_index": 1
+    },
+    {
+      "dts": 2560,
+      "duration": 512,
+      "flags": "___",
+      "pos": "35761",
+      "pts": 4096,
+      "size": "4625",
+      "stream_index": 0
+    },
+    {
+      "dts": 8192,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "40386",
+      "pts": 8192,
+      "size": "300",
+      "stream_index": 1
+    },
+    {
+      "dts": 3072,
+      "duration": 512,
+      "flags": "___",
+      "pos": "40686",
+      "pts": 3584,
+      "size": "3036",
+      "stream_index": 0
+    },
+    {
+      "dts": 9216,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "43722",
+      "pts": 9216,
+      "size": "269",
+      "stream_index": 1
+    },
+    {
+      "dts": 10240,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "43991",
+      "pts": 10240,
+      "size": "262",
+      "stream_index": 1
+    },
+    {
+      "dts": 3584,
+      "duration": 512,
+      "flags": "___",
+      "pos": "44253",
+      "pts": 5632,
+      "size": "4722",
+      "stream_index": 0
+    },
+    {
+      "dts": 11264,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "48975",
+      "pts": 11264,
+      "size": "301",
+      "stream_index": 1
+    },
+    {
+      "dts": 4096,
+      "duration": 512,
+      "flags": "___",
+      "pos": "49276",
+      "pts": 4608,
+      "size": "3228",
+      "stream_index": 0
+    },
+    {
+      "dts": 12288,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "52504",
+      "pts": 12288,
+      "size": "317",
+      "stream_index": 1
+    },
+    {
+      "dts": 4608,
+      "duration": 512,
+      "flags": "___",
+      "pos": "52821",
+      "pts": 5120,
+      "size": "3151",
+      "stream_index": 0
+    },
+    {
+      "dts": 13312,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "55972",
+      "pts": 13312,
+      "size": "321",
+      "stream_index": 1
+    },
+    {
+      "dts": 14336,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "56293",
+      "pts": 14336,
+      "size": "235",
+      "stream_index": 1
+    },
+    {
+      "dts": 5120,
+      "duration": 512,
+      "flags": "___",
+      "pos": "56528",
+      "pts": 7168,
+      "size": "4712",
+      "stream_index": 0
+    },
+    {
+      "dts": 15360,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "61240",
+      "pts": 15360,
+      "size": "266",
+      "stream_index": 1
+    },
+    {
+      "dts": 5632,
+      "duration": 512,
+      "flags": "___",
+      "pos": "61506",
+      "pts": 6144,
+      "size": "3464",
+      "stream_index": 0
+    },
+    {
+      "dts": 16384,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "64970",
+      "pts": 16384,
+      "size": "226",
+      "stream_index": 1
+    },
+    {
+      "dts": 17408,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "65196",
+      "pts": 17408,
+      "size": "298",
+      "stream_index": 1
+    },
+    {
+      "dts": 6144,
+      "duration": 512,
+      "flags": "___",
+      "pos": "65494",
+      "pts": 6656,
+      "size": "3427",
+      "stream_index": 0
+    },
+    {
+      "dts": 18432,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "68921",
+      "pts": 18432,
+      "size": "324",
+      "stream_index": 1
+    },
+    {
+      "dts": 6656,
+      "duration": 512,
+      "flags": "___",
+      "pos": "69245",
+      "pts": 8704,
+      "size": "4538",
+      "stream_index": 0
+    },
+    {
+      "dts": 19456,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "73783",
+      "pts": 19456,
+      "size": "268",
+      "stream_index": 1
+    },
+    {
+      "dts": 20480,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "74051",
+      "pts": 20480,
+      "size": "276",
+      "stream_index": 1
+    },
+    {
+      "dts": 7168,
+      "duration": 512,
+      "flags": "___",
+      "pos": "74327",
+      "pts": 7680,
+      "size": "3368",
+      "stream_index": 0
+    },
+    {
+      "dts": 21504,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "77695",
+      "pts": 21504,
+      "size": "255",
+      "stream_index": 1
+    },
+    {
+      "dts": 7680,
+      "duration": 512,
+      "flags": "___",
+      "pos": "77950",
+      "pts": 8192,
+      "size": "3204",
+      "stream_index": 0
+    },
+    {
+      "dts": 22528,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "81154",
+      "pts": 22528,
+      "size": "262",
+      "stream_index": 1
+    },
+    {
+      "dts": 8192,
+      "duration": 512,
+      "flags": "___",
+      "pos": "81416",
+      "pts": 10240,
+      "size": "4539",
+      "stream_index": 0
+    },
+    {
+      "dts": 23552,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "85955",
+      "pts": 23552,
+      "size": "289",
+      "stream_index": 1
+    },
+    {
+      "dts": 24576,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "86244",
+      "pts": 24576,
+      "size": "279",
+      "stream_index": 1
+    },
+    {
+      "dts": 8704,
+      "duration": 512,
+      "flags": "___",
+      "pos": "86523",
+      "pts": 9216,
+      "size": "3514",
+      "stream_index": 0
+    },
+    {
+      "dts": 25600,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "90037",
+      "pts": 25600,
+      "size": "277",
+      "stream_index": 1
+    },
+    {
+      "dts": 9216,
+      "duration": 512,
+      "flags": "___",
+      "pos": "90314",
+      "pts": 9728,
+      "size": "3312",
+      "stream_index": 0
+    },
+    {
+      "dts": 26624,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "93626",
+      "pts": 26624,
+      "size": "275",
+      "stream_index": 1
+    },
+    {
+      "dts": 27648,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "93901",
+      "pts": 27648,
+      "size": "266",
+      "stream_index": 1
+    },
+    {
+      "dts": 9728,
+      "duration": 512,
+      "flags": "___",
+      "pos": "94167",
+      "pts": 11776,
+      "size": "4802",
+      "stream_index": 0
+    },
+    {
+      "dts": 28672,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "98969",
+      "pts": 28672,
+      "size": "315",
+      "stream_index": 1
+    },
+    {
+      "dts": 10240,
+      "duration": 512,
+      "flags": "___",
+      "pos": "99284",
+      "pts": 10752,
+      "size": "3617",
+      "stream_index": 0
+    },
+    {
+      "dts": 29696,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "102901",
+      "pts": 29696,
+      "size": "335",
+      "stream_index": 1
+    },
+    {
+      "dts": 30720,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "103236",
+      "pts": 30720,
+      "size": "250",
+      "stream_index": 1
+    },
+    {
+      "dts": 10752,
+      "duration": 512,
+      "flags": "___",
+      "pos": "103486",
+      "pts": 11264,
+      "size": "3286",
+      "stream_index": 0
+    },
+    {
+      "dts": 31744,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "106772",
+      "pts": 31744,
+      "size": "256",
+      "stream_index": 1
+    },
+    {
+      "dts": 11264,
+      "duration": 512,
+      "flags": "___",
+      "pos": "107028",
+      "pts": 13312,
+      "size": "4511",
+      "stream_index": 0
+    },
+    {
+      "dts": 32768,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "111539",
+      "pts": 32768,
+      "size": "278",
+      "stream_index": 1
+    },
+    {
+      "dts": 33792,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "111817",
+      "pts": 33792,
+      "size": "263",
+      "stream_index": 1
+    },
+    {
+      "dts": 11776,
+      "duration": 512,
+      "flags": "___",
+      "pos": "112080",
+      "pts": 12288,
+      "size": "3460",
+      "stream_index": 0
+    },
+    {
+      "dts": 34816,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "115540",
+      "pts": 34816,
+      "size": "282",
+      "stream_index": 1
+    },
+    {
+      "dts": 12288,
+      "duration": 512,
+      "flags": "___",
+      "pos": "115822",
+      "pts": 12800,
+      "size": "3218",
+      "stream_index": 0
+    },
+    {
+      "dts": 35840,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "119040",
+      "pts": 35840,
+      "size": "271",
+      "stream_index": 1
+    },
+    {
+      "dts": 12800,
+      "duration": 512,
+      "flags": "___",
+      "pos": "119311",
+      "pts": 14848,
+      "size": "4605",
+      "stream_index": 0
+    },
+    {
+      "dts": 36864,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "123916",
+      "pts": 36864,
+      "size": "311",
+      "stream_index": 1
+    },
+    {
+      "dts": 37888,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "124227",
+      "pts": 37888,
+      "size": "265",
+      "stream_index": 1
+    },
+    {
+      "dts": 13312,
+      "duration": 512,
+      "flags": "___",
+      "pos": "124492",
+      "pts": 13824,
+      "size": "3348",
+      "stream_index": 0
+    },
+    {
+      "dts": 38912,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "127840",
+      "pts": 38912,
+      "size": "312",
+      "stream_index": 1
+    },
+    {
+      "dts": 13824,
+      "duration": 512,
+      "flags": "___",
+      "pos": "128152",
+      "pts": 14336,
+      "size": "3285",
+      "stream_index": 0
+    },
+    {
+      "dts": 39936,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "131437",
+      "pts": 39936,
+      "size": "275",
+      "stream_index": 1
+    },
+    {
+      "dts": 40960,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "131712",
+      "pts": 40960,
+      "size": "254",
+      "stream_index": 1
+    },
+    {
+      "dts": 14336,
+      "duration": 512,
+      "flags": "K__",
+      "pos": "131966",
+      "pts": 15360,
+      "size": "10728",
+      "stream_index": 0
+    },
+    {
+      "dts": 41984,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "142694",
+      "pts": 41984,
+      "size": "309",
+      "stream_index": 1
+    },
+    {
+      "dts": 14848,
+      "duration": 512,
+      "flags": "___",
+      "pos": "143003",
+      "pts": 16896,
+      "size": "5218",
+      "stream_index": 0
+    },
+    {
+      "dts": 43008,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "148221",
+      "pts": 43008,
+      "size": "251",
+      "stream_index": 1
+    },
+    {
+      "dts": 44032,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "148472",
+      "pts": 44032,
+      "size": "258",
+      "stream_index": 1
+    },
+    {
+      "dts": 15360,
+      "duration": 512,
+      "flags": "___",
+      "pos": "148730",
+      "pts": 15872,
+      "size": "3274",
+      "stream_index": 0
+    },
+    {
+      "dts": 45056,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "152004",
+      "pts": 45056,
+      "size": "269",
+      "stream_index": 1
+    },
+    {
+      "dts": 15872,
+      "duration": 512,
+      "flags": "___",
+      "pos": "152273",
+      "pts": 16384,
+      "size": "3072",
+      "stream_index": 0
+    },
+    {
+      "dts": 46080,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "155345",
+      "pts": 46080,
+      "size": "277",
+      "stream_index": 1
+    },
+    {
+      "dts": 16384,
+      "duration": 512,
+      "flags": "___",
+      "pos": "155622",
+      "pts": 18432,
+      "size": "4452",
+      "stream_index": 0
+    },
+    {
+      "dts": 47104,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "160074",
+      "pts": 47104,
+      "size": "279",
+      "stream_index": 1
+    },
+    {
+      "dts": 48128,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "160353",
+      "pts": 48128,
+      "size": "326",
+      "stream_index": 1
+    },
+    {
+      "dts": 16896,
+      "duration": 512,
+      "flags": "___",
+      "pos": "160679",
+      "pts": 17408,
+      "size": "3453",
+      "stream_index": 0
+    },
+    {
+      "dts": 49152,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "164132",
+      "pts": 49152,
+      "size": "328",
+      "stream_index": 1
+    },
+    {
+      "dts": 17408,
+      "duration": 512,
+      "flags": "___",
+      "pos": "164460",
+      "pts": 17920,
+      "size": "3067",
+      "stream_index": 0
+    },
+    {
+      "dts": 50176,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "167527",
+      "pts": 50176,
+      "size": "226",
+      "stream_index": 1
+    },
+    {
+      "dts": 51200,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "167753",
+      "pts": 51200,
+      "size": "307",
+      "stream_index": 1
+    },
+    {
+      "dts": 17920,
+      "duration": 512,
+      "flags": "___",
+      "pos": "168060",
+      "pts": 19456,
+      "size": "4130",
+      "stream_index": 0
+    },
+    {
+      "dts": 52224,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "172190",
+      "pts": 52224,
+      "size": "252",
+      "stream_index": 1
+    },
+    {
+      "dts": 18432,
+      "duration": 512,
+      "flags": "___",
+      "pos": "172442",
+      "pts": 18944,
+      "size": "2915",
+      "stream_index": 0
+    },
+    {
+      "dts": 53248,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "175357",
+      "pts": 53248,
+      "size": "284",
+      "stream_index": 1
+    },
+    {
+      "dts": 54272,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "175641",
+      "pts": 54272,
+      "size": "265",
+      "stream_index": 1
+    },
+    {
+      "dts": 18944,
+      "duration": 512,
+      "flags": "___",
+      "pos": "175906",
+      "pts": 20480,
+      "size": "4381",
+      "stream_index": 0
+    },
+    {
+      "dts": 55296,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "180287",
+      "pts": 55296,
+      "size": "276",
+      "stream_index": 1
+    },
+    {
+      "dts": 19456,
+      "duration": 512,
+      "flags": "___",
+      "pos": "180563",
+      "pts": 19968,
+      "size": "3053",
+      "stream_index": 0
+    },
+    {
+      "dts": 56320,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "183616",
+      "pts": 56320,
+      "size": "270",
+      "stream_index": 1
+    },
+    {
+      "dts": 19968,
+      "duration": 512,
+      "flags": "___",
+      "pos": "183886",
+      "pts": 21504,
+      "size": "4364",
+      "stream_index": 0
+    },
+    {
+      "dts": 57344,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "188250",
+      "pts": 57344,
+      "size": "318",
+      "stream_index": 1
+    },
+    {
+      "dts": 58368,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "188568",
+      "pts": 58368,
+      "size": "276",
+      "stream_index": 1
+    },
+    {
+      "dts": 20480,
+      "duration": 512,
+      "flags": "___",
+      "pos": "188844",
+      "pts": 20992,
+      "size": "3158",
+      "stream_index": 0
+    },
+    {
+      "dts": 59392,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "192002",
+      "pts": 59392,
+      "size": "263",
+      "stream_index": 1
+    },
+    {
+      "dts": 20992,
+      "duration": 512,
+      "flags": "___",
+      "pos": "192265",
+      "pts": 23040,
+      "size": "4468",
+      "stream_index": 0
+    },
+    {
+      "dts": 60416,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "196733",
+      "pts": 60416,
+      "size": "256",
+      "stream_index": 1
+    },
+    {
+      "dts": 61440,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "196989",
+      "pts": 61440,
+      "size": "320",
+      "stream_index": 1
+    },
+    {
+      "dts": 21504,
+      "duration": 512,
+      "flags": "___",
+      "pos": "197309",
+      "pts": 22016,
+      "size": "3265",
+      "stream_index": 0
+    },
+    {
+      "dts": 62464,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "200574",
+      "pts": 62464,
+      "size": "307",
+      "stream_index": 1
+    },
+    {
+      "dts": 22016,
+      "duration": 512,
+      "flags": "___",
+      "pos": "200881",
+      "pts": 22528,
+      "size": "3237",
+      "stream_index": 0
+    },
+    {
+      "dts": 63488,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "204118",
+      "pts": 63488,
+      "size": "302",
+      "stream_index": 1
+    },
+    {
+      "dts": 64512,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "204420",
+      "pts": 64512,
+      "size": "278",
+      "stream_index": 1
+    },
+    {
+      "dts": 22528,
+      "duration": 512,
+      "flags": "___",
+      "pos": "204698",
+      "pts": 24576,
+      "size": "4849",
+      "stream_index": 0
+    },
+    {
+      "dts": 65536,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "209547",
+      "pts": 65536,
+      "size": "308",
+      "stream_index": 1
+    },
+    {
+      "dts": 23040,
+      "duration": 512,
+      "flags": "___",
+      "pos": "209855",
+      "pts": 23552,
+      "size": "3512",
+      "stream_index": 0
+    },
+    {
+      "dts": 66560,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "213367",
+      "pts": 66560,
+      "size": "245",
+      "stream_index": 1
+    },
+    {
+      "dts": 67584,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "213612",
+      "pts": 67584,
+      "size": "290",
+      "stream_index": 1
+    },
+    {
+      "dts": 23552,
+      "duration": 512,
+      "flags": "___",
+      "pos": "213902",
+      "pts": 24064,
+      "size": "3319",
+      "stream_index": 0
+    },
+    {
+      "dts": 68608,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "217221",
+      "pts": 68608,
+      "size": "261",
+      "stream_index": 1
+    },
+    {
+      "dts": 24064,
+      "duration": 512,
+      "flags": "___",
+      "pos": "217482",
+      "pts": 26112,
+      "size": "4774",
+      "stream_index": 0
+    },
+    {
+      "dts": 69632,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "222256",
+      "pts": 69632,
+      "size": "278",
+      "stream_index": 1
+    },
+    {
+      "dts": 24576,
+      "duration": 512,
+      "flags": "___",
+      "pos": "222534",
+      "pts": 25088,
+      "size": "3501",
+      "stream_index": 0
+    },
+    {
+      "dts": 70656,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "226035",
+      "pts": 70656,
+      "size": "252",
+      "stream_index": 1
+    },
+    {
+      "dts": 71680,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "226287",
+      "pts": 71680,
+      "size": "278",
+      "stream_index": 1
+    },
+    {
+      "dts": 25088,
+      "duration": 512,
+      "flags": "___",
+      "pos": "226565",
+      "pts": 25600,
+      "size": "3498",
+      "stream_index": 0
+    },
+    {
+      "dts": 72704,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "230063",
+      "pts": 72704,
+      "size": "262",
+      "stream_index": 1
+    },
+    {
+      "dts": 25600,
+      "duration": 512,
+      "flags": "___",
+      "pos": "230325",
+      "pts": 27648,
+      "size": "4597",
+      "stream_index": 0
+    },
+    {
+      "dts": 73728,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "234922",
+      "pts": 73728,
+      "size": "246",
+      "stream_index": 1
+    },
+    {
+      "dts": 74752,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "235168",
+      "pts": 74752,
+      "size": "285",
+      "stream_index": 1
+    },
+    {
+      "dts": 26112,
+      "duration": 512,
+      "flags": "___",
+      "pos": "235453",
+      "pts": 26624,
+      "size": "3546",
+      "stream_index": 0
+    },
+    {
+      "dts": 75776,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "238999",
+      "pts": 75776,
+      "size": "270",
+      "stream_index": 1
+    },
+    {
+      "dts": 26624,
+      "duration": 512,
+      "flags": "___",
+      "pos": "239269",
+      "pts": 27136,
+      "size": "3360",
+      "stream_index": 0
+    },
+    {
+      "dts": 76800,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "242629",
+      "pts": 76800,
+      "size": "316",
+      "stream_index": 1
+    },
+    {
+      "dts": 77824,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "242945",
+      "pts": 77824,
+      "size": "318",
+      "stream_index": 1
+    },
+    {
+      "dts": 27136,
+      "duration": 512,
+      "flags": "___",
+      "pos": "243263",
+      "pts": 29184,
+      "size": "4277",
+      "stream_index": 0
+    },
+    {
+      "dts": 78848,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "247540",
+      "pts": 78848,
+      "size": "264",
+      "stream_index": 1
+    },
+    {
+      "dts": 27648,
+      "duration": 512,
+      "flags": "___",
+      "pos": "247804",
+      "pts": 28160,
+      "size": "3625",
+      "stream_index": 0
+    },
+    {
+      "dts": 79872,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "251429",
+      "pts": 79872,
+      "size": "307",
+      "stream_index": 1
+    },
+    {
+      "dts": 28160,
+      "duration": 512,
+      "flags": "___",
+      "pos": "251736",
+      "pts": 28672,
+      "size": "3200",
+      "stream_index": 0
+    },
+    {
+      "dts": 80896,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "254936",
+      "pts": 80896,
+      "size": "271",
+      "stream_index": 1
+    },
+    {
+      "dts": 81920,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "255207",
+      "pts": 81920,
+      "size": "290",
+      "stream_index": 1
+    },
+    {
+      "dts": 28672,
+      "duration": 512,
+      "flags": "___",
+      "pos": "255497",
+      "pts": 30208,
+      "size": "3638",
+      "stream_index": 0
+    },
+    {
+      "dts": 82944,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "259135",
+      "pts": 82944,
+      "size": "253",
+      "stream_index": 1
+    },
+    {
+      "dts": 29184,
+      "duration": 512,
+      "flags": "___",
+      "pos": "259388",
+      "pts": 29696,
+      "size": "3252",
+      "stream_index": 0
+    },
+    {
+      "dts": 83968,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "262640",
+      "pts": 83968,
+      "size": "246",
+      "stream_index": 1
+    },
+    {
+      "dts": 84992,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "262886",
+      "pts": 84992,
+      "size": "313",
+      "stream_index": 1
+    },
+    {
+      "dts": 86016,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "263199",
+      "pts": 86016,
+      "size": "263",
+      "stream_index": 1
+    },
+    {
+      "dts": 87040,
+      "duration": 1024,
+      "flags": "K__",
+      "pos": "263462",
+      "pts": 87040,
+      "size": "350",
+      "stream_index": 1
+    },
+    {
+      "dts": 88064,
+      "duration": 136,
+      "flags": "K__",
+      "pos": "263812",
+      "pts": 88064,
+      "size": "5",
+      "stream_index": 1
+    }
+  ],
+  "payload_sha256": "588dfa30ac1bfffeedf5726b0e6bbbb1e621d44f1ec2e186337af16c7ec68d62",
+  "schema_version": 1,
+  "streams": [
+    {
+      "avg_frame_rate": "30/1",
+      "codec_name": "h264",
+      "codec_tag_string": "avc1",
+      "color_primaries": "bt709",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "duration": "2.000000",
+      "duration_ts": 30720,
+      "height": 360,
+      "index": 0,
+      "level": 40,
+      "nb_frames": "60",
+      "pix_fmt": "yuv420p",
+      "profile": "High",
+      "r_frame_rate": "30/1",
+      "rotation_degrees": 90,
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "time_base": "1/15360",
+      "width": 640
+    },
+    {
+      "avg_frame_rate": "0/0",
+      "channels": 1,
+      "codec_name": "aac",
+      "codec_tag_string": "mp4a",
+      "duration": "2.000000",
+      "duration_ts": 88200,
+      "index": 1,
+      "nb_frames": "88",
+      "profile": "LC",
+      "r_frame_rate": "0/0",
+      "sample_rate": "44100",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "time_base": "1/44100"
+    }
+  ]
+}

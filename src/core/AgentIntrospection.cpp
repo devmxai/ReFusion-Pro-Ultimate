@@ -41,7 +41,9 @@ namespace {
                                  const CompositionSnapshot& rhs) {
   if (composition_root_nodes(lhs) != composition_root_nodes(rhs) ||
       lhs.layers.size() != rhs.layers.size() ||
-      lhs.groups.size() != rhs.groups.size()) {
+      lhs.groups.size() != rhs.groups.size() ||
+      lhs.video_clips.size() != rhs.video_clips.size() ||
+      lhs.audio_clips.size() != rhs.audio_clips.size()) {
     return false;
   }
   for (const auto& layer : lhs.layers) {
@@ -52,6 +54,32 @@ namespace {
   for (const auto& group : lhs.groups) {
     const auto* other = find_layer_group(rhs, group.group_id);
     if (other == nullptr || other->children != group.children) {
+      return false;
+    }
+  }
+  for (const auto& clip : lhs.video_clips) {
+    const auto other = std::find_if(
+        rhs.video_clips.begin(), rhs.video_clips.end(),
+        [&](const VideoClipSnapshot& candidate) {
+          return candidate.video_clip_id == clip.video_clip_id;
+        });
+    if (other == rhs.video_clips.end() ||
+        other->linked_import_id != clip.linked_import_id ||
+        other->media_source_id != clip.media_source_id ||
+        other->stream_id != clip.stream_id) {
+      return false;
+    }
+  }
+  for (const auto& clip : lhs.audio_clips) {
+    const auto other = std::find_if(
+        rhs.audio_clips.begin(), rhs.audio_clips.end(),
+        [&](const AudioClipSnapshot& candidate) {
+          return candidate.audio_clip_id == clip.audio_clip_id;
+        });
+    if (other == rhs.audio_clips.end() ||
+        other->linked_import_id != clip.linked_import_id ||
+        other->media_source_id != clip.media_source_id ||
+        other->stream_id != clip.stream_id) {
       return false;
     }
   }
@@ -74,7 +102,7 @@ AgentProjectOutline agent_project_outline(const ProjectSnapshot& project) {
   if (!project.composition) {
     throw std::invalid_argument("RFX-SCHEMA-002: project composition is required");
   }
-  const auto validation = validate_composition(*project.composition);
+  const auto validation = validate_project(project);
   if (!validation.valid) {
     throw std::invalid_argument(validation.code + ": " + validation.message);
   }
@@ -91,6 +119,11 @@ AgentProjectOutline agent_project_outline(const ProjectSnapshot& project) {
           visual_contribution_registry_digest(),
       .snapshot_digest = project_snapshot_digest(project),
       .roots = composition_root_nodes(composition),
+      .assets = project.assets,
+      .media_sources = project.media_sources,
+      .linked_imports = project.linked_imports,
+      .video_clips = composition.video_clips,
+      .audio_clips = composition.audio_clips,
   };
   outline.nodes.reserve(composition.layers.size() + composition.groups.size());
 

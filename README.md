@@ -22,6 +22,16 @@ Read in this order:
 6. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
 7. the current stage plan linked from `CURRENT.md`
 
+The approved future execution baseline for parameterized Recipes, professional
+motion, Agent/CLI/MCP parity, creative Style Packs and extensions is
+[`PLAN-UCAS-001`](docs/plans/UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md). It is
+subordinate to the Master Plan and does not activate its future work packages.
+
+The approved macOS-first, Windows-qualified first Video import/playback route is
+[`PLAN-VIDEO-VS-001`](docs/plans/VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md).
+Read it before changing media import, Video/Audio project state, native decode,
+Timeline playback or the two-host feature branches.
+
 Visual development is single-source: portable descriptors/evaluation compile
 to one RenderPlan executed by one common Skia compositor. Metal, D3D12 and
 Vulkan targets differ only in native device/target/import/sync/present mechanics.

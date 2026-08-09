@@ -296,7 +296,11 @@ void write_validate_json(const ProjectSnapshot& project,
   quoted(output, outline.contribution_registry_digest);
   output << ",\"layers\":" << project.composition->layers.size()
          << ",\"groups\":" << project.composition->groups.size()
-         << ",\"roots\":" << outline.roots.size() << "}\n";
+         << ",\"roots\":" << outline.roots.size()
+         << ",\"assets\":" << outline.assets.size()
+         << ",\"media_sources\":" << outline.media_sources.size()
+         << ",\"video_clips\":" << outline.video_clips.size()
+         << ",\"audio_clips\":" << outline.audio_clips.size() << "}\n";
 }
 
 void write_outline_json(const ProjectSnapshot& project,
@@ -351,7 +355,98 @@ void write_outline_json(const ProjectSnapshot& project,
     }
     output << "]}}";
   }
-  output << "]}\n";
+  output << "],\"media\":{\"assets\":[";
+  for (std::size_t index = 0; index < outline.assets.size(); ++index) {
+    if (index != 0) output << ',';
+    const auto& asset = outline.assets[index];
+    output << "{\"id\":";
+    quoted(output, asset.asset_id.value);
+    output << ",\"digest\":";
+    quoted(output, asset.content_digest);
+    output << ",\"bytes\":" << asset.byte_size << ",\"original\":";
+    quoted(output, asset.project_relative_original);
+    output << '}';
+  }
+  output << "],\"sources\":[";
+  for (std::size_t index = 0; index < outline.media_sources.size(); ++index) {
+    if (index != 0) output << ',';
+    const auto& source = outline.media_sources[index];
+    output << "{\"id\":";
+    quoted(output, source.media_source_id.value);
+    output << ",\"asset_id\":";
+    quoted(output, source.asset_id.value);
+    output << ",\"resolution\":";
+    switch (source.resolution) {
+      case MediaResolutionState::resolved: quoted(output, "resolved"); break;
+      case MediaResolutionState::missing: quoted(output, "missing"); break;
+      case MediaResolutionState::digest_mismatch:
+        quoted(output, "digest_mismatch");
+        break;
+      case MediaResolutionState::unsupported:
+        quoted(output, "unsupported");
+        break;
+    }
+    output << ",\"streams\":" << source.streams.size() << '}';
+  }
+  output << "],\"linked_imports\":[";
+  for (std::size_t index = 0; index < outline.linked_imports.size(); ++index) {
+    if (index != 0) output << ',';
+    const auto& link = outline.linked_imports[index];
+    output << "{\"id\":";
+    quoted(output, link.linked_import_id.value);
+    output << ",\"source_id\":";
+    quoted(output, link.media_source_id.value);
+    output << ",\"video_clip_id\":";
+    if (link.video_clip_id) quoted(output, link.video_clip_id->value);
+    else output << "null";
+    output << ",\"audio_clip_id\":";
+    if (link.audio_clip_id) quoted(output, link.audio_clip_id->value);
+    else output << "null";
+    output << '}';
+  }
+  output << "],\"video_clips\":[";
+  for (std::size_t index = 0; index < outline.video_clips.size(); ++index) {
+    if (index != 0) output << ',';
+    const auto& clip = outline.video_clips[index];
+    output << "{\"id\":";
+    quoted(output, clip.video_clip_id.value);
+    output << ",\"link_id\":";
+    quoted(output, clip.linked_import_id.value);
+    output << ",\"source_id\":";
+    quoted(output, clip.media_source_id.value);
+    output << ",\"stream_id\":";
+    quoted(output, clip.stream_id.value);
+    output << ",\"range\":";
+    time_range(output, clip.active_range, clock);
+    output << ",\"source_ticks\":{\"start\":" << clip.source_range.start
+           << ",\"duration\":" << clip.source_range.duration
+           << "},\"enabled\":" << (clip.enabled ? "true" : "false")
+           << ",\"locked\":" << (clip.locked ? "true" : "false") << '}';
+  }
+  output << "],\"audio_clips\":[";
+  for (std::size_t index = 0; index < outline.audio_clips.size(); ++index) {
+    if (index != 0) output << ',';
+    const auto& clip = outline.audio_clips[index];
+    output << "{\"id\":";
+    quoted(output, clip.audio_clip_id.value);
+    output << ",\"link_id\":";
+    quoted(output, clip.linked_import_id.value);
+    output << ",\"source_id\":";
+    quoted(output, clip.media_source_id.value);
+    output << ",\"stream_id\":";
+    quoted(output, clip.stream_id.value);
+    output << ",\"range\":";
+    time_range(output, clip.active_range, clock);
+    output << ",\"source_ticks\":{\"start\":" << clip.source_range.start
+           << ",\"duration\":" << clip.source_range.duration
+           << "},\"enabled\":" << (clip.enabled ? "true" : "false")
+           << ",\"locked\":" << (clip.locked ? "true" : "false")
+           << ",\"gain\":";
+    number(output, clip.gain);
+    output << ",\"muted\":" << (clip.muted ? "true" : "false")
+           << ",\"solo\":" << (clip.solo ? "true" : "false") << '}';
+  }
+  output << "]}}\n";
 }
 
 bool write_inspect_json(const ProjectSnapshot& project,

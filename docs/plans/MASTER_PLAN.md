@@ -2,15 +2,29 @@
 id: MP-001
 kind: master-plan
 status: active
-version: 2
+version: 4
 owner_role: program-architecture
 canonical_for: delivery-order
-last_verified: 2026-08-08
+last_verified: 2026-08-09
 research_basis: docs/research/foundation-screening-draft.md
 activated_by: user-instruction-2026-08-07
 ---
 
 # ReFusion Master Plan
+
+Version 4 links the owner-authorized bounded
+[`Video Import and Hardware Playback Vertical Slice`](VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md).
+It permits a macOS-first shared implementation and subsequent Windows native
+qualification without declaring G4 active or complete. The slice must preserve
+the normal gate contracts and may enter `main` only after same-commit macOS and
+Windows evidence.
+
+Version 3 links the approved cross-stage
+[`Unified Creative Authoring System`](UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md)
+execution plan. That plan fixes the dependency order and acceptance evidence for
+Agent/MCP authoring, parameterized Recipes, professional motion, creative
+systems and extensions. It does not activate a gate or change the delivery
+order below.
 
 Version 2 moves one bounded LayerGroup/hierarchy proof into G2 so the accepted
 project schema, ChangeSets, journal, Timeline projection and Agent contract do
@@ -60,6 +74,11 @@ font, color and backend qualification guards apply to every visual capability.
 Native Metal, D3D12 and Vulkan adapters may differ; project and render semantics
 may not.
 
+The creative-authoring and Agent execution sequence is governed by
+[`PLAN-UCAS-001`](UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md). It is a subordinate
+cross-stage enabling plan: only the work package routed to an active Master Plan
+gate may execute, and its broad catalog cannot be pulled into an earlier gate.
+
 ## Program gates
 
 | Gate | Product outcome | Installable evidence | Status |
@@ -68,7 +87,7 @@ may not.
 | G1 | Development walking skeleton and GPU/media kill-risk proof | macOS + Windows development artifacts | active on macOS; cross-platform exit pending |
 | G2 | Command/Revision/Live-Authoring vertical slice | Qt Studio with Text/Shape/Image round-trip | planned |
 | G3 | Unified visual authoring | Complete Image/Text/Shape/Group/Adjustment slice | planned |
-| G4 | Hardware media, audio, and exact transport | Video+Audio import/play/seek/edit/export slice | planned |
+| G4 | Hardware media, audio, and exact transport | Video+Audio import/play/seek/edit/export slice | planned; bounded import/playback slice approved |
 | G5 | Complete Desktop Creator Loop | Internal alpha installers | planned |
 | G6 | Reliability and release hardening | Signed RC with recovery/update evidence | planned |
 | G7 | Paid Founder Beta | Externally installable paid beta | planned |
@@ -132,6 +151,11 @@ stop feature expansion and replace or narrow that candidate.
 
 Detailed plan: `stages/G1-walking-skeleton/PLAN.md`.
 
+The first product-facing promotion of the bounded hardware proof is sequenced by
+[`PLAN-VIDEO-VS-001`](VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md). Its
+macOS-first execution does not waive the Windows G1-WP04 evidence or authorize a
+platform-specific media engine.
+
 Qt Commercial SDK/entitlement and production signing verification are deferred
 to G6 redistributable RC admission and do not block G1 technical experiments.
 
@@ -166,6 +190,10 @@ Layer, ContentNode and TimelineRow remain distinct semantic/view concepts.
 
 Detailed plan: [`G2 — Transactional Live Authoring and Hierarchy Spine`](stages/G2-live-authoring/PLAN.md).
 
+The bounded catalog/ChangeSet/Agent/Recipe foundation is further sequenced by
+[`PLAN-UCAS-001`](UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md); its approval does
+not activate G2 or admit its G3 creative breadth.
+
 Proposed decision package: [RFC-0002](../decisions/rfcs/RFC-0002-visual-authoring-hierarchy.md),
 [ARCH-VA-001](../architecture/VISUAL_AUTHORING_MODEL.md), and the
 [non-authoritative screening draft](../research/visual-authoring-hierarchy-screening-draft.md).
@@ -198,6 +226,11 @@ review. G2 decisions must still reserve the G3 capability boundaries so paints,
 masks, typography, FX and Adjustment extend the accepted registry/evaluator
 rather than creating parallel systems.
 
+When G3 is admitted, its professional curves, Background, Text, Shape,
+FX/material and choreography packages must be derived from
+[`PLAN-UCAS-001`](UNIFIED_CREATIVE_AUTHORING_SYSTEM_PLAN.md), preserving the
+accepted G2 spine rather than implementing a parallel creative system.
+
 Owner-authorized bounded pre-G3 experiments are tracked separately as
 [`EXP-004`](experiments/EXP-004-modern-shape-authoring.md) and
 [`EXP-005`](experiments/EXP-005-layer-mask-fx-stack.md). Their implementation
@@ -211,6 +244,11 @@ or waive Windows evidence.
 Importing video creates linked but independently editable Video and Audio clips,
 real waveform, exact playback/seek/trim/split, audio controls, and hardware export
 inside the declared matrix.
+
+Owner-authorized bounded vertical slice:
+[`Video Import and Hardware Playback`](VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md).
+It covers the first qualified import/playback profile only; complete trim/split,
+codec breadth and production Export remain governed by G4 exit.
 
 ### Exit criteria
 
@@ -238,6 +276,9 @@ export on both Desktop platforms, manually or with the agent.
 - Internal Extension Registry backs built-ins; native developer extensions use
   an isolated shadow host without a public ABI promise;
 - a new installer is emitted at gate exit.
+
+The unified manual/Agent creator-loop and dual-desktop qualification package is
+[`UCAS-WP14`](unified-creative-authoring/work-packages/UCAS-WP14-desktop-qualification.md).
 
 ## G6 — Reliability and release hardening
 
@@ -279,6 +320,9 @@ lifecycle, sandbox, thermal, signing, and store policies. iOS uses Metal/native
 media; Android uses Vulkan/MediaCodec surface paths. Downloadable native plugins
 are not a mobile contract.
 
+Mobile authoring, offline envelopes and gateway qualification are routed through
+[`UCAS-WP15`](unified-creative-authoring/work-packages/UCAS-WP15-mobile-authoring.md).
+
 ## G10 — Extension and SDK expansion
 
 ### Order
@@ -294,6 +338,10 @@ All built-in contributions and future extension tiers obey the single semantic
 path, package identity, mobile restrictions and fail-closed admission contract
 in [`PLAN-XPLAT-FIX-001`](FIX_CROSS_PLATFORM_ARCHITECTURE.md). G10 exposes that
 already-qualified internal model; it does not introduce a second plugin engine.
+
+The public exposure sequence and its rollback/conformance conditions are
+specified by
+[`UCAS-WP16`](unified-creative-authoring/work-packages/UCAS-WP16-extension-sdk.md).
 
 ## Capability Definition of Done
 

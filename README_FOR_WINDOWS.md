@@ -14,6 +14,9 @@ Canonical authority remains:
   non-negotiable boundaries.
 - [`Cross-platform Git workflow`](docs/architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow)
   for branch ownership, handoff, integration and evidence invalidation.
+- [`Video Import and Hardware Playback Vertical Slice`](docs/plans/VIDEO_IMPORT_HARDWARE_PLAYBACK_VERTICAL_SLICE.md)
+  when the requested branch is `feature/shared-video-import-v1` or
+  `feature/windows-video-import-v1`.
 
 ## Mission for the Windows Agent
 
@@ -25,6 +28,29 @@ compile-only result.
 The current Windows scope is Canvas/Shape/Text/Group/current FX and the common
 RenderPlan/Skia compositor. Windows Media Foundation video decode and complete
 Video Layer import/playback are not implemented or qualified by this run.
+
+When the Video vertical-slice branch is published, do not improvise the media
+workflow from this general Canvas runbook. Read `PLAN-VIDEO-VS-001` completely,
+preserve the existing canonical checkout and its verified `out/` dependency
+materialization, and execute VI-WP09 only after the macOS VI-WP08 receipt exists.
+The current bring-up script does not itself qualify Media Foundation Video.
+
+## Persistent checkout rule
+
+Normal Windows branch updates must reuse one stable checkout. Do not create a
+new clone merely to switch from the shared Video branch to the Windows native
+branch, and do not delete `out/`. Without `-FreshDependencies`, the bootstrap
+verifies and reuses the existing official Skia/font materialization. Before a
+Video-branch build run:
+
+```powershell
+git status --short
+git fetch origin --prune
+python tools/bootstrap.py verify-skia-materialization
+```
+
+If verification fails, stop and report the exact failure. The current bootstrap
+does not admit arbitrary external/shared caches or copied dependency trees.
 
 ## Mandatory Agent protocol
 

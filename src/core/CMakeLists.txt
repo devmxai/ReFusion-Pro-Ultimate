@@ -4,6 +4,7 @@ add_library(refusion_core STATIC
   CanonicalText.cpp
   ColorContract.cpp
   ContentDigest.cpp
+  MediaIndex.cpp
   ProjectCreation.cpp
   ProjectDocument.cpp
   ProjectRfx.cpp

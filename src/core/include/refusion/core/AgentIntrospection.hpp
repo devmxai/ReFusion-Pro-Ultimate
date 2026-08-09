@@ -52,6 +52,14 @@ struct AgentProjectOutline final {
   std::string snapshot_digest;
   std::vector<VisualNodeRef> roots;
   std::vector<AgentVisualNode> nodes;
+  // Shared read-only media projections. Timeline, Inspector, CLI and future
+  // MCP clients consume these accepted records; they never rediscover media
+  // identity or timing from a host path or container independently.
+  std::vector<AssetRecord> assets;
+  std::vector<MediaSource> media_sources;
+  std::vector<LinkedImport> linked_imports;
+  std::vector<VideoClipSnapshot> video_clips;
+  std::vector<AudioClipSnapshot> audio_clips;
 };
 
 [[nodiscard]] AgentProjectOutline agent_project_outline(

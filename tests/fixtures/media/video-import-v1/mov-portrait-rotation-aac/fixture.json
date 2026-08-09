@@ -1,0 +1,21 @@
+{
+  "byte_size": 267335,
+  "expected": "admitted",
+  "generation": {
+    "commands": [
+      "'$FFMPEG' -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=30:duration=2 -f lavfi -i sine=frequency=660:sample_rate=44100:duration=2 -map 0:v:0 -map 1:a:0 -filter:v setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv -c:v libx264 -threads:v 1 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 30 -bf 2 -crf 21 -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -c:a aac -threads:a 1 -profile:a aac_low -b:a 96k -shortest -movflags +write_colr '$TMP/rotation-source.mp4'",
+      "'$FFMPEG' -hide_banner -loglevel error -y -display_rotation:v:0 90 -i '$TMP/rotation-source.mp4' -map 0 -c copy -movflags +write_colr '$TMP/mov-portrait-rotation-aac.mov'"
+    ],
+    "ffmpeg_version": "8.1.2",
+    "generator": "refusion-video-import-v1-generator/2",
+    "purpose": "offline fixture generation only; FFmpeg is not a ReFusion build or runtime dependency"
+  },
+  "id": "mov-portrait-rotation-aac",
+  "license": "CC0-1.0",
+  "oracle": "expected-index-or-diagnostic.json",
+  "oracle_sha256": "822c01abfb6f8e59fc29fc8af63c65b608b009d3493a1c39e6c5fe0dd2ae81d2",
+  "ownership": "ReFusion-generated synthetic audiovisual test pattern",
+  "payload": "source.mov",
+  "schema_version": 1,
+  "sha256": "588dfa30ac1bfffeedf5726b0e6bbbb1e621d44f1ec2e186337af16c7ec68d62"
+}
