@@ -25,6 +25,8 @@ plan explicitly routes to unresolved research.
 - Current gate and exact resume point: `docs/status/CURRENT.md`
 - Product scope: `docs/product/PRODUCT_CONTRACT.md`
 - Non-negotiable boundaries: `docs/architecture/INVARIANTS.md`
+- Cross-platform branch, handoff and evidence workflow:
+  `docs/architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow`
 - Visual/FX/plugin cross-platform remediation:
   `docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md`
 - Accepted architectural decisions: `docs/decisions/adrs/`
@@ -101,6 +103,14 @@ Qt's private implementation.
 
 - Work only inside the active work package unless the user explicitly changes
   program scope.
+- Never develop concurrently on `main`. Classify work as shared feature,
+  shared fix, native-platform fix or evidence, create the corresponding branch
+  from the latest `origin/main`, and follow the canonical two-host Git workflow.
+- Qt/QML UI, Timeline/Inspector projection and common engine changes are shared
+  product work. They must not be appended to a platform evidence branch.
+- Only one integration owner promotes a reviewed branch to `main`. Other hosts
+  must fetch that exact commit before starting their next change or evidence
+  run. No force push or history rewrite is permitted for an evidenced commit.
 - Preserve user changes and avoid destructive Git operations.
 - New architecture requires a proposed RFC or ADR; an agent may draft but not
   silently mark a product decision accepted.

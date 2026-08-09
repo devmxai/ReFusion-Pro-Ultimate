@@ -578,6 +578,13 @@ they may not silently change Desktop v1 SDR project meaning.
 
 ### Strict feature merge gate
 
+Branch ownership and two-host synchronization are governed by the accepted
+[`Canonical two-host Git workflow`](../architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow).
+In particular, shared Qt/QML UI and engine changes use a feature/fix branch and
+are promoted to `main` only after review; platform evidence branches are not
+parallel product trunks. Any affected evidence is rerun against the same
+promoted `main` commit on macOS and Windows.
+
 A visual capability may merge as an experiment only if it is explicitly marked
 non-shipping and fail-closed elsewhere. It may be called cross-platform complete
 only when the following chain is green for every required profile:

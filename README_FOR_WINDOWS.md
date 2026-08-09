@@ -12,6 +12,8 @@ Canonical authority remains:
   for qualification policy and exit criteria;
 - [`docs/architecture/INVARIANTS.md`](docs/architecture/INVARIANTS.md) for
   non-negotiable boundaries.
+- [`Cross-platform Git workflow`](docs/architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow)
+  for branch ownership, handoff, integration and evidence invalidation.
 
 ## Mission for the Windows Agent
 
@@ -36,6 +38,9 @@ Before running or editing anything:
 6. Do not change branches or pull another commit during one test run.
 7. Stop at the first failed lower lane. Do not launch Studio to hide a Core or
    Graphics failure.
+8. Use an `evidence/windows-*` branch only for the bound run and its report.
+   Start later product fixes from the latest `origin/main` on `fix/windows-*`
+   or `fix/shared-*`; never continue product development on old evidence.
 
 Do not:
 
@@ -242,6 +247,9 @@ git status --short
 If a reviewed Windows lock or an intentional source fix is also present, list
 every changed file and why in the report. The macOS Agent will fetch this branch,
 read this block and reconcile the receipts against the bound macOS evidence.
+Shared UI or engine development is not appended here: after reconciliation it
+uses a new feature/fix branch from the latest `origin/main` under the canonical
+two-host Git workflow.
 
 ---
 

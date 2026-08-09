@@ -18,8 +18,9 @@ Read in this order:
 3. [`docs/status/CURRENT.md`](docs/status/CURRENT.md)
 4. every active guardrail linked from `CURRENT.md`, currently
    [`Fix Cross-Platform Architecture`](docs/plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md)
-5. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
-6. the current stage plan linked from `CURRENT.md`
+5. [`Cross-platform Git workflow`](docs/architecture/CROSS_PLATFORM_POLICY.md#canonical-two-host-git-workflow)
+6. [`docs/plans/MASTER_PLAN.md`](docs/plans/MASTER_PLAN.md)
+7. the current stage plan linked from `CURRENT.md`
 
 Visual development is single-source: portable descriptors/evaluation compile
 to one RenderPlan executed by one common Skia compositor. Metal, D3D12 and
