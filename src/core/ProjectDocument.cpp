@@ -9,6 +9,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -1331,6 +1332,70 @@ evaluate_visual_node_transforms_impl(
 }
 
 }  // namespace
+
+std::optional<MediaTimePoint> video_source_time_at_project_time(
+    const VideoClipSnapshot& clip,
+    const MediaStreamDescriptor& stream,
+    const ProjectTimeNs project_time) noexcept {
+  constexpr std::uint64_t kNanosecondsPerSecond = 1'000'000'000ULL;
+  if (project_time < clip.active_range.start ||
+      project_time >= clip.active_range.end() ||
+      stream.kind != MediaStreamKind::video ||
+      stream.time_base.numerator <= 0 || stream.time_base.denominator <= 0 ||
+      stream.time_base.denominator > std::numeric_limits<std::int32_t>::max()) {
+    return std::nullopt;
+  }
+
+  auto offset = project_time - clip.active_range.start;
+  auto rate_numerator =
+      static_cast<std::uint64_t>(stream.time_base.denominator);
+  auto divisor = kNanosecondsPerSecond;
+  auto time_base_numerator =
+      static_cast<std::uint64_t>(stream.time_base.numerator);
+
+  const auto first = std::gcd(offset, divisor);
+  offset /= first;
+  divisor /= first;
+  const auto second = std::gcd(rate_numerator, divisor);
+  rate_numerator /= second;
+  divisor /= second;
+  const auto third = std::gcd(time_base_numerator, rate_numerator);
+  time_base_numerator /= third;
+  rate_numerator /= third;
+
+  if (time_base_numerator >
+      std::numeric_limits<std::uint64_t>::max() / divisor) {
+    return std::nullopt;
+  }
+  divisor *= time_base_numerator;
+  if (offset != 0 &&
+      rate_numerator > std::numeric_limits<std::uint64_t>::max() / offset) {
+    return std::nullopt;
+  }
+  const auto offset_ticks = (offset * rate_numerator) / divisor;
+  if (offset_ticks >= clip.source_range.duration ||
+      offset_ticks >
+          static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) ||
+      clip.source_range.start >
+          std::numeric_limits<std::int64_t>::max() -
+              static_cast<std::int64_t>(offset_ticks)) {
+    return std::nullopt;
+  }
+
+  const auto ticks =
+      clip.source_range.start + static_cast<std::int64_t>(offset_ticks);
+  const auto numerator = stream.time_base.numerator;
+  if ((ticks > 0 &&
+       numerator > std::numeric_limits<std::int64_t>::max() / ticks) ||
+      (ticks < 0 &&
+       ticks < std::numeric_limits<std::int64_t>::min() / numerator)) {
+    return std::nullopt;
+  }
+  return MediaTimePoint{
+      .value = ticks * numerator,
+      .timescale = static_cast<std::int32_t>(stream.time_base.denominator),
+  };
+}
 
 std::vector<EvaluatedVisualNodeTransform> evaluate_visual_node_transforms(
     const CompositionSnapshot& composition,

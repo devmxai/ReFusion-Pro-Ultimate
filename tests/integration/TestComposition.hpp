@@ -98,3 +98,52 @@ test_render_program() {
   return refusion::runtime::render::compile_visual_render_program(
       test_project());
 }
+
+[[nodiscard]] inline refusion::runtime::render::VisualRenderProgram
+test_video_render_program() {
+  using namespace refusion::core;
+  auto project = test_project();
+  const MediaStreamId stream_id{"stream_test_video"};
+  project.media_sources.push_back(MediaSource{
+      .media_source_id = MediaSourceId{"media_test_video"},
+      .asset_id = AssetId{"ast_test_video"},
+      .media_index_contract_version = 1,
+      .media_index_digest =
+          "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      .resolution = MediaResolutionState::resolved,
+      .streams = {
+          MediaStreamDescriptor{
+              .stream_id = stream_id,
+              .container_track_id = 1,
+              .kind = MediaStreamKind::video,
+              .codec = MediaCodec::h264_avc,
+              .codec_configuration_digest =
+                  "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              .time_base = {.numerator = 1, .denominator = 30'000},
+              .start = 0,
+              .duration = 900'000,
+              .format = VideoStreamFormat{
+                  .coded_extent =
+                      {.width_pixels = 320, .height_pixels = 180},
+                  .display_extent =
+                      {.width_pixels = 320, .height_pixels = 180},
+                  .presentation_rate = {.numerator = 30, .denominator = 1},
+                  .color_primaries = "bt709",
+                  .color_transfer = "bt709",
+                  .color_matrix = "bt709",
+              },
+          },
+      },
+      .selected_video_stream = stream_id,
+  });
+  project.composition->video_clips.push_back(VideoClipSnapshot{
+      .video_clip_id = VideoClipId{"vclip_test_video"},
+      .linked_import_id = LinkedImportId{"import_test_video"},
+      .media_source_id = MediaSourceId{"media_test_video"},
+      .stream_id = stream_id,
+      .display_name = "Test Video",
+      .active_range = {.start = 0, .duration = 30'000'000'000},
+      .source_range = {.start = 0, .duration = 900'000},
+  });
+  return refusion::runtime::render::compile_visual_render_program(project);
+}

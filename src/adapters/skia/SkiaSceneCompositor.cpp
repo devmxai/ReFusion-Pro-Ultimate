@@ -4,9 +4,11 @@
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
+#include "include/core/SkImage.h"
 #include "include/core/SkMatrix.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkRRect.h"
+#include "include/core/SkSamplingOptions.h"
 #include "include/effects/SkGradient.h"
 #include "include/effects/SkImageFilters.h"
 
@@ -182,11 +184,40 @@ void draw_text(SkCanvas& canvas, SkiaTextLayoutEngine& text_layout_engine,
   canvas.restore();
 }
 
+void draw_video_frame(SkCanvas& canvas,
+                      const runtime::render::DrawVideoFrame& frame,
+                      const double opacity,
+                      SkiaVideoFrameResolver* resolver) {
+  if (!frame.valid() || resolver == nullptr) return;
+  auto image = resolver->resolve_video_frame(frame);
+  if (!image) return;
+  const auto scale = std::min(
+      frame.destination_width / static_cast<double>(frame.source_width_pixels),
+      frame.destination_height /
+          static_cast<double>(frame.source_height_pixels));
+  const auto width = static_cast<float>(
+      static_cast<double>(frame.source_width_pixels) * scale);
+  const auto height = static_cast<float>(
+      static_cast<double>(frame.source_height_pixels) * scale);
+  const auto destination = SkRect::MakeXYWH(
+      -width * 0.5F, -height * 0.5F, width, height);
+  SkPaint paint;
+  paint.setAntiAlias(true);
+  paint.setAlphaf(static_cast<float>(opacity));
+  canvas.drawImageRect(
+      image,
+      SkRect::MakeWH(static_cast<float>(image->width()),
+                     static_cast<float>(image->height())),
+      destination, SkSamplingOptions(SkCubicResampler::Mitchell()), &paint,
+      SkCanvas::kStrict_SrcRectConstraint);
+}
+
 }  // namespace
 
 void draw_visual_render_plan(
     SkCanvas& canvas, SkiaTextLayoutEngine& text_layout_engine,
-    const runtime::render::VisualRenderPlan& plan) {
+    const runtime::render::VisualRenderPlan& plan,
+    SkiaVideoFrameResolver* video_frames) {
   if (!plan.valid()) {
     throw std::invalid_argument(
         "RFX-RENDER-PLAN-003: Skia received an invalid VisualRenderPlan");
@@ -229,14 +260,19 @@ void draw_visual_render_plan(
 
     apply_masks(canvas, layer);
     std::visit(
-        [&canvas, &text_layout_engine, &layer](const auto& content) {
+        [&canvas, &text_layout_engine, &layer,
+         video_frames](const auto& content) {
           using Content = std::decay_t<decltype(content)>;
           if constexpr (std::is_same_v<Content,
                                        runtime::render::DrawShape>) {
             draw_shape(canvas, content, layer.effective_opacity);
-          } else {
+          } else if constexpr (std::is_same_v<
+                                   Content, runtime::render::DrawText>) {
             draw_text(canvas, text_layout_engine, content,
                       layer.effective_opacity);
+          } else {
+            draw_video_frame(canvas, content, layer.effective_opacity,
+                             video_frames);
           }
         },
         layer.content);

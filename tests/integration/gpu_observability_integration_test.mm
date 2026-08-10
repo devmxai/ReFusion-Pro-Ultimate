@@ -105,11 +105,14 @@ int main() {
     require(publication.counters.strict_path_clean());
 
     auto render_program = std::make_shared<const
-        refusion::runtime::render::VisualRenderProgram>(test_render_program());
+        refusion::runtime::render::VisualRenderProgram>(
+        test_video_render_program());
     auto renderer = refusion::adapters::skia::SkiaGpuContexts::create(
-        device_service->borrow(), publication.queue, observations);
+        device_service->borrow(), nullptr, observations);
     require(renderer != nullptr);
     require(renderer->ganesh_ready());
+    require(renderer->publish_decoded_video_queue("stream_test_video",
+                                                  publication.queue));
     auto presenter = refusion::platform::create_platform_viewport_presenter(
         *device_service, *renderer, observations);
     require(presenter != nullptr);

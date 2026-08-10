@@ -11,6 +11,7 @@ class SkSurface;
 namespace refusion::adapters::skia {
 
 class SkiaTextLayoutEngine;
+class SkiaVideoFrameResolver;
 
 // Common exact-time evaluation and drawing boundary. It owns the reusable
 // full-resolution Composition surface so all native backends receive identical
@@ -35,7 +36,8 @@ class SkiaVisualProgramExecutor final {
       runtime::render::VisualOutputConsumer output_consumer,
       const runtime::render::CanvasViewportState& canvas_view,
       std::uint32_t target_width_pixels,
-      std::uint32_t target_height_pixels);
+      std::uint32_t target_height_pixels,
+      SkiaVideoFrameResolver* video_frames = nullptr);
 
  private:
   struct Implementation;

@@ -70,6 +70,12 @@ SkiaGpuContexts::selected_video_source_frame_index() const noexcept {
   return std::nullopt;
 }
 
+bool SkiaGpuContexts::publish_decoded_video_queue(
+    std::string,
+    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> queue) noexcept {
+  return queue == nullptr;
+}
+
 const runtime::gpu::DeviceIdentity& SkiaGpuContexts::device_identity()
     const noexcept {
   return implementation_->lease.identity();

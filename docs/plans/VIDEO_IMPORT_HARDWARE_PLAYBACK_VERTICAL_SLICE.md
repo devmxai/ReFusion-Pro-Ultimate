@@ -2,8 +2,8 @@
 id: PLAN-VIDEO-VS-001
 kind: owner-authorized-cross-stage-vertical-slice-plan
 status: approved
-execution_state: VI-WP03-macos-4k-intake-correction-msvc-reproduction-pending
-version: 11
+execution_state: VI-WP04-05-macos-product-playback-checkpoint-qualification-pending
+version: 12
 master_plan: MP-001
 guardrails: PLAN-XPLAT-FIX-001,ARCH-XPLAT-001
 owner_role: media-import-and-playback
@@ -435,6 +435,25 @@ compositing.
 **Exit:** exact seeks select the expected VFR/B-frame source frames; failure or
 stale output cannot advance the accepted revision/Canvas.
 
+### VI-WP04 macOS implementation checkpoint — 2026-08-10
+
+The shared ProjectTime-to-source-time mapping, production `DrawVideoFrame`,
+bounded native-surface queue and common Skia YUVA execution are implemented on
+`feature/shared-video-import-v1`. Studio derives playback position only from
+`ViewportRenderSession` / Core `ProjectClock`; neither QML nor the media worker
+owns time. B-frame decode-order dependencies remain resident across forward
+windows, preventing GOP restart stalls. Presentation deadlines advance on one
+anchored frame grid and skip missed slots without changing project time.
+
+Physical playback of `/Users/mx/Desktop/wv/Project.rfx` exposed and corrected
+two starvation paths: publishing a short near-empty resident window, and
+discarding future B-frame outputs already decoded as dependencies. The product
+now uses distinct published-low and decoder-high watermarks and one persistent
+hardware session. This is a macOS implementation checkpoint, not VI-WP04 exit:
+drop/repeat/deadline telemetry, full seek UI evidence, Windows reproduction and
+same-commit qualification remain required. See
+[`EVID-VIDEO-VI-WP04`](../evidence/VIDEO/VI-WP04.md).
+
 ## VI-WP05 — macOS VideoToolbox/Metal production adapter
 
 **Dependencies:** VI-WP00–04. **Evidence:** `docs/evidence/VIDEO/VI-WP05.md`.
@@ -452,6 +471,23 @@ Promote the bounded Apple proof behind the production media ports:
 
 **Exit:** a real imported MP4/MOV fixture displays, plays, pauses and seeks on
 Canvas through the product Project/RenderPlan path.
+
+### VI-WP05 macOS implementation checkpoint — 2026-08-10
+
+Studio now rebuilds and verifies the accepted MediaIndex, projects exact MP4
+sample byte ranges and `avcC` configuration into one persistent VideoToolbox
+session, requires hardware acceleration, and publishes GPU-resident NV12
+CoreVideo/Metal leases to the common Skia compositor. Overlapping playback
+windows reuse existing Skia image wrappers by native lease ID rather than
+rewrapping all 4K planes on every refill. Tests cover a complete forward
+VFR/B-frame sequence, one hardware session and zero CPU video-pixel
+maps/uploads/readbacks.
+
+The physical source is 2160x3840 H.264 at 30/1 fps in a 60/1 Composition.
+Correct preview therefore repeats each source frame for two project frames; it
+does not invent 60 unique motion samples. Optical-flow frame interpolation is
+outside this slice and may not be approximated by duplicate decoder threads.
+See [`EVID-VIDEO-VI-WP05`](../evidence/VIDEO/VI-WP05.md).
 
 ## VI-WP06 — Linked Audio track, waveform and clock-source spine
 

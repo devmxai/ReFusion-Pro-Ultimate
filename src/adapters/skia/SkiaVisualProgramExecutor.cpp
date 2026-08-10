@@ -130,7 +130,8 @@ void SkiaVisualProgramExecutor::execute(
     const runtime::render::VisualOutputConsumer output_consumer,
     const runtime::render::CanvasViewportState& canvas_view,
     const std::uint32_t target_width_pixels,
-    const std::uint32_t target_height_pixels) {
+    const std::uint32_t target_height_pixels,
+    SkiaVideoFrameResolver* video_frames) {
   if (target_surface.width() <= 0 || target_surface.height() <= 0 ||
       static_cast<std::uint32_t>(target_surface.width()) !=
           target_width_pixels ||
@@ -178,7 +179,8 @@ void SkiaVisualProgramExecutor::execute(
     auto& composition_canvas =
         *implementation_->composition_surface->getCanvas();
     composition_canvas.resetMatrix();
-    draw_visual_render_plan(composition_canvas, text_layout_engine, frame.plan);
+    draw_visual_render_plan(composition_canvas, text_layout_engine, frame.plan,
+                            video_frames);
     auto composition_image =
         implementation_->composition_surface->makeTemporaryImage();
     if (!composition_image) {

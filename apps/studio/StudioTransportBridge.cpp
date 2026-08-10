@@ -117,7 +117,9 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
     std::optional<refusion::core::LayerGroupId> focused_group) {
   std::vector<Track> tracks;
   auto nodes = visible_nodes(composition, focused_group);
-  tracks.reserve(composition.layers.size() + composition.groups.size());
+  tracks.reserve(composition.layers.size() + composition.groups.size() +
+                 (focused_group ? 0U : composition.video_clips.size() +
+                                             composition.audio_clips.size()));
   const auto append_track = [&](QString node_id, QString display_name,
                                 const refusion::core::TimeRangeNs& range,
                                 QString row_kind, QString visual_kind,
@@ -163,6 +165,26 @@ std::vector<TimelineTrackModel::Track> TimelineTrackModel::prepareTracks(
                    static_cast<qulonglong>(animation.keyframes.size()));
     }
   };
+  // Media Clips are composition-level timeline entities. They are not visual
+  // hierarchy nodes and therefore must not be hidden merely because the visual
+  // root is empty. Nested visual Group focus intentionally hides these NLE
+  // rows; returning to the Composition restores them from accepted truth.
+  if (!focused_group) {
+    for (const auto& clip : composition.video_clips) {
+      const auto clip_id = QString::fromStdString(clip.video_clip_id.value);
+      append_track(clip_id, QString::fromStdString(clip.display_name),
+                   clip.active_range, QStringLiteral("video_clip"),
+                   QStringLiteral("video"), clip_id, false, false, false, 0,
+                   0);
+    }
+    for (const auto& clip : composition.audio_clips) {
+      const auto clip_id = QString::fromStdString(clip.audio_clip_id.value);
+      append_track(clip_id, QString::fromStdString(clip.display_name),
+                   clip.active_range, QStringLiteral("audio_clip"),
+                   QStringLiteral("audio"), clip_id, false, false, false, 0,
+                   0);
+    }
+  }
   for (auto node = nodes.rbegin(); node != nodes.rend(); ++node) {
     if (const auto* layer_id = std::get_if<refusion::core::LayerId>(&*node)) {
       const auto* layer = refusion::core::find_layer(composition, *layer_id);

@@ -44,6 +44,9 @@ class SkiaGpuContexts final
   [[nodiscard]] std::string text_layout_engine_digest() const;
   [[nodiscard]] std::optional<std::uint64_t> selected_video_source_frame_index()
       const noexcept;
+  [[nodiscard]] bool publish_decoded_video_queue(
+      std::string stream_id,
+      std::shared_ptr<const runtime::media::DecodedSurfaceQueue> queue) noexcept;
   [[nodiscard]] const runtime::gpu::DeviceIdentity& device_identity()
       const noexcept override;
   [[nodiscard]] runtime::presentation::FrameResult render(

@@ -397,9 +397,10 @@ void ViewportRenderSession::notify_frame_observer() {
 
 void ViewportRenderSession::render_loop(const std::stop_token stop_token) {
   const auto frame_interval = playback_spec_.frame_interval();
+  auto next_deadline = clock_now_();
+  std::uint64_t scheduled_epoch_id = 0;
   while (!stop_token.stop_requested()) {
     FrameResult result;
-    std::chrono::steady_clock::time_point next_deadline;
     {
       std::unique_lock lock(mutex_);
       wake_.wait(lock, stop_token, [this] {
@@ -416,13 +417,28 @@ void ViewportRenderSession::render_loop(const std::stop_token stop_token) {
         static_cast<void>(project_clock_.suspend());
         continue;
       }
+      // Anchor presentation to a stable frame grid. Recomputing every
+      // deadline as `now + interval` permanently accumulates scheduler and
+      // drawable-acquisition jitter, which produces uneven 20/40 ms cadence
+      // for 30 fps media inside a 60 fps composition.
+      if (scheduled_epoch_id != clock_result.snapshot.epoch_id) {
+        scheduled_epoch_id = clock_result.snapshot.epoch_id;
+        next_deadline = now;
+      }
       result = presenter_.present(next_frame_locked(clock_result.snapshot));
       last_frame_status_ = result.status;
       diagnostic_ = result.diagnostic;
       if (result.status == FrameStatus::rejected) {
         static_cast<void>(project_clock_.pause(clock_tick(now)));
       }
-      next_deadline = now + frame_interval;
+      next_deadline += frame_interval;
+      const auto after_present = clock_now_();
+      if (next_deadline <= after_present) {
+        const auto lateness = after_present - next_deadline;
+        const auto missed_intervals =
+            static_cast<std::uint64_t>(lateness / frame_interval) + 1;
+        next_deadline += frame_interval * missed_intervals;
+      }
     }
     notify_frame_observer();
 

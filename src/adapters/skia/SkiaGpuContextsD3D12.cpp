@@ -209,6 +209,12 @@ SkiaGpuContexts::selected_video_source_frame_index() const noexcept {
   return std::nullopt;
 }
 
+bool SkiaGpuContexts::publish_decoded_video_queue(
+    std::string,
+    std::shared_ptr<const runtime::media::DecodedSurfaceQueue> queue) noexcept {
+  return queue == nullptr;
+}
+
 const runtime::gpu::DeviceIdentity& SkiaGpuContexts::device_identity()
     const noexcept {
   return implementation_->lease.identity();
@@ -284,7 +290,7 @@ runtime::presentation::FrameResult SkiaGpuContexts::render(
         *surface, *implementation_->text_layout_engine,
         *frame.render_program, frame.request_sequence, frame.project_time_ns,
         frame.transport_epoch_id, frame.output_consumer,
-        frame.canvas_view, target.width_pixels, target.height_pixels);
+        frame.canvas_view, target.width_pixels, target.height_pixels, nullptr);
   } catch (const std::exception& error) {
     return rejected(error.what());
   }

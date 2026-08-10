@@ -101,6 +101,36 @@ class FakePresenter final
   };
 }
 
+[[nodiscard]] refusion::core::CompositionSnapshot media_timeline_composition() {
+  using namespace refusion::core;
+  auto composition = timeline_composition();
+  composition.video_clips = {
+      VideoClipSnapshot{
+          .video_clip_id = VideoClipId{"vclip_primary"},
+          .linked_import_id = LinkedImportId{"import_primary"},
+          .media_source_id = MediaSourceId{"media_primary"},
+          .stream_id = MediaStreamId{"stream_primary_v"},
+          .display_name = "Portrait Video",
+          .active_range = {.start = 2'000'000'000,
+                           .duration = 12'000'000'000},
+          .source_range = {.start = 0, .duration = 360},
+      },
+  };
+  composition.audio_clips = {
+      AudioClipSnapshot{
+          .audio_clip_id = AudioClipId{"aclip_primary"},
+          .linked_import_id = LinkedImportId{"import_primary"},
+          .media_source_id = MediaSourceId{"media_primary"},
+          .stream_id = MediaStreamId{"stream_primary_a"},
+          .display_name = "Portrait Audio",
+          .active_range = {.start = 2'000'000'000,
+                           .duration = 12'000'000'000},
+          .source_range = {.start = 0, .duration = 576'000},
+      },
+  };
+  return composition;
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -422,6 +452,31 @@ int main(int argc, char* argv[]) {
           1);
   require(transport_bridge.timelinePath() == QStringLiteral("Transport"));
   require(!transport_bridge.canNavigateUp());
+
+  StudioTransportBridge media_transport_bridge(
+      render_session,
+      std::make_shared<const refusion::core::CompositionSnapshot>(
+          media_timeline_composition()));
+  require(media_transport_bridge.tracks()->rowCount() == 4);
+  const auto video_index = media_transport_bridge.tracks()->index(0, 0);
+  require(video_index.data(TimelineTrackModel::nodeIdRole).toString() ==
+          QStringLiteral("vclip_primary"));
+  require(video_index.data(TimelineTrackModel::nodeKindRole).toString() ==
+          QStringLiteral("video_clip"));
+  require(video_index.data(TimelineTrackModel::visualKindRole).toString() ==
+          QStringLiteral("video"));
+  require(video_index.data(TimelineTrackModel::startFrameRole).toULongLong() ==
+          60);
+  require(
+      video_index.data(TimelineTrackModel::durationFramesRole).toULongLong() ==
+      360);
+  const auto audio_index = media_transport_bridge.tracks()->index(1, 0);
+  require(audio_index.data(TimelineTrackModel::nodeIdRole).toString() ==
+          QStringLiteral("aclip_primary"));
+  require(audio_index.data(TimelineTrackModel::nodeKindRole).toString() ==
+          QStringLiteral("audio_clip"));
+  require(audio_index.data(TimelineTrackModel::visualKindRole).toString() ==
+          QStringLiteral("audio"));
 
   auto nested_projection = timeline_composition();
   auto& projected_title = nested_projection.layers.back();

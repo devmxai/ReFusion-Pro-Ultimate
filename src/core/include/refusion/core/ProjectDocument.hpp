@@ -146,6 +146,18 @@ struct MediaTickRange final {
   friend bool operator==(const MediaTickRange&, const MediaTickRange&) = default;
 };
 
+// Exact derived source timestamp used by playback scheduling and RenderPlan
+// lowering. This is not serialized project truth: the authored truth remains
+// the Clip project range, source tick range and Stream time base.
+struct MediaTimePoint final {
+  std::int64_t value{0};
+  std::int32_t timescale{0};
+
+  [[nodiscard]] bool valid() const noexcept { return timescale > 0; }
+
+  friend bool operator==(const MediaTimePoint&, const MediaTimePoint&) = default;
+};
+
 enum class MediaStreamKind : std::uint8_t {
   video,
   audio,
@@ -691,6 +703,14 @@ struct CompositionValidation final {
 
 [[nodiscard]] CompositionValidation validate_project(
     const ProjectSnapshot& project);
+
+// One portable ProjectTime -> source PTS mapping shared by Preview scheduling
+// and DrawVideoFrame lowering. VFR frame selection is performed later against
+// the exact MediaIndex presentation timestamps.
+[[nodiscard]] std::optional<MediaTimePoint> video_source_time_at_project_time(
+    const VideoClipSnapshot& clip,
+    const MediaStreamDescriptor& stream,
+    ProjectTimeNs project_time) noexcept;
 
 // Authored TextBox geometry is centered in Layer-local pixels. These bounds
 // are schema geometry only, not shaped glyph/logical/ink measurement.

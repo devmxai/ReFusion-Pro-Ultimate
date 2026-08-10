@@ -232,6 +232,8 @@ if((APPLE OR WIN32) AND TARGET ReFusion::PlatformGpu AND TARGET ReFusion::SkiaAd
   list(APPEND refusion_studio_sources
     EngineViewportWindow.cpp
     EngineViewportWindow.hpp
+    composition/StudioVideoPlaybackController.cpp
+    composition/StudioVideoPlaybackController.hpp
     composition/VisualRuntimeComposition.cpp
   )
   set(refusion_studio_visual_runtime ON)
@@ -283,6 +285,15 @@ if(refusion_studio_visual_runtime)
       ReFusion::PlatformGpu
       ReFusion::SkiaAdapter
   )
+  if(TARGET ReFusion::PlatformMedia AND TARGET ReFusion::FfmpegDemux)
+    target_link_libraries(refusion-studio
+      PRIVATE
+        ReFusion::PlatformMedia
+        ReFusion::FfmpegDemux)
+  else()
+    message(FATAL_ERROR
+      "Visual Studio runtime requires platform media and the shared demux adapter")
+  endif()
   refusion_deploy_skia_runtime(refusion-studio)
 endif()
 

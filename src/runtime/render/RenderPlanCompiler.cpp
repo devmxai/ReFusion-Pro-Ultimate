@@ -3,8 +3,11 @@
 #include "refusion/core/CanonicalText.hpp"
 #include "refusion/core/VisualContributionRegistry.hpp"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
+#include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -181,6 +184,26 @@ namespace {
       layer.content);
 }
 
+[[nodiscard]] const core::MediaSource* find_media_source(
+    const core::ProjectSnapshot& project,
+    const core::MediaSourceId& source_id) noexcept {
+  const auto iterator = std::find_if(
+      project.media_sources.begin(), project.media_sources.end(),
+      [&source_id](const auto& source) {
+        return source.media_source_id == source_id;
+      });
+  return iterator == project.media_sources.end() ? nullptr : &*iterator;
+}
+
+[[nodiscard]] const core::MediaStreamDescriptor* find_media_stream(
+    const core::MediaSource& source,
+    const core::MediaStreamId& stream_id) noexcept {
+  const auto iterator = std::find_if(
+      source.streams.begin(), source.streams.end(),
+      [&stream_id](const auto& stream) { return stream.stream_id == stream_id; });
+  return iterator == source.streams.end() ? nullptr : &*iterator;
+}
+
 void hash_bytes(std::uint64_t& hash, const void* bytes,
                 const std::size_t size) noexcept {
   const auto* current = static_cast<const std::uint8_t*>(bytes);
@@ -354,7 +377,7 @@ void hash_string(std::uint64_t& hash, const std::string_view value) noexcept {
                   }
                 },
                 content.fill);
-          } else {
+          } else if constexpr (std::is_same_v<Content, DrawText>) {
             hash_string(hash, content.cache_key);
             hash_color(hash, content.fill);
             const bool clipped = content.clip.has_value();
@@ -362,6 +385,16 @@ void hash_string(std::uint64_t& hash, const std::string_view value) noexcept {
             if (content.clip) {
               hash_rect(hash, *content.clip);
             }
+          } else {
+            hash_string(hash, content.video_clip_id);
+            hash_string(hash, content.media_source_id);
+            hash_string(hash, content.stream_id);
+            hash_value(hash, content.source_time_value);
+            hash_value(hash, content.source_time_scale);
+            hash_value(hash, content.source_width_pixels);
+            hash_value(hash, content.source_height_pixels);
+            hash_value(hash, content.destination_width);
+            hash_value(hash, content.destination_height);
           }
         },
         layer.content);
@@ -453,6 +486,52 @@ VisualRenderPlan evaluate_visual_render_plan(
       .color_contract = program.color_contract(),
       .color_contract_digest = program.color_contract_digest(),
   };
+  for (const auto& clip : composition.video_clips) {
+    if (!clip.enabled || project_time_ns < clip.active_range.start ||
+        project_time_ns >= clip.active_range.end()) {
+      continue;
+    }
+    const auto* source = find_media_source(project, clip.media_source_id);
+    const auto* stream =
+        source == nullptr ? nullptr : find_media_stream(*source, clip.stream_id);
+    if (source == nullptr || stream == nullptr ||
+        stream->kind != core::MediaStreamKind::video ||
+        !std::holds_alternative<core::VideoStreamFormat>(stream->format)) {
+      throw std::invalid_argument(
+          "RFX-RENDER-VIDEO-001: active VideoClip source is unresolved");
+    }
+    const auto source_time = core::video_source_time_at_project_time(
+        clip, *stream, project_time_ns);
+    if (!source_time) {
+      throw std::invalid_argument(
+          "RFX-RENDER-VIDEO-002: VideoClip ProjectTime is not representable");
+    }
+    const auto& format = std::get<core::VideoStreamFormat>(stream->format);
+    const auto canvas_width = static_cast<double>(composition.canvas.width_pixels);
+    const auto canvas_height = static_cast<double>(composition.canvas.height_pixels);
+    result.layers.push_back(DrawLayer{
+        .layer_id = clip.video_clip_id.value,
+        .world_transform = {.m02 = canvas_width * 0.5,
+                            .m12 = canvas_height * 0.5},
+        .effective_opacity = 1.0,
+        .blend_mode = BlendMode::normal,
+        .isolation_bounds = {.left = -canvas_width * 0.5,
+                             .top = -canvas_height * 0.5,
+                             .right = canvas_width * 0.5,
+                             .bottom = canvas_height * 0.5},
+        .content = DrawVideoFrame{
+            .video_clip_id = clip.video_clip_id.value,
+            .media_source_id = clip.media_source_id.value,
+            .stream_id = clip.stream_id.value,
+            .source_time_value = source_time->value,
+            .source_time_scale = source_time->timescale,
+            .source_width_pixels = format.display_extent.width_pixels,
+            .source_height_pixels = format.display_extent.height_pixels,
+            .destination_width = canvas_width,
+            .destination_height = canvas_height,
+        },
+    });
+  }
   const auto scene = core::evaluate_visual_scene(
       composition, project_time_ns, text_layout_port);
   result.layers.reserve(scene.layers.size());

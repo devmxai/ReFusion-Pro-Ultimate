@@ -94,7 +94,28 @@ struct DrawText final {
   friend bool operator==(const DrawText&, const DrawText&) = default;
 };
 
-using DrawContent = std::variant<DrawShape, DrawText>;
+struct DrawVideoFrame final {
+  std::string video_clip_id;
+  std::string media_source_id;
+  std::string stream_id;
+  std::int64_t source_time_value{0};
+  std::int32_t source_time_scale{0};
+  std::uint32_t source_width_pixels{0};
+  std::uint32_t source_height_pixels{0};
+  double destination_width{0.0};
+  double destination_height{0.0};
+
+  [[nodiscard]] bool valid() const noexcept {
+    return !video_clip_id.empty() && !media_source_id.empty() &&
+           !stream_id.empty() && source_time_scale > 0 &&
+           source_width_pixels > 0 && source_height_pixels > 0 &&
+           destination_width > 0.0 && destination_height > 0.0;
+  }
+
+  friend bool operator==(const DrawVideoFrame&, const DrawVideoFrame&) = default;
+};
+
+using DrawContent = std::variant<DrawShape, DrawText, DrawVideoFrame>;
 
 struct RoundedRectMask final {
   std::string descriptor_id;

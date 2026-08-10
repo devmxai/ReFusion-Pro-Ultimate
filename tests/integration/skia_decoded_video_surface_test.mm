@@ -71,6 +71,53 @@ class RendererPresenter final : public refusion::runtime::presentation::Viewport
   refusion::runtime::presentation::PresentationTelemetry telemetry_;
 };
 
+[[nodiscard]] refusion::runtime::render::VisualRenderProgram
+video_render_program() {
+  using namespace refusion::core;
+  auto project = test_project();
+  const MediaStreamId stream_id{"stream_test_video"};
+  project.media_sources.push_back(MediaSource{
+      .media_source_id = MediaSourceId{"media_test_video"},
+      .asset_id = AssetId{"ast_test_video"},
+      .media_index_contract_version = 1,
+      .media_index_digest =
+          "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      .resolution = MediaResolutionState::resolved,
+      .streams = {
+          MediaStreamDescriptor{
+              .stream_id = stream_id,
+              .container_track_id = 1,
+              .kind = MediaStreamKind::video,
+              .codec = MediaCodec::h264_avc,
+              .codec_configuration_digest =
+                  "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              .time_base = {.numerator = 1, .denominator = 30'000},
+              .start = 0,
+              .duration = 900'000,
+              .format = VideoStreamFormat{
+                  .coded_extent = {.width_pixels = 320, .height_pixels = 180},
+                  .display_extent = {.width_pixels = 320, .height_pixels = 180},
+                  .presentation_rate = {.numerator = 30, .denominator = 1},
+                  .color_primaries = "bt709",
+                  .color_transfer = "bt709",
+                  .color_matrix = "bt709",
+              },
+          },
+      },
+      .selected_video_stream = stream_id,
+  });
+  project.composition->video_clips.push_back(VideoClipSnapshot{
+      .video_clip_id = VideoClipId{"vclip_test_video"},
+      .linked_import_id = LinkedImportId{"import_test_video"},
+      .media_source_id = MediaSourceId{"media_test_video"},
+      .stream_id = stream_id,
+      .display_name = "Test Video",
+      .active_range = {.start = 0, .duration = 30'000'000'000},
+      .source_range = {.start = 0, .duration = 900'000},
+  });
+  return refusion::runtime::render::compile_visual_render_program(project);
+}
+
 }  // namespace
 
 int main() {
@@ -110,13 +157,15 @@ int main() {
   require(publication.accepted);
 
   auto render_program = std::make_shared<const
-      refusion::runtime::render::VisualRenderProgram>(test_render_program());
+      refusion::runtime::render::VisualRenderProgram>(video_render_program());
   auto renderer = refusion::adapters::skia::SkiaGpuContexts::create(
-      device_service->borrow(), publication.queue);
+      device_service->borrow());
   require(renderer != nullptr);
   require(renderer->ganesh_ready());
   require(renderer->device_identity().adapter_id ==
           publication.queue->device_identity().adapter_id);
+  require(renderer->publish_decoded_video_queue("stream_test_video",
+                                                publication.queue));
 
   auto native_lease = device_service->borrow();
   id<MTLDevice> device = (__bridge id<MTLDevice>)(const_cast<void *>(

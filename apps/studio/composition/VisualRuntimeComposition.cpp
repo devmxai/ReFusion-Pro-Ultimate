@@ -2,6 +2,7 @@
 
 #include "EngineViewportWindow.hpp"
 #include "StudioTransportBridge.hpp"
+#include "composition/StudioVideoPlaybackController.hpp"
 
 #include "refusion/adapters/skia/SkiaGpuContexts.hpp"
 #include "refusion/adapters/skia/SkiaGpuComposition.hpp"
@@ -47,6 +48,9 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
                 *presenter_, playback_spec(project),
                 refusion::runtime::presentation::ViewportRenderSession::ClockNow{},
                 render_program_)),
+        video_playback_(std::make_unique<StudioVideoPlaybackController>(
+            project_path, project, *device_service_, *renderer_,
+            *render_session_)),
         viewport_window_(std::make_unique<EngineViewportWindow>(
             QString::fromStdString(device_service_->identity().adapter_name),
             std::move(project_path),
@@ -82,9 +86,12 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
           "RFX-RUNTIME-RELOAD-002",
           "live edit must preserve composition ID, canvas, frame rate and duration");
     }
+    auto accepted_project =
+        std::make_shared<const refusion::core::ProjectSnapshot>(project);
     auto program = std::make_shared<const
         refusion::runtime::render::VisualRenderProgram>(
-        refusion::runtime::render::compile_visual_render_program(project));
+        refusion::runtime::render::compile_visual_render_program(
+            *accepted_project));
     const auto composition_time = transport_bridge_->compositionTimeNs();
     const auto epoch = render_session_->playback_state().clock_epoch_id;
     static_cast<void>(refusion::runtime::render::evaluate_visual_render_plan(
@@ -93,7 +100,8 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
         std::make_shared<const refusion::core::CompositionSnapshot>(candidate);
     auto timeline = transport_bridge_->prepareComposition(composition);
     return {.prepared = std::make_unique<Prepared>(
-                *this, std::move(program), std::move(composition),
+                *this, std::move(accepted_project), std::move(program),
+                std::move(composition),
                 std::move(timeline))};
   }
 
@@ -102,12 +110,14 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
       : public refusion::application::PreparedProjectRevision {
    public:
     Prepared(VisualRuntimeComposition& owner,
+             std::shared_ptr<const refusion::core::ProjectSnapshot> project,
              std::shared_ptr<const
                  refusion::runtime::render::VisualRenderProgram> program,
              std::shared_ptr<const refusion::core::CompositionSnapshot>
                  composition,
              StudioTransportBridge::PreparedCompositionProjection timeline)
         : owner_(owner),
+          project_(std::move(project)),
           program_(std::move(program)),
           composition_(std::move(composition)),
           timeline_(std::move(timeline)) {}
@@ -116,6 +126,7 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
       owner_.render_session_->publish_render_program(program_);
       owner_.render_program_ = program_;
       owner_.composition_ = composition_;
+      owner_.video_playback_->publishProject(*project_);
     }
 
     void publish_observer_projections() noexcept override {
@@ -125,6 +136,7 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
 
    private:
     VisualRuntimeComposition& owner_;
+    std::shared_ptr<const refusion::core::ProjectSnapshot> project_;
     std::shared_ptr<const refusion::runtime::render::VisualRenderProgram>
         program_;
     std::shared_ptr<const refusion::core::CompositionSnapshot> composition_;
@@ -166,6 +178,7 @@ class VisualRuntimeComposition final : public StudioRuntimeComposition {
   std::unique_ptr<refusion::runtime::presentation::ViewportPresenter> presenter_;
   std::unique_ptr<refusion::runtime::presentation::ViewportRenderSession>
       render_session_;
+  std::unique_ptr<StudioVideoPlaybackController> video_playback_;
   std::unique_ptr<EngineViewportWindow> viewport_window_;
   std::unique_ptr<StudioTransportBridge> transport_bridge_;
 };

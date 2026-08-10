@@ -74,16 +74,26 @@ claim Timeline/Canvas Video playback, Windows decode or G4 exit.
 
 ## Exact resume point
 
-Continue `VI-WP03` on `feature/shared-video-import-v1` by reproducing the fixed
-RFX6, seven-row corpus including the bounded 4K/Timecode/VUI case, shared
-ImportVideo transaction, exact Relink, Studio client and typed CLI receipts
-under real MSVC/Windows. QML remains intent-only; it may not copy
-files, index media or mutate project truth. No Windows-only schema, timing,
-semantic, filesystem or persistence fork is permitted. Record the exact source
-commit and receipts before VI-WP01–03 close. The accepted 4K import does not
-yet imply a decoded Canvas frame. Only then begin VI-WP04 exact
-ProjectTime-to-PTS scheduling and the common `DrawVideoFrame` RenderPlan
-operation.
+Continue `VI-WP04–05` on `feature/shared-video-import-v1` without weakening the
+still-pending Windows reproduction of VI-WP01–03. QML remains intent-only; it
+may not copy files, index media, select decoded surfaces or mutate project
+truth. No Windows-only schema, timing, semantic, filesystem or persistence fork
+is permitted.
+
+The macOS product-path checkpoint now displays accepted imported Video through
+exact ProjectTime-to-PTS mapping, one persistent hardware VideoToolbox session,
+GPU-resident NV12 leases, common `DrawVideoFrame` and Skia YUVA compositing.
+Forward B-frame dependencies remain resident, queue refills use distinct
+low/high watermarks, overlapping native wrappers are reused, and presentation
+deadlines remain anchored to one frame grid. The real 2160x3840/30 fps `wv`
+source plays inside a 60 fps Composition by repeating each source frame twice;
+60 unique motion frames require an explicit future optical-flow capability.
+
+Exact resume: finish the macOS pause/seek/loop telemetry and performance
+receipts, then reproduce VI-WP01–05 under MSVC and implement only the Windows
+Media Foundation/D3D native adapter behind the same shared contracts. Audio
+output/master-clock work remains VI-WP06 and is not implied by silent Video
+playback.
 
 The cross-platform remediation guardrail
 [`PLAN-XPLAT-FIX-001`](../plans/FIX_CROSS_PLATFORM_ARCHITECTURE.md) remains

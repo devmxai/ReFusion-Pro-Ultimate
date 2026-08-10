@@ -126,6 +126,50 @@ struct HardwareDecodeSequenceResult final {
   [[nodiscard]] bool admitted() const noexcept;
 };
 
+// Immutable compressed-source description prepared by the shared MediaIndex.
+// Platform playback adapters consume byte ranges and codec configuration only;
+// they never parse the container or reinterpret Project timing.
+struct HardwareVideoPlaybackSource final {
+  std::string source_path;
+  std::uint64_t source_byte_size{0};
+  StrictDecodeProfile expected_profile;
+  std::vector<std::uint8_t> codec_configuration;
+  std::vector<CompressedSampleDescriptor> samples_decode_order;
+
+  [[nodiscard]] bool valid() const noexcept;
+};
+
+struct HardwareVideoPlaybackWindowRequest final {
+  ExactMediaTime target_presentation_time;
+  std::size_t maximum_surface_count{0};
+  std::size_t lookahead_surface_count{0};
+
+  [[nodiscard]] bool valid() const noexcept;
+};
+
+struct HardwareVideoPlaybackWindowResult final {
+  DecodeState state{DecodeState::unsupported};
+  bool hardware_decoder{false};
+  std::shared_ptr<const DecodedSurfaceQueue> queue;
+  MediaPathCounters counters;
+  std::string code;
+  std::string diagnostic;
+
+  [[nodiscard]] bool admitted() const noexcept;
+};
+
+// Stateful native decoder used by forward playback and exact seeks. The
+// session may preserve hardware reference-frame state between bounded windows,
+// while every published native surface remains lifetime-bound and GPU-only.
+class HardwareVideoPlaybackSession {
+ public:
+  virtual ~HardwareVideoPlaybackSession() = default;
+
+  [[nodiscard]] virtual HardwareVideoPlaybackWindowResult decode_window(
+      const HardwareVideoPlaybackWindowRequest& request) = 0;
+  [[nodiscard]] virtual MediaPathCounters counters() const = 0;
+};
+
 class HardwareVideoDecoder {
  public:
   virtual ~HardwareVideoDecoder() = default;
@@ -134,6 +178,8 @@ class HardwareVideoDecoder {
       const HardwareDecodeRequest& request) = 0;
   [[nodiscard]] virtual HardwareDecodeSequenceResult decode_sequence(
       const HardwareDecodeSequenceRequest& request) = 0;
+  [[nodiscard]] virtual std::unique_ptr<HardwareVideoPlaybackSession>
+  open_playback(const HardwareVideoPlaybackSource& source) = 0;
   [[nodiscard]] virtual MediaPathCounters counters() const = 0;
 };
 

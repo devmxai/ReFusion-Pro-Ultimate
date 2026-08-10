@@ -1,7 +1,9 @@
 #include "refusion/runtime/media/HardwareVideoDecode.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 
 namespace refusion::runtime::media {
@@ -213,6 +215,39 @@ bool HardwareDecodeResult::admitted() const noexcept {
 }
 
 bool HardwareDecodeSequenceResult::admitted() const noexcept {
+  return state == DecodeState::decoded && hardware_decoder && queue &&
+         !queue->empty() && counters.strict_path_clean();
+}
+
+bool HardwareVideoPlaybackSource::valid() const noexcept {
+  constexpr std::size_t kMaximumIndexedSamples = 4'000'000;
+  if (source_path.empty() || source_byte_size == 0 ||
+      !expected_profile.valid() || codec_configuration.empty() ||
+      samples_decode_order.empty() ||
+      samples_decode_order.size() > kMaximumIndexedSamples) {
+    return false;
+  }
+  for (std::size_t index = 0; index < samples_decode_order.size(); ++index) {
+    const auto& sample = samples_decode_order[index];
+    if (!sample.valid() || sample.source_byte_size == 0 ||
+        sample.source_byte_offset > source_byte_size ||
+        sample.source_byte_size > source_byte_size - sample.source_byte_offset ||
+        (index > 0 && samples_decode_order[index - 1].access_unit_index >=
+                          sample.access_unit_index)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool HardwareVideoPlaybackWindowRequest::valid() const noexcept {
+  constexpr std::size_t kMaximumResidentSurfaces = 16;
+  return target_presentation_time.valid() && maximum_surface_count > 0 &&
+         maximum_surface_count <= kMaximumResidentSurfaces &&
+         lookahead_surface_count < maximum_surface_count;
+}
+
+bool HardwareVideoPlaybackWindowResult::admitted() const noexcept {
   return state == DecodeState::decoded && hardware_decoder && queue &&
          !queue->empty() && counters.strict_path_clean();
 }

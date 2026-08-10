@@ -107,6 +107,22 @@ if(APPLE AND TARGET ReFusion::PlatformMedia)
   refusion_enable_warnings(refusion-apple-hardware-decode-seek-tests)
   add_test(NAME refusion.apple_hardware_decode_seek
     COMMAND refusion-apple-hardware-decode-seek-tests)
+
+  if(TARGET ReFusion::FfmpegDemux)
+    add_executable(refusion-apple-imported-video-playback-tests
+      apple_imported_video_playback_test.cpp)
+    target_link_libraries(refusion-apple-imported-video-playback-tests
+      PRIVATE
+        ReFusion::FfmpegDemux
+        ReFusion::PlatformGpu
+        ReFusion::PlatformMedia)
+    target_compile_definitions(
+      refusion-apple-imported-video-playback-tests PRIVATE
+      REFUSION_VIDEO_PLAYBACK_SOURCE_PATH="${CMAKE_SOURCE_DIR}/tests/fixtures/media/video-import-v1/mp4-vfr-bframes-aac-offset/source.mp4")
+    refusion_enable_warnings(refusion-apple-imported-video-playback-tests)
+    add_test(NAME refusion.apple_imported_video_playback
+      COMMAND refusion-apple-imported-video-playback-tests)
+  endif()
 endif()
 
 if(TARGET ReFusion::SkiaAdapter)

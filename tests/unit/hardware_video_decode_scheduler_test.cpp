@@ -80,6 +80,11 @@ class FakeHardwareDecoder final : public HardwareVideoDecoder {
     };
   }
 
+  [[nodiscard]] std::unique_ptr<HardwareVideoPlaybackSession> open_playback(
+      const HardwareVideoPlaybackSource&) override {
+    return nullptr;
+  }
+
   [[nodiscard]] MediaPathCounters counters() const override {
     return counters_;
   }

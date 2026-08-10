@@ -70,6 +70,14 @@ class WindowsHardwareVideoDecoder final
     };
   }
 
+  [[nodiscard]] std::unique_ptr<
+      runtime::media::HardwareVideoPlaybackSession>
+  open_playback(
+      const runtime::media::HardwareVideoPlaybackSource&) override {
+    ++counters_.hardware_decoder_queries;
+    return nullptr;
+  }
+
   [[nodiscard]] runtime::media::MediaPathCounters counters() const override {
     return counters_;
   }
