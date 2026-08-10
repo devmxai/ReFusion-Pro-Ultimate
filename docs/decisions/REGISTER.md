@@ -18,3 +18,4 @@
 | [ADR-0017](adrs/ADR-0017-high-precision-sdr-presentation-carrier.md) | adr | proposed | High-precision SDR display presentation carrier | principal-cross-platform-architecture | XPF-WINDOWS-DESKTOP-V1 | `adrs/ADR-0017-high-precision-sdr-presentation-carrier.md` |
 | [RFC-0001](rfcs/RFC-0001-project-rfx-authoring-experiment.md) | rfc | experimenting | Typed single-file Project.rfx authoring experiment | product-owner | G2-entry | `rfcs/RFC-0001-project-rfx-authoring-experiment.md` |
 | [RFC-0002](rfcs/RFC-0002-visual-authoring-hierarchy.md) | rfc | proposed | Unified visual authoring hierarchy and compositing semantics | product-owner | G2-entry | `rfcs/RFC-0002-visual-authoring-hierarchy.md` |
+| [RFC-0003](rfcs/RFC-0003-web-platform-runtime-and-hardware-path.md) | rfc | proposed | Web Platform runtime, Skia WebGPU backend and browser-mediated hardware media | product-owner | WEB-WP00 | `rfcs/RFC-0003-web-platform-runtime-and-hardware-path.md` |
