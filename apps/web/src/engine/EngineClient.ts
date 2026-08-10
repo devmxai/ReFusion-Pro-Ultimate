@@ -1,8 +1,4 @@
-import type {
-  EngineCommand,
-  EngineDiagnostic,
-  EngineMessage,
-} from "./protocol";
+import type { EngineCommand, EngineDiagnostic, EngineMessage, ProjectRequest, ProjectSnapshot } from "./protocol";
 import { webEngineUnavailable } from "./protocol";
 
 export class EngineClient {
@@ -33,6 +29,37 @@ export class EngineClient {
 
   send(command: EngineCommand) {
     this.worker.postMessage(command);
+  }
+
+  requestSnapshot(command: Extract<EngineCommand, { type: "create_project" | "open_project" }>): Promise<ProjectSnapshot> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const unsubscribe = this.subscribe((message) => {
+        if (message.kind === "engine_snapshot") {
+          settled = true;
+          unsubscribe();
+          resolve(message);
+        } else if (message.kind === "diagnostic" && message.diagnostic.severity === "error") {
+          settled = true;
+          unsubscribe();
+          reject(new Error(`${message.diagnostic.code}: ${message.diagnostic.message}`));
+        }
+      });
+      window.setTimeout(() => {
+        if (settled) return;
+        unsubscribe();
+        reject(new Error("RFX-WEB-WASM-004: WebCore did not publish a project snapshot"));
+      }, 30_000);
+      this.send(command);
+    });
+  }
+
+  createProject(request: ProjectRequest): Promise<ProjectSnapshot> {
+    return this.requestSnapshot({ type: "create_project", request });
+  }
+
+  openProject(source: string): Promise<ProjectSnapshot> {
+    return this.requestSnapshot({ type: "open_project", source });
   }
 
   dispose() {
