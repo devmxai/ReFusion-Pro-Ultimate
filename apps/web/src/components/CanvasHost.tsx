@@ -98,7 +98,10 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
       label: "refusion-video-frame",
       size: [textureWidth, textureHeight],
       format: "rgba8unorm",
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      // Dawn/WebKit validates the external copy destination as a renderable
+      // texture as well as a sampled texture, even though the presenter writes
+      // through COPY_DST and samples it in the fullscreen pass.
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
     const pipeline = device.createRenderPipeline({
