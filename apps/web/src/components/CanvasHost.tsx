@@ -158,7 +158,7 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
             // one from an HTMLVideoElement; the native source remains valid.
           }
         }
-        device.queue.copyExternalImageToTexture({ source, flipY: true }, { texture }, [textureWidth, textureHeight]);
+        device.queue.copyExternalImageToTexture({ source }, { texture }, [textureWidth, textureHeight]);
       } catch (error) {
         stopped = true;
         onVideoError(error instanceof Error ? `Video frame presentation failed: ${error.message}` : "Video frame presentation failed.");
