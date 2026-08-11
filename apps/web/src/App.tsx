@@ -20,13 +20,6 @@ const presets = [
   { id: "cinematic-239x100", name: "Cinematic", aspect: "2.39:1", resolutions: [["1080p", "1080p", 1920, 804], ["2k", "2K", 2560, 1072], ["4k", "4K", 3840, 1608]] },
 ] as const;
 const frameRates = [24, 25, 30, 50, 60, 90];
-const tracks = [
-  { type: "video", icon: "▶", name: "Video", color: "#3975c6" },
-  { type: "audio", icon: "♪", name: "Audio", color: "#2b9c72" },
-  { type: "text", icon: "T", name: "Text", color: "#d8873f" },
-  { type: "shape", icon: "◇", name: "Shape", color: "#765bd6" },
-];
-
 type ImportedVideo = {
   file: File;
   assetId: string;
@@ -35,6 +28,7 @@ type ImportedVideo = {
   width: number;
   height: number;
   duration: number;
+  currentTime: number;
 };
 
 function App() {
@@ -140,7 +134,7 @@ function App() {
       const digest = await digestFile(file);
       const assetId = `asset_${digest.slice(0, 20)}`;
       const stored = await persistVideoAsset(workspaceRef, file, assetId, digest);
-      setVideo({ file, assetId, digest, mediaPath: stored.mediaPath, width: 0, height: 0, duration: 0 });
+      setVideo({ file, assetId, digest, mediaPath: stored.mediaPath, width: 0, height: 0, duration: 0, currentTime: 0 });
       publishDiagnostic({ code: "RFX-WEB-MEDIA-001", message: `${file.name} copied to ${stored.mediaPath}; awaiting browser metadata.`, severity: "info" });
     } catch (error) {
       publishDiagnostic({ code: "RFX-WEB-MEDIA-002", message: error instanceof Error ? error.message : "Video import failed", severity: "error" });
@@ -156,10 +150,15 @@ function App() {
 
   const onVideoError = useCallback((message: string) => publishDiagnostic({ code: "RFX-WEB-MEDIA-004", message, severity: "error" }), [publishDiagnostic]);
 
+  const onVideoTime = useCallback((currentTime: number) => {
+    setVideo((current) => current ? { ...current, currentTime } : current);
+  }, []);
+
+  const onVideoEnded = useCallback(() => setPlaying(false), []);
+
   const togglePlayback = useCallback(() => {
     if (!video) return;
     setPlaying((value) => !value);
-    engineRef.current?.send({ type: "toggle_transport" });
   }, [video]);
 
   return (
@@ -193,8 +192,9 @@ function App() {
           busy={busy}
           onTogglePlayback={togglePlayback}
           onImportVideo={() => videoInputRef.current?.click()}
-          onVideoFile={(file) => void importVideo(file)}
           onVideoMetadata={onVideoMetadata}
+          onVideoTime={onVideoTime}
+          onVideoEnded={onVideoEnded}
           onVideoError={onVideoError}
           onBack={() => setWorkspace("launcher")}
         />
@@ -254,8 +254,8 @@ function Launcher(props: LauncherProps) {
   );
 }
 
-function Studio({ snapshot, probe, diagnostics, playing, video, busy, onTogglePlayback, onImportVideo, onVideoFile, onVideoMetadata, onVideoError, onBack }: { snapshot: ProjectSnapshot | null; probe: WebGpuProbe; diagnostics: EngineDiagnostic[]; playing: boolean; video: ImportedVideo | null; busy: boolean; onTogglePlayback: () => void; onImportVideo: () => void; onVideoFile: (file: File) => void; onVideoMetadata: (metadata: { width: number; height: number; duration: number }) => void; onVideoError: (message: string) => void; onBack: () => void }) {
-  return <section className="studio-page"><header className="studio-header"><button className="brand-button" onClick={onBack} aria-label="Back to launcher"><Brand /></button><div className="spacer" /><span className="project-meta">{snapshot?.projectName ?? "No accepted project"} <b>•</b> Revision {snapshot?.revision ?? "—"}</span></header><div className="studio-layout"><aside className="tool-rail" aria-label="Command surface">{tools.map((tool) => <button key={tool} disabled={tool !== "VID" || !snapshot || busy} onClick={tool === "VID" ? onImportVideo : undefined} title={tool === "VID" ? "Insert a real video file" : `Command surface: ${tool}`}>{tool}</button>)}</aside><main className="center-column"><section className="canvas-panel"><CanvasHost probe={probe} videoFile={video?.file ?? null} playing={playing} onVideoMetadata={onVideoMetadata} onVideoError={onVideoError} /><div className="canvas-transport"><button onClick={onTogglePlayback} disabled={!video || busy} aria-label="Toggle playback">{playing ? "❚❚" : "▶"}</button><button disabled>FIT</button><button disabled>ACTUAL</button><span>{video ? `${formatTime(video.duration)} / ${formatTime(video.duration)}` : "00:00 / 00:00"}</span></div></section><Timeline playing={playing} video={video} /></main><Inspector diagnostics={diagnostics} probe={probe} snapshot={snapshot} video={video} /></div><input className="visually-hidden" type="file" accept="video/*,.mp4,.mov,.webm,.mkv" onChange={(event) => { const file = event.target.files?.[0]; if (file) onVideoFile(file); event.currentTarget.value = ""; }} /></section>;
+function Studio({ snapshot, probe, diagnostics, playing, video, busy, onTogglePlayback, onImportVideo, onVideoMetadata, onVideoTime, onVideoEnded, onVideoError, onBack }: { snapshot: ProjectSnapshot | null; probe: WebGpuProbe; diagnostics: EngineDiagnostic[]; playing: boolean; video: ImportedVideo | null; busy: boolean; onTogglePlayback: () => void; onImportVideo: () => void; onVideoMetadata: (metadata: { width: number; height: number; duration: number }) => void; onVideoTime: (time: number) => void; onVideoEnded: () => void; onVideoError: (message: string) => void; onBack: () => void }) {
+  return <section className="studio-page"><header className="studio-header"><button className="brand-button" onClick={onBack} aria-label="Back to launcher"><Brand /></button><div className="spacer" /><span className="project-meta">{snapshot?.projectName ?? "No accepted project"} <b>•</b> Revision {snapshot?.revision ?? "—"}</span></header><div className="studio-layout"><aside className="tool-rail" aria-label="Command surface">{tools.map((tool) => <button key={tool} disabled={tool !== "VID" || !snapshot || busy} onClick={tool === "VID" ? onImportVideo : undefined} title={tool === "VID" ? "Insert a real video file" : `Command surface: ${tool}`}>{tool}</button>)}</aside><main className="center-column"><section className="canvas-panel"><CanvasHost probe={probe} videoFile={video?.file ?? null} canvasWidth={snapshot?.width ?? 16} canvasHeight={snapshot?.height ?? 9} playing={playing} onVideoMetadata={onVideoMetadata} onVideoTime={onVideoTime} onVideoEnded={onVideoEnded} onVideoError={onVideoError} /><div className="canvas-transport"><button onClick={onTogglePlayback} disabled={!video || busy} aria-label="Toggle playback">{playing ? "❚❚" : "▶"}</button><button disabled>FIT</button><button disabled>ACTUAL</button><span>{video ? `${formatTime(video.currentTime)} / ${formatTime(video.duration)}` : "00:00 / 00:00"}</span></div></section><Timeline playing={playing} video={video} onTogglePlayback={onTogglePlayback} /></main><Inspector diagnostics={diagnostics} probe={probe} snapshot={snapshot} video={video} /></div></section>;
 }
 
 function formatTime(seconds: number) {
@@ -264,8 +264,11 @@ function formatTime(seconds: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function Timeline({ playing, video }: { playing: boolean; video: ImportedVideo | null }) {
-  return <section className="timeline-panel"><div className="timeline-toolbar"><div><button disabled>◀</button><button disabled>▶</button><button disabled>▶</button></div><span className="transport-state">{video ? (playing ? "PLAYING REAL MEDIA" : "MEDIA READY") : "PAUSED"}</span><span className="timecode">00:00:00:00</span></div><div className="timeline-body"><div className="ruler"><span>0s</span><span>5s</span><span>10s</span><span>15s</span><span>20s</span><span>25s</span><span>30s</span></div>{tracks.map((track, index) => <div className="track-row" key={track.type}><div className="track-label"><span style={{ color: track.color }}>{track.icon}</span>{track.name}</div><div className="track-lane"><div className={`empty-track ${video && index === 0 ? "accepted-track" : ""}`} style={{ borderColor: track.color }}><span>{video && index === 0 ? `${video.file.name} · ${video.width ? `${video.width}×${video.height}` : "probing"}` : index === 0 ? "Insert a real video with VID" : "No accepted clip"}</span></div></div></div>)}<div className="timeline-empty">{video ? "Video asset stored in the selected project workspace. Semantic VideoClip admission remains the next Core gate." : "Select VID to insert a real video file into this project workspace."}</div></div></section>;
+function Timeline({ playing, video, onTogglePlayback }: { playing: boolean; video: ImportedVideo | null; onTogglePlayback: () => void }) {
+  const duration = video?.duration ?? 0;
+  const ratio = duration > 0 && video ? Math.min(1, Math.max(0, video.currentTime / duration)) : 0;
+  const marks = duration > 0 ? Array.from({ length: 7 }, (_, index) => Math.round((duration * index) / 6)) : [0, 5, 10, 15, 20, 25, 30];
+  return <section className="timeline-panel"><div className="timeline-toolbar"><div><button disabled={!video}>◀</button><button onClick={onTogglePlayback} disabled={!video}>{playing ? "❚❚" : "▶"}</button><button disabled={!video}>▶</button></div><span className="transport-state">{video ? (playing ? "PLAYING REAL MEDIA" : "MEDIA READY") : "NO MEDIA"}</span><span className="timecode">{video ? `${formatTime(video.currentTime)} / ${formatTime(duration)}` : "00:00:00:00"}</span></div><div className="timeline-body"><div className="ruler">{marks.map((mark, index) => <span key={`${mark}-${index}`}>{mark}s</span>)}</div>{video ? <><div className="playhead" style={{ left: `calc(142px + (100% - 160px) * ${ratio})` }} aria-label={`Playhead ${formatTime(video.currentTime)}`} /><div className="track-row"><div className="track-label"><span style={{ color: "#3975c6" }}>▶</span>Video</div><div className="track-lane"><div className="empty-track accepted-track" style={{ width: "100%", borderColor: "#3975c6" }}><span>{video.file.name} · {video.width ? `${video.width}×${video.height}` : "probing"}</span></div></div></div></> : <div className="timeline-empty">Select VID to insert a real video file into this project workspace.</div>}<div className="timeline-empty">{video ? "Real media track. Semantic VideoClip admission into the shared RenderPlan is the next Core gate." : ""}</div></div></section>;
 }
 
 function Inspector({ diagnostics, probe, snapshot, video }: { diagnostics: EngineDiagnostic[]; probe: WebGpuProbe; snapshot: ProjectSnapshot | null; video: ImportedVideo | null }) {

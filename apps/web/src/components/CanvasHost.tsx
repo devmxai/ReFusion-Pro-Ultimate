@@ -4,14 +4,18 @@ import type { WebGpuProbe } from "../platform/webgpuProbe";
 type CanvasHostProps = {
   probe: WebGpuProbe;
   videoFile: File | null;
+  canvasWidth: number;
+  canvasHeight: number;
   playing: boolean;
   onVideoMetadata: (metadata: { width: number; height: number; duration: number }) => void;
+  onVideoTime: (time: number) => void;
+  onVideoEnded: () => void;
   onVideoError: (message: string) => void;
 };
 
 type GpuVideoState = "idle" | "ready" | "unsupported";
 
-export function CanvasHost({ probe, videoFile, playing, onVideoMetadata, onVideoError }: CanvasHostProps) {
+export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playing, onVideoMetadata, onVideoTime, onVideoEnded, onVideoError }: CanvasHostProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoState, setVideoState] = useState<GpuVideoState>("idle");
@@ -33,23 +37,30 @@ export function CanvasHost({ probe, videoFile, playing, onVideoMetadata, onVideo
     videoRef.current = video;
     const onMetadata = () => {
       onVideoMetadata({ width: video.videoWidth, height: video.videoHeight, duration: video.duration });
+    };
+    const onLoaded = () => {
       setVideoState("ready");
+      void video.play().then(() => video.pause()).catch(() => undefined);
     };
     const onError = () => {
       setVideoState("unsupported");
       onVideoError(`The browser could not decode ${videoFile.name} through its native media pipeline.`);
     };
     video.addEventListener("loadedmetadata", onMetadata);
+    video.addEventListener("loadeddata", onLoaded);
+    video.addEventListener("ended", onVideoEnded);
     video.addEventListener("error", onError);
     video.load();
     return () => {
       video.pause();
       video.removeEventListener("loadedmetadata", onMetadata);
+      video.removeEventListener("loadeddata", onLoaded);
+      video.removeEventListener("ended", onVideoEnded);
       video.removeEventListener("error", onError);
       URL.revokeObjectURL(objectUrl);
       if (videoRef.current === video) videoRef.current = null;
     };
-  }, [videoFile, onVideoError, onVideoMetadata]);
+  }, [videoFile, onVideoEnded, onVideoError, onVideoMetadata]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -119,6 +130,7 @@ export function CanvasHost({ probe, videoFile, playing, onVideoMetadata, onVideo
     let frameRequest = 0;
     const render = () => {
       if (!videoRef.current || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      onVideoTime(video.currentTime);
       device.queue.copyExternalImageToTexture(
         { source: video },
         { texture },
@@ -151,11 +163,11 @@ export function CanvasHost({ probe, videoFile, playing, onVideoMetadata, onVideo
       cancelAnimationFrame(frameRequest);
       texture.destroy();
     };
-  }, [probe, videoFile, videoState, onVideoError]);
+  }, [canvasHeight, canvasWidth, onVideoError, onVideoTime, probe, videoFile, videoState]);
 
   return (
     <div className="viewport-shell">
-      <canvas ref={canvasRef} className="gpu-canvas" aria-label="ReFusion GPU viewport" />
+      <canvas ref={canvasRef} className="gpu-canvas" style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }} aria-label="ReFusion GPU viewport" />
       <div className="viewport-status">
         <span className={`status-dot ${probe.state}`} />
         <div>
