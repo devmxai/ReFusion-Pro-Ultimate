@@ -80,8 +80,8 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
     const device = probe.device;
 
     const format = navigator.gpu.getPreferredCanvasFormat();
-    const width = Math.max(1, Math.floor(canvas.clientWidth * devicePixelRatio));
-    const height = Math.max(1, Math.floor(canvas.clientHeight * devicePixelRatio));
+    const width = Math.max(1, Math.floor(canvas.clientWidth * window.devicePixelRatio));
+    const height = Math.max(1, Math.floor(canvas.clientHeight * window.devicePixelRatio));
     canvas.width = width;
     canvas.height = height;
     context.configure({ device, format, alphaMode: "opaque" });
@@ -127,15 +127,42 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
       },
       primitive: { topology: "triangle-list" },
     });
+    const bindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: sampler }, { binding: 1, resource: texture.createView() }],
+    });
+    const onUncapturedError = (event: Event) => {
+      const error = (event as GPUUncapturedErrorEvent).error;
+      onVideoError(`WebGPU rejected a decoded video frame: ${error.message}`);
+    };
+    device.addEventListener("uncapturederror", onUncapturedError);
     let frameRequest = 0;
+    let stopped = false;
     const render = () => {
-      if (!videoRef.current || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (stopped || !videoRef.current || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       onVideoTime(video.currentTime);
-      device.queue.copyExternalImageToTexture(
-        { source: video },
-        { texture },
-        [textureWidth, textureHeight],
-      );
+      let frame: VideoFrame | null = null;
+      try {
+        // VideoFrame makes the browser's decoded frame explicit before the
+        // external-image copy. Older engines can still use the HTMLVideoElement.
+        let source: CanvasImageSource = video;
+        if (typeof VideoFrame === "function") {
+          try {
+            frame = new VideoFrame(video);
+            source = frame;
+          } catch {
+            // Some WebKit builds expose VideoFrame but do not allow constructing
+            // one from an HTMLVideoElement; the native source remains valid.
+          }
+        }
+        device.queue.copyExternalImageToTexture({ source, flipY: true }, { texture }, [textureWidth, textureHeight]);
+      } catch (error) {
+        stopped = true;
+        onVideoError(error instanceof Error ? `Video frame presentation failed: ${error.message}` : "Video frame presentation failed.");
+      } finally {
+        frame?.close();
+      }
+      if (stopped) return;
       const encoder = device.createCommandEncoder({ label: "refusion-video-frame" });
       const pass = encoder.beginRenderPass({
         colorAttachments: [{
@@ -146,10 +173,7 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
         }],
       });
       pass.setPipeline(pipeline);
-      pass.setBindGroup(0, device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [{ binding: 0, resource: sampler }, { binding: 1, resource: texture.createView() }],
-      }));
+      pass.setBindGroup(0, bindGroup);
       pass.draw(3);
       pass.end();
       device.queue.submit([encoder.finish()]);
@@ -160,14 +184,16 @@ export function CanvasHost({ probe, videoFile, canvasWidth, canvasHeight, playin
     };
     frameRequest = requestAnimationFrame(tick);
     return () => {
+      stopped = true;
       cancelAnimationFrame(frameRequest);
+      device.removeEventListener("uncapturederror", onUncapturedError);
       texture.destroy();
     };
   }, [canvasHeight, canvasWidth, onVideoError, onVideoTime, probe, videoFile, videoState]);
 
   return (
     <div className="viewport-shell">
-      <canvas ref={canvasRef} className="gpu-canvas" style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }} aria-label="ReFusion GPU viewport" />
+      <canvas ref={canvasRef} width={canvasWidth} height={canvasHeight} className="gpu-canvas" style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }} aria-label="ReFusion GPU viewport" />
       <div className="viewport-status">
         <span className={`status-dot ${probe.state}`} />
         <div>
